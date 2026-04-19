@@ -17,7 +17,7 @@ const CONFIG = {
     { type: 'd10', icon: 'fa-dice-d10', label: 'd10', sides: 10 },
     { type: 'd12', icon: 'fa-dice-d12', label: 'd12', sides: 12 },
     { type: 'd20', icon: 'fa-dice-d20', label: 'd20', sides: 20 },
-    { type: 'd100', icon: 'fa-dice-d100', label: 'd%', sides: 100 }
+    { type: 'd100', icon: null, label: 'd%', sides: 100 }
   ],
   MODIFIERS: [
     { id: 'advantage', label: 'Adv', icon: 'fa-arrow-up', formula: '2d20kh', tooltip: 'Advantage (2d20 keep highest)' },
@@ -118,10 +118,12 @@ class DiceTray {
     if (!game.settings.get(MODULE_ID, 'showTray')) return;
     const sidebar = document.querySelector('.chat-sidebar');
     if (sidebar && !sidebar.querySelector('.dice-tray-panel')) {
-      const chatForm = sidebar.querySelector('#chat-form');
+      const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        chatForm.before(tray);
+        const chatControls = chatForm.querySelector('#chat-controls');
+        if (chatControls) chatControls.before(tray);
+        else chatForm.insertBefore(tray, chatForm.firstChild);
         this._activateTrayListeners(tray);
       }
     }
@@ -145,20 +147,42 @@ class DiceTray {
    * @private
    */
   _onRenderChatLog(app, html) {
-    if (!game.settings.get(MODULE_ID, 'showTray')) return;
-
     const element = this._getElement(html);
     if (!element) return;
 
-    // Foundry V14 may pass the #chat-log element; traverse up to sidebar
-    const sidebar = element.closest?.('.chat-sidebar');
-    if (!sidebar || sidebar.querySelector('.dice-tray-panel')) return;
+    const sidebar = element.closest?.('.chat-sidebar') || element;
 
-    const chatForm = sidebar.querySelector('#chat-form');
-    if (chatForm) {
-      const tray = this._createTrayElement();
-      chatForm.before(tray);
-      this._activateTrayListeners(tray);
+    // Inject dice tray
+    if (game.settings.get(MODULE_ID, 'showTray') && !sidebar.querySelector('.dice-tray-panel')) {
+      const chatForm = sidebar.querySelector('form.chat-form');
+      if (chatForm) {
+        const tray = this._createTrayElement();
+        const chatControls = chatForm.querySelector('#chat-controls');
+        if (chatControls) chatControls.before(tray);
+        else chatForm.insertBefore(tray, chatForm.firstChild);
+        this._activateTrayListeners(tray);
+      }
+    }
+
+    // Inject calculator button (fallback since renderChatControls hook may not exist in V14)
+    if (game.settings.get(MODULE_ID, 'enableCalculator')) {
+      const chatControls = sidebar.querySelector('#chat-controls');
+      if (chatControls && !chatControls.querySelector('.dice-calculator-toggle')) {
+        const button = document.createElement('button');
+        button.type = 'button';
+        button.className = 'dice-calculator-toggle ui-control icon';
+        button.setAttribute('aria-label', 'Open Dice Calculator');
+        button.setAttribute('data-tooltip', 'Dice Calculator');
+        button.innerHTML = '<i class="fas fa-calculator"></i>';
+        button.addEventListener('click', () => this._toggleCalculator());
+
+        const controlButtons = chatControls.querySelector('.control-buttons');
+        if (controlButtons) {
+          controlButtons.after(button);
+        } else {
+          chatControls.appendChild(button);
+        }
+      }
     }
   }
 
@@ -169,19 +193,22 @@ class DiceTray {
   _onRenderChatControls(app, html) {
     if (!game.settings.get(MODULE_ID, 'enableCalculator')) return;
 
-    const controls = html[0] || html;
-    if (controls.querySelector('.dice-calculator-toggle')) return;
+    const controls = this._getElement(html) || html[0] || html;
+    if (!controls || controls.querySelector('.dice-calculator-toggle')) return;
 
     const button = document.createElement('button');
     button.type = 'button';
-    button.className = 'dice-calculator-toggle';
+    button.className = 'dice-calculator-toggle ui-control icon';
     button.setAttribute('aria-label', 'Open Dice Calculator');
+    button.setAttribute('data-tooltip', 'Dice Calculator');
     button.innerHTML = '<i class="fas fa-calculator"></i>';
     button.addEventListener('click', () => this._toggleCalculator());
 
-    const icon = controls.querySelector('.chat-control-icon');
-    if (icon) {
-      icon.after(button);
+    const controlButtons = controls.querySelector('.control-buttons');
+    if (controlButtons) {
+      controlButtons.after(button);
+    } else {
+      controls.appendChild(button);
     }
   }
 
@@ -207,32 +234,16 @@ class DiceTray {
       btn.dataset.dice = die.type;
       btn.dataset.sides = die.sides;
       btn.setAttribute('aria-label', `Roll ${die.label}`);
-      btn.setAttribute('title', `Roll ${die.label}`);
-      btn.innerHTML = `
-        <i class="fas ${die.icon}"></i>
-        <span class="dice-label">${die.label}</span>
-      `;
+      btn.setAttribute('data-tooltip', die.label);
+      if (die.icon) {
+        btn.innerHTML = `<i class="fas ${die.icon}"></i>`;
+      } else {
+        btn.textContent = die.label;
+      }
       diceRow.appendChild(btn);
     });
 
-    // Modifiers row
-    const modRow = document.createElement('div');
-    modRow.className = 'dice-tray-row modifiers';
-
-    CONFIG.MODIFIERS.forEach(mod => {
-      const btn = document.createElement('button');
-      btn.type = 'button';
-      btn.className = 'modifier-button';
-      btn.dataset.mod = mod.id;
-      btn.dataset.formula = mod.formula;
-      btn.setAttribute('aria-label', mod.tooltip);
-      btn.setAttribute('title', mod.tooltip);
-      btn.innerHTML = `<i class="fas ${mod.icon}"></i> ${mod.label}`;
-      modRow.appendChild(btn);
-    });
-
     panel.appendChild(diceRow);
-    panel.appendChild(modRow);
 
     return panel;
   }
@@ -243,43 +254,36 @@ class DiceTray {
    * @private
    */
   _activateTrayListeners(tray) {
-    // Dice buttons - left click to add, right click for quick roll
+    // Dice buttons - left click to roll, right click to add to input
     tray.querySelectorAll('.dice-tray-button').forEach(btn => {
       btn.addEventListener('click', (e) => this._onDiceClick(e));
       btn.addEventListener('contextmenu', (e) => this._onDiceRightClick(e));
       btn.addEventListener('auxclick', (e) => {
-        if (e.button === 1) this._onDiceMiddleClick(e); // Middle click
+        if (e.button === 1) this._onDiceMiddleClick(e);
       });
-    });
-
-    // Modifier buttons
-    tray.querySelectorAll('.modifier-button').forEach(btn => {
-      btn.addEventListener('click', (e) => this._onModifierClick(e));
     });
   }
 
   /**
-   * Handle dice button click (add to input)
+   * Handle dice button click (roll immediately)
    * @private
    */
   _onDiceClick(event) {
     const dice = event.currentTarget.dataset.dice;
-    const input = document.getElementById('chat-message');
-
-    if (input) {
-      this._appendToInput(input, `1${dice}`);
-      input.focus();
-    }
+    this._rollFormula(`1${dice}`);
   }
 
   /**
-   * Handle dice right click (quick roll)
+   * Handle dice right click (add to input)
    * @private
    */
   _onDiceRightClick(event) {
     event.preventDefault();
     const dice = event.currentTarget.dataset.dice;
-    this._rollFormula(`1${dice}`);
+    const input = document.getElementById('chat-message');
+    if (input) {
+      this._appendToInput(input, `1${dice}`);
+    }
   }
 
   /**
@@ -292,32 +296,6 @@ class DiceTray {
     if (input) {
       this._appendToInput(input, `1${dice}`);
     }
-  }
-
-  /**
-   * Handle modifier button click
-   * @private
-   */
-  _onModifierClick(event) {
-    const mod = event.currentTarget.dataset.mod;
-    const formula = event.currentTarget.dataset.formula;
-    const input = document.getElementById('chat-message');
-
-    if (!input) return;
-
-    const currentVal = input.value.trim();
-
-    // If empty or no dice in input, set full formula (for adv/dis)
-    if (!currentVal || (mod === 'advantage' || mod === 'disadvantage')) {
-      if (!currentVal.includes('d20')) {
-        input.value = formula;
-      }
-    } else if (currentVal.match(/d\d+/)) {
-      // Append modifier to existing dice
-      this._appendToInput(input, formula);
-    }
-
-    input.focus();
   }
 
   /**
@@ -361,10 +339,21 @@ class DiceTray {
       const roll = new Roll(formula);
       await roll.evaluate();
 
+      // Build speaker from selected token, or fall back to default
+      let speaker = ChatMessage.getSpeaker();
+      const selectedTokens = canvas?.tokens?.controlled ?? [];
+      if (selectedTokens.length > 0) {
+        const token = selectedTokens[0];
+        speaker = {
+          alias: token.name,
+          actor: token.id
+        };
+      }
+
       // Create chat message
       await roll.toMessage({
-        speaker: ChatMessage.getSpeaker(),
-        flavor: 'Quick Roll'
+        speaker,
+        flavor: formula
       });
 
       // Trigger 3D dice if Dice So Nice is active
