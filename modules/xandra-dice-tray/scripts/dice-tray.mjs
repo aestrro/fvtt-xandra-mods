@@ -54,6 +54,9 @@ class DiceTray {
 
     // System-specific hooks
     Hooks.on('diceSoNiceInit', game.diceTray._onDiceSoNiceInit.bind(game.diceTray));
+
+    // Fallback: inject tray if chat log already rendered
+    game.diceTray._injectTrayIfReady();
   }
 
   /**
@@ -108,22 +111,52 @@ class DiceTray {
   }
 
   /**
+   * Inject tray if chat interface already exists (fallback for late module init)
+   * @private
+   */
+  _injectTrayIfReady() {
+    if (!game.settings.get(MODULE_ID, 'showTray')) return;
+    const sidebar = document.querySelector('.chat-sidebar');
+    if (sidebar && !sidebar.querySelector('.dice-tray-panel')) {
+      const chatForm = sidebar.querySelector('#chat-form');
+      if (chatForm) {
+        const tray = this._createTrayElement();
+        chatForm.before(tray);
+        this._activateTrayListeners(tray);
+      }
+    }
+  }
+
+  /**
+   * Normalize Foundry's html argument to a plain HTMLElement
+   * @private
+   */
+  _getElement(html) {
+    if (html instanceof HTMLElement) return html;
+    if (html?.[0] instanceof HTMLElement) return html[0];
+    if (typeof html === 'string') return document.querySelector(html);
+    return null;
+  }
+
+  /**
    * Handle chat log render
    * @param {ChatLog} app - ChatLog application
-   * @param {HTMLElement} html - HTML element
+   * @param {HTMLElement|jQuery} html - HTML element
    * @private
    */
   _onRenderChatLog(app, html) {
     if (!game.settings.get(MODULE_ID, 'showTray')) return;
 
-    // Prevent duplicate injection using WeakSet or flag
-    const sidebar = html.closest('.chat-sidebar') || html[0]?.closest?.('.chat-sidebar');
+    const element = this._getElement(html);
+    if (!element) return;
+
+    // Foundry V14 may pass the #chat-log element; traverse up to sidebar
+    const sidebar = element.closest?.('.chat-sidebar');
     if (!sidebar || sidebar.querySelector('.dice-tray-panel')) return;
 
-    const tray = this._createTrayElement();
     const chatForm = sidebar.querySelector('#chat-form');
-
     if (chatForm) {
+      const tray = this._createTrayElement();
       chatForm.before(tray);
       this._activateTrayListeners(tray);
     }
