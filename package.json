@@ -1,0 +1,7 @@
+{
+  "name": "fvtt-xandra-mods",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Monorepo for Xandra's Foundry VTT modules",
+  "packageManager": "pnpm@10.0.0"
+}

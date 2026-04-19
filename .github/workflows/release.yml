@@ -1,0 +1,105 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - '*@v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Parse tag
+        id: parse
+        run: |
+          TAG=${GITHUB_REF#refs/tags/}
+          MODULE_NAME=$(echo "$TAG" | sed 's/@v.*//')
+          VERSION=$(echo "$TAG" | sed 's/.*@v//')
+          echo "MODULE_NAME=$MODULE_NAME" >> $GITHUB_OUTPUT
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
+          echo "Module: $MODULE_NAME, Version: $VERSION"
+
+      - name: Verify module exists
+        run: |
+          if [ ! -d "modules/${{ steps.parse.outputs.MODULE_NAME }}" ]; then
+            echo "Module not found: modules/${{ steps.parse.outputs.MODULE_NAME }}"
+            exit 1
+          fi
+
+      - name: Read module ID from manifest
+        id: manifest
+        working-directory: modules/${{ steps.parse.outputs.MODULE_NAME }}
+        run: |
+          MODULE_ID=$(node -e "console.log(JSON.parse(require('fs').readFileSync('module.json', 'utf8')).id)")
+          echo "MODULE_ID=$MODULE_ID" >> $GITHUB_OUTPUT
+          echo "Module ID: $MODULE_ID"
+
+      - name: Update module.json version and URLs
+        working-directory: modules/${{ steps.parse.outputs.MODULE_NAME }}
+        run: |
+          node -e "
+            const fs = require('fs');
+            const manifest = JSON.parse(fs.readFileSync('module.json', 'utf8'));
+            const repo = process.env.GITHUB_REPOSITORY;
+            const moduleName = '${{ steps.parse.outputs.MODULE_NAME }}';
+            const version = '${{ steps.parse.outputs.VERSION }}';
+            manifest.version = version;
+            manifest.download = \`https://github.com/\${repo}/releases/download/\${moduleName}@v\${version}/module.zip\`;
+            fs.writeFileSync('module.json', JSON.stringify(manifest, null, 2) + '\n');
+            console.log('Updated module.json for', moduleName, 'version', version);
+          "
+
+      - name: Commit updated module.json to main
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git stash push -m "module-bump" -- modules/${{ steps.parse.outputs.MODULE_NAME }}/module.json
+          git fetch origin main
+          git checkout main
+          git stash pop
+          
+          git add modules/${{ steps.parse.outputs.MODULE_NAME }}/module.json
+          git commit -m "chore: bump ${{ steps.parse.outputs.MODULE_NAME }} to v${{ steps.parse.outputs.VERSION }}"
+          git push origin main
+
+      - name: Create module zip
+        run: |
+          MODULE_NAME=${{ steps.parse.outputs.MODULE_NAME }}
+          MODULE_ID=${{ steps.manifest.outputs.MODULE_ID }}
+          mkdir -p dist/$MODULE_ID
+          cp -r modules/$MODULE_NAME/* dist/$MODULE_ID/
+          cd dist
+          zip -r module.zip $MODULE_ID/
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: "${{ steps.parse.outputs.MODULE_NAME }} v${{ steps.parse.outputs.VERSION }}"
+          files: |
+            dist/module.zip
+            modules/${{ steps.parse.outputs.MODULE_NAME }}/module.json
+          generate_release_notes: true

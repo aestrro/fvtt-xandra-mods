@@ -1,0 +1,36 @@
+{
+  "DICE_TRAY": {
+    "Title": "Dice Tray",
+    "Calculator": {
+      "Title": "Dice Calculator",
+      "Placeholder": "Enter dice formula...",
+      "Roll": "Roll",
+      "Clear": "Clear",
+      "Backspace": "Backspace",
+      "History": "History"
+    },
+    "Buttons": {
+      "Advantage": "Advantage",
+      "Disadvantage": "Disadvantage",
+      "KeepHighest": "Keep Highest",
+      "KeepLowest": "Keep Lowest"
+    },
+    "Settings": {
+      "ShowTray": {
+        "Name": "Show Dice Tray",
+        "Hint": "Display the dice tray below the chat interface"
+      },
+      "EnableCalculator": {
+        "Name": "Enable Calculator",
+        "Hint": "Show the dice calculator button in chat controls"
+      },
+      "AutoRoll": {
+        "Name": "Auto-Roll",
+        "Hint": "Automatically roll when a valid formula is entered (via tray or calculator)"
+      }
+    },
+    "Notifications": {
+      "InvalidFormula": "Invalid roll formula: {formula}"
+    }
+  }
+}

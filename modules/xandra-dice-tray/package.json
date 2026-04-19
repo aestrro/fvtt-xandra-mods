@@ -1,0 +1,6 @@
+{
+  "name": "xandra-dice-tray",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A modern, lightweight dice tray and calculator for Foundry VTT"
+}

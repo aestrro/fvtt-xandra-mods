@@ -1,0 +1,97 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          version: 10
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: 'pnpm'
+
+      - name: Install dependencies
+        run: pnpm install
+
+      - name: Discover and validate modules
+        run: |
+          node -e "
+            const fs = require('fs');
+            const path = require('path');
+            const modulesDir = './modules';
+
+            if (!fs.existsSync(modulesDir)) {
+              console.error('modules/ directory not found');
+              process.exit(1);
+            }
+
+            const modules = fs.readdirSync(modulesDir, { withFileTypes: true })
+              .filter(d => d.isDirectory())
+              .map(d => d.name);
+
+            if (modules.length === 0) {
+              console.error('No modules found in modules/');
+              process.exit(1);
+            }
+
+            let failed = false;
+
+            for (const mod of modules) {
+              const modPath = path.join(modulesDir, mod);
+              const manifestPath = path.join(modPath, 'module.json');
+
+              if (!fs.existsSync(manifestPath)) {
+                console.error('✗', mod, '- no module.json found');
+                failed = true;
+                continue;
+              }
+
+              let manifest;
+              try {
+                manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+                console.log('✓', mod, '- valid module.json');
+              } catch (e) {
+                console.error('✗', mod, '- invalid JSON:', e.message);
+                failed = true;
+                continue;
+              }
+
+              const files = [
+                ...manifest.esmodules || [],
+                ...manifest.styles || [],
+                ...((manifest.languages || []).map(l => l.path))
+              ];
+
+              for (const f of files) {
+                const filePath = path.join(modPath, f);
+                if (!fs.existsSync(filePath)) {
+                  console.error('  ✗ Missing:', f);
+                  failed = true;
+                } else {
+                  console.log('  ✓', f);
+                }
+              }
+            }
+
+            console.log('');
+            if (failed) {
+              console.error('Validation failed');
+              process.exit(1);
+            } else {
+              console.log('All modules valid!');
+            }
+          "

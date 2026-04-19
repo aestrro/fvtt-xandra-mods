@@ -1,0 +1,34 @@
+{
+  "id": "xandra-dice-tray",
+  "title": "Xandra's Dice Tray",
+  "description": "A modern, lightweight dice tray and calculator for Foundry VTT v14. Adds a clean dice tray below chat and a dice calculator accessible from the chat controls.",
+  "version": "0.1.0",
+  "authors": [
+    {
+      "name": "Clean Modules",
+      "discord": "clean#0000"
+    }
+  ],
+  "compatibility": {
+    "minimum": "14.360",
+    "verified": "14.360"
+  },
+  "esmodules": [
+    "scripts/dice-tray.mjs"
+  ],
+  "styles": [
+    "styles/dice-tray.css"
+  ],
+  "languages": [
+    {
+      "lang": "en",
+      "name": "English",
+      "path": "lang/en.json"
+    }
+  ],
+  "url": "https://github.com/aestrro/fvtt-xandra-mods",
+  "manifest": "https://raw.githubusercontent.com/aestrro/fvtt-xandra-mods/main/modules/xandra-dice-tray/module.json",
+  "download": "https://github.com/aestrro/fvtt-xandra-mods/releases/download/xandra-dice-tray@v0.1.0/module.zip",
+  "license": "MIT",
+  "readme": "README.md"
+}

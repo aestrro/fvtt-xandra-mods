@@ -1,0 +1,39 @@
+<form class="calculator-grid" autocomplete="off">
+  <div class="calc-display-row">
+    <input type="text" class="calc-display" value="{{formula}}" placeholder="Enter dice formula..." autocomplete="off">
+    {{#if hasHistory}}
+    <button type="button" class="calc-history" title="View History"><i class="fas fa-history"></i></button>
+    {{/if}}
+  </div>
+
+  <div class="calc-buttons">
+    <!-- Dice Row -->
+    {{#each dice}}
+    <button type="button" class="calc-btn calc-dice" data-value="{{this}}">{{this}}</button>
+    {{/each}}
+
+    <!-- Numbers 1-9 -->
+    {{#each numbers}}
+    <button type="button" class="calc-btn calc-num" data-value="{{this}}">{{this}}</button>
+    {{/each}}
+
+    <!-- Bottom row -->
+    <button type="button" class="calc-btn calc-clear" title="Clear (C)">C</button>
+    <button type="button" class="calc-btn calc-num" data-value="0">0</button>
+    <button type="button" class="calc-btn calc-backspace" title="Backspace"><i class="fas fa-backspace"></i></button>
+
+    <!-- Operators -->
+    {{#each operators}}
+    <button type="button" class="calc-btn calc-op" data-value="{{this}}">{{this}}</button>
+    {{/each}}
+
+    <!-- Special -->
+    <button type="button" class="calc-btn calc-op" data-value="(">(</button>
+    <button type="button" class="calc-btn calc-op" data-value=")">)</button>
+    <button type="button" class="calc-btn calc-op" data-value="kh">kh</button>
+    <button type="button" class="calc-btn calc-op" data-value="kl">kl</button>
+
+    <!-- Roll Button -->
+    <button type="button" class="calc-btn calc-roll"><i class="fas fa-dice-d20"></i> Roll (Enter)</button>
+  </div>
+</form>

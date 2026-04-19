@@ -1,0 +1,338 @@
+/* Xandra's Dice Tray - Modern Styles for Foundry V14 */
+
+/* Main Tray Container */
+.dice-tray-panel {
+  background: var(--color-background-darker, rgba(0, 0, 0, 0.5));
+  border-top: 1px solid var(--color-border-light-primary, #b5b3a4);
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+/* Dice Rows */
+.dice-tray-row {
+  display: flex;
+  gap: 4px;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+
+.dice-tray-row.primary-dice {
+  gap: 6px;
+}
+
+/* Dice Buttons */
+.dice-tray-button {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  background: linear-gradient(135deg, var(--color-background-button, #4b4a44) 0%, var(--color-background-button-hover, #3e3d38) 100%);
+  border: 1px solid var(--color-border-dark, #1a1a1a);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  color: var(--color-text-light-highlight, #f0f0e0);
+  position: relative;
+  overflow: hidden;
+}
+
+.dice-tray-button:hover {
+  background: linear-gradient(135deg, var(--color-background-button-hover, #3e3d38) 0%, var(--color-background-button-active, #2e2d29) 100%);
+  border-color: var(--color-border-highlight, #ff0000);
+  transform: translateY(-2px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
+.dice-tray-button:active {
+  transform: translateY(0);
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.4);
+}
+
+.dice-tray-button i {
+  font-size: 1.4em;
+  margin-bottom: 2px;
+}
+
+.dice-tray-button .dice-label {
+  font-size: 0.7em;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+/* Modifier Buttons */
+.modifier-button {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 6px 10px;
+  background: var(--color-background-button, #4b4a44);
+  border: 1px solid var(--color-border-dark, #1a1a1a);
+  border-radius: 4px;
+  color: var(--color-text-light-primary, #b5b3a4);
+  font-size: 0.85em;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.modifier-button:hover {
+  background: var(--color-background-button-hover, #3e3d38);
+  color: var(--color-text-light-highlight, #f0f0e0);
+  border-color: var(--color-border-highlight, #ff0000);
+}
+
+.modifier-button i {
+  font-size: 0.9em;
+}
+
+/* Calculator Toggle Button */
+.dice-calculator-toggle {
+  background: transparent;
+  border: none;
+  color: var(--color-text-light-primary, #b5b3a4);
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.dice-calculator-toggle:hover {
+  color: var(--color-text-light-highlight, #f0f0e0);
+  background: var(--color-background-button-hover, rgba(255, 255, 255, 0.1));
+}
+
+.dice-calculator-toggle i {
+  font-size: 1.1em;
+}
+
+/* Calculator Application */
+.dice-tray-calculator .window-content {
+  background: var(--color-background-darker, rgba(0, 0, 0, 0.9));
+  padding: 12px;
+}
+
+.calculator-grid {
+  display: grid;
+  gap: 8px;
+}
+
+/* Calculator Display */
+.calc-display-row {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+}
+
+.calc-display {
+  width: 100%;
+  padding: 10px;
+  font-size: 1.2em;
+  font-family: monospace;
+  background: var(--color-background-dark, rgba(0, 0, 0, 0.6));
+  border: 2px solid var(--color-border-dark-primary, #5d5c54);
+  border-radius: 4px;
+  color: var(--color-text-light-highlight, #f0f0e0);
+  text-align: right;
+}
+
+/* Calculator Buttons Grid */
+.calc-buttons {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 6px;
+}
+
+.calc-btn {
+  padding: 12px;
+  background: var(--color-background-button, #4b4a44);
+  border: 1px solid var(--color-border-dark, #1a1a1a);
+  border-radius: 4px;
+  color: var(--color-text-light-primary, #b5b3a4);
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.calc-btn:hover {
+  background: var(--color-background-button-hover, #3e3d38);
+  color: var(--color-text-light-highlight, #f0f0e0);
+  transform: scale(1.05);
+}
+
+.calc-btn:active {
+  transform: scale(0.95);
+}
+
+/* Specific Button Types */
+.calc-dice {
+  background: linear-gradient(135deg, #5d4b3a 0%, #4b3a2a 100%);
+  color: #e0c090;
+}
+
+.calc-dice:hover {
+  background: linear-gradient(135deg, #6d5b4a 0%, #5d4a3a 100%);
+  color: #f0d0a0;
+}
+
+.calc-op {
+  background: linear-gradient(135deg, #3a4a5d 0%, #2a3a4b 100%);
+  color: #90c0e0;
+  font-size: 1.2em;
+}
+
+.calc-op:hover {
+  background: linear-gradient(135deg, #4a5a6d 0%, #3a4a5b 100%);
+  color: #a0d0f0;
+}
+
+.calc-clear {
+  background: linear-gradient(135deg, #5d3a3a 0%, #4b2a2a 100%);
+  color: #e09090;
+}
+
+.calc-clear:hover {
+  background: linear-gradient(135deg, #6d4a4a 0%, #5d3a3a 100%);
+  color: #f0a0a0;
+}
+
+.calc-roll {
+  grid-column: span 2;
+  background: linear-gradient(135deg, #3a5d3a 0%, #2a4b2a 100%);
+  color: #90e090;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+
+.calc-roll:hover {
+  background: linear-gradient(135deg, #4a6d4a 0%, #3a5d3a 100%);
+  color: #a0f0a0;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 400px) {
+  .dice-tray-button {
+    width: 38px;
+    height: 38px;
+  }
+
+  .dice-tray-button i {
+    font-size: 1.2em;
+  }
+
+  .modifier-button {
+    padding: 4px 6px;
+    font-size: 0.75em;
+  }
+}
+
+/* Animation for button presses */
+@keyframes buttonPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.dice-tray-button.clicked,
+.calc-btn.clicked {
+  animation: buttonPress 0.15s ease;
+}
+
+/* Accessibility - Focus indicators */
+.dice-tray-button:focus-visible,
+.modifier-button:focus-visible,
+.calc-btn:focus-visible {
+  outline: 2px solid var(--color-border-highlight, #ff0000);
+  outline-offset: 2px;
+}
+
+/* Dark mode compatibility */
+[data-theme="dark"] .dice-tray-panel {
+  background: rgba(0, 0, 0, 0.7);
+  border-color: #444;
+}
+
+/* Calculator Display Row */
+.calc-display-row {
+  grid-column: 1 / -1;
+  margin-bottom: 8px;
+  display: flex;
+  gap: 6px;
+  align-items: stretch;
+}
+
+.calc-display {
+  flex: 1;
+  padding: 10px 12px;
+  font-size: 1.2em;
+  font-family: 'Courier New', monospace;
+  background: var(--color-background-dark, rgba(0, 0, 0, 0.6));
+  border: 2px solid var(--color-border-dark-primary, #5d5c54);
+  border-radius: 4px;
+  color: var(--color-text-light-highlight, #f0f0e0);
+  text-align: right;
+  transition: border-color 0.2s ease;
+}
+
+.calc-display:focus {
+  outline: none;
+  border-color: var(--color-border-highlight, #ff0000);
+  box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.2);
+}
+
+/* History button */
+.calc-history {
+  padding: 0 12px;
+  background: var(--color-background-button, #4b4a44);
+  border: 1px solid var(--color-border-dark, #1a1a1a);
+  border-radius: 4px;
+  color: var(--color-text-light-primary, #b5b3a4);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.calc-history:hover {
+  background: var(--color-background-button-hover, #3e3d38);
+  color: var(--color-text-light-highlight, #f0f0e0);
+}
+
+/* Ensure roll button spans properly */
+.calc-roll {
+  grid-column: span 2;
+}
+
+/* Active state for buttons */
+.dice-tray-button.active,
+.modifier-button.active {
+  background: var(--color-border-highlight, #ff0000);
+  color: white;
+  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* Tooltip enhancement */
+.dice-tray-button:hover::after,
+.modifier-button:hover::after {
+  content: attr(title);
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  transform: translateX(-50%);
+  padding: 4px 8px;
+  background: rgba(0, 0, 0, 0.9);
+  color: #fff;
+  font-size: 0.75em;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  margin-bottom: 4px;
+  z-index: 100;
+}
