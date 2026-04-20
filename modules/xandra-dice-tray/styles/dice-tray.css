@@ -351,40 +351,4 @@
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Sidebar Resize Grabber */
-.sidebar-grabber {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 6px;
-  cursor: ew-resize;
-  background: transparent;
-  z-index: 70;
-  transition: background 0.15s ease;
-}
-
-.sidebar-grabber:hover,
-.sidebar-grabber.dragging {
-  background: var(--color-border-highlight, #ff0000);
-}
-
-.sidebar-grabber::after {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 50%;
-  transform: translateY(-50%);
-  width: 2px;
-  height: 40px;
-  background: var(--color-text-light-primary, #b5b3a4);
-  border-radius: 1px;
-  opacity: 0.3;
-  transition: opacity 0.15s ease;
-}
-
-.sidebar-grabber:hover::after,
-.sidebar-grabber.dragging::after {
-  opacity: 1;
-  background: #fff;
-}
+/* Tooltip enhancement uses Foundry's native data-tooltip system */
