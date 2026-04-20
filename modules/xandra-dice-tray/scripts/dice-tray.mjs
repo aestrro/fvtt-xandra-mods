@@ -35,6 +35,13 @@ class DiceTray {
     this.settings = {};
     this.calculator = null;
     this._trayInjected = false;
+    this.queue = {};
+    CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
+
+    // Sidebar grabber drag state
+    this._sidebarDragging = false;
+    this._sidebarDragStartX = 0;
+    this._sidebarDragStartWidth = 0;
   }
 
   /**
@@ -54,6 +61,11 @@ class DiceTray {
 
     // System-specific hooks
     Hooks.on('diceSoNiceInit', game.diceTray._onDiceSoNiceInit.bind(game.diceTray));
+
+    // Sidebar resize grabber
+    game.diceTray._initSidebarGrabber();
+    game.diceTray._injectSidebarGrabber();
+    Hooks.on('renderSidebar', () => game.diceTray._injectSidebarGrabber());
 
     // Fallback: inject tray if chat log already rendered
     game.diceTray._injectTrayIfReady();
@@ -92,10 +104,32 @@ class DiceTray {
       default: false
     });
 
+    game.settings.register(MODULE_ID, 'enableSidebarResize', {
+      name: 'Enable Sidebar Resize Handle',
+      hint: 'Show a draggable handle on the left edge of the sidebar to adjust its width',
+      scope: 'client',
+      config: true,
+      type: Boolean,
+      default: true,
+      onChange: value => this._toggleSidebarGrabber(value)
+    });
+
+    game.settings.register(MODULE_ID, 'sidebarWidth', {
+      name: 'Sidebar Width',
+      hint: 'Sidebar width in pixels (300–600)',
+      scope: 'client',
+      config: true,
+      type: Number,
+      default: 300,
+      range: { min: 300, max: 600, step: 10 }
+    });
+
     this.settings = {
       showTray: game.settings.get(MODULE_ID, 'showTray'),
       enableCalculator: game.settings.get(MODULE_ID, 'enableCalculator'),
-      autoRoll: game.settings.get(MODULE_ID, 'autoRoll')
+      autoRoll: game.settings.get(MODULE_ID, 'autoRoll'),
+      enableSidebarResize: game.settings.get(MODULE_ID, 'enableSidebarResize'),
+      sidebarWidth: game.settings.get(MODULE_ID, 'sidebarWidth')
     };
   }
 
@@ -108,6 +142,92 @@ class DiceTray {
     if (tray) {
       tray.style.display = game.settings.get(MODULE_ID, 'showTray') ? 'flex' : 'none';
     }
+  }
+
+  /**
+   * Initialize global sidebar grabber drag listeners (called once)
+   * @private
+   */
+  _initSidebarGrabber() {
+    document.addEventListener('mousemove', (e) => {
+      if (!this._sidebarDragging) return;
+      const delta = this._sidebarDragStartX - e.clientX;
+      let newWidth = this._sidebarDragStartWidth + delta;
+      newWidth = Math.max(300, Math.min(600, newWidth));
+      const sidebar = ui.sidebar?.element;
+      if (sidebar) {
+        sidebar.style.width = `${newWidth}px`;
+        sidebar.style.setProperty('--sidebar-width', `${newWidth}px`);
+      }
+    });
+
+    document.addEventListener('mouseup', () => {
+      if (!this._sidebarDragging) return;
+      this._sidebarDragging = false;
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      const grabber = ui.sidebar?.element?.querySelector('.sidebar-grabber');
+      if (grabber) grabber.classList.remove('dragging');
+      const sidebar = ui.sidebar?.element;
+      if (sidebar) {
+        const width = sidebar.offsetWidth;
+        game.settings.set(MODULE_ID, 'sidebarWidth', width);
+      }
+    });
+  }
+
+  /**
+   * Inject sidebar resize grabber into the DOM
+   * @private
+   */
+  _injectSidebarGrabber() {
+    if (!game.settings.get(MODULE_ID, 'enableSidebarResize')) return;
+    const sidebar = ui.sidebar?.element;
+    if (!sidebar || sidebar.querySelector('.sidebar-grabber')) return;
+
+    const grabber = document.createElement('div');
+    grabber.className = 'sidebar-grabber';
+    grabber.setAttribute('aria-label', 'Resize Sidebar');
+    grabber.setAttribute('role', 'slider');
+
+    sidebar.style.position = 'relative';
+    sidebar.appendChild(grabber);
+
+    grabber.addEventListener('mousedown', (e) => {
+      this._sidebarDragging = true;
+      this._sidebarDragStartX = e.clientX;
+      this._sidebarDragStartWidth = sidebar.offsetWidth;
+      document.body.style.cursor = 'ew-resize';
+      document.body.style.userSelect = 'none';
+      grabber.classList.add('dragging');
+      e.preventDefault();
+    });
+
+    // Apply saved width on inject
+    const savedWidth = game.settings.get(MODULE_ID, 'sidebarWidth');
+    if (savedWidth && savedWidth >= 300 && savedWidth <= 600) {
+      sidebar.style.width = `${savedWidth}px`;
+      sidebar.style.setProperty('--sidebar-width', `${savedWidth}px`);
+    }
+  }
+
+  /**
+   * Remove sidebar grabber from the DOM
+   * @private
+   */
+  _removeSidebarGrabber() {
+    const grabber = ui.sidebar?.element?.querySelector('.sidebar-grabber');
+    if (grabber) grabber.remove();
+  }
+
+  /**
+   * Toggle sidebar grabber visibility
+   * @param {boolean} enabled
+   * @private
+   */
+  _toggleSidebarGrabber(enabled) {
+    if (enabled) this._injectSidebarGrabber();
+    else this._removeSidebarGrabber();
   }
 
   /**
@@ -223,9 +343,9 @@ class DiceTray {
     panel.setAttribute('role', 'toolbar');
     panel.setAttribute('aria-label', 'Dice Tray');
 
-    // Primary dice row
+    // Dice row
     const diceRow = document.createElement('div');
-    diceRow.className = 'dice-tray-row primary-dice';
+    diceRow.className = 'dice-tray-row';
 
     CONFIG.DICE_TYPES.forEach(die => {
       const btn = document.createElement('button');
@@ -235,15 +355,39 @@ class DiceTray {
       btn.dataset.sides = die.sides;
       btn.setAttribute('aria-label', `Roll ${die.label}`);
       btn.setAttribute('data-tooltip', die.label);
+
       if (die.icon) {
         btn.innerHTML = `<i class="fas ${die.icon}"></i>`;
       } else {
         btn.textContent = die.label;
       }
+
+      const badge = document.createElement('span');
+      badge.className = 'dice-count';
+      badge.textContent = '0';
+      btn.appendChild(badge);
+
       diceRow.appendChild(btn);
     });
 
+    // Actions row
+    const actionsRow = document.createElement('div');
+    actionsRow.className = 'dice-tray-row actions';
+
+    const rollBtn = document.createElement('button');
+    rollBtn.type = 'button';
+    rollBtn.className = 'action-button roll-button';
+    rollBtn.innerHTML = '<i class="fas fa-dice-d20"></i> Roll';
+    actionsRow.appendChild(rollBtn);
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'action-button clear-button';
+    clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+    actionsRow.appendChild(clearBtn);
+
     panel.appendChild(diceRow);
+    panel.appendChild(actionsRow);
 
     return panel;
   }
@@ -254,47 +398,72 @@ class DiceTray {
    * @private
    */
   _activateTrayListeners(tray) {
-    // Dice buttons - left click to roll, right click to add to input
+    const panel = tray.closest('.dice-tray-panel');
+
+    // Dice buttons: left click increment, right click decrement
     tray.querySelectorAll('.dice-tray-button').forEach(btn => {
-      btn.addEventListener('click', (e) => this._onDiceClick(e));
-      btn.addEventListener('contextmenu', (e) => this._onDiceRightClick(e));
-      btn.addEventListener('auxclick', (e) => {
-        if (e.button === 1) this._onDiceMiddleClick(e);
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        const dice = btn.dataset.dice;
+        this.queue[dice]++;
+        this._updateDieBadge(btn);
+      });
+
+      btn.addEventListener('contextmenu', (e) => {
+        e.preventDefault();
+        const dice = btn.dataset.dice;
+        this.queue[dice] = Math.max(0, this.queue[dice] - 1);
+        this._updateDieBadge(btn);
       });
     });
+
+    // Action buttons
+    const rollBtn = panel?.querySelector('.roll-button');
+    if (rollBtn) rollBtn.addEventListener('click', () => this._rollQueue());
+
+    const clearBtn = panel?.querySelector('.clear-button');
+    if (clearBtn) clearBtn.addEventListener('click', () => this._clearQueue(panel));
   }
 
   /**
-   * Handle dice button click (roll immediately)
+   * Update the count badge on a die button
    * @private
    */
-  _onDiceClick(event) {
-    const dice = event.currentTarget.dataset.dice;
-    this._rollFormula(`1${dice}`);
-  }
-
-  /**
-   * Handle dice right click (add to input)
-   * @private
-   */
-  _onDiceRightClick(event) {
-    event.preventDefault();
-    const dice = event.currentTarget.dataset.dice;
-    const input = document.getElementById('chat-message');
-    if (input) {
-      this._appendToInput(input, `1${dice}`);
+  _updateDieBadge(btn) {
+    const dice = btn.dataset.dice;
+    const badge = btn.querySelector('.dice-count');
+    if (badge) {
+      badge.textContent = this.queue[dice];
+      badge.classList.toggle('visible', this.queue[dice] > 0);
     }
   }
 
   /**
-   * Handle dice middle click (add without switching focus)
+   * Roll all queued dice
    * @private
    */
-  _onDiceMiddleClick(event) {
-    const dice = event.currentTarget.dataset.dice;
-    const input = document.getElementById('chat-message');
-    if (input) {
-      this._appendToInput(input, `1${dice}`);
+  _rollQueue() {
+    const parts = [];
+    for (const [type, count] of Object.entries(this.queue)) {
+      if (count > 0) parts.push(`${count}${type}`);
+    }
+    if (parts.length === 0) {
+      ui.notifications.warn('No dice selected');
+      return;
+    }
+    const formula = parts.join(' + ');
+    this._rollFormula(formula);
+    this._clearQueue(document.querySelector('.dice-tray-panel'));
+  }
+
+  /**
+   * Clear the queue and hide badges
+   * @private
+   */
+  _clearQueue(panel) {
+    CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
+    if (panel) {
+      panel.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
     }
   }
 
@@ -337,7 +506,6 @@ class DiceTray {
   async _rollFormula(formula) {
     try {
       const roll = new Roll(formula);
-      await roll.evaluate();
 
       // Build speaker from selected token, or fall back to default
       let speaker = ChatMessage.getSpeaker();
@@ -350,16 +518,13 @@ class DiceTray {
         };
       }
 
-      // Create chat message
+      // Create chat message — toMessage handles evaluation and Dice So Nice automatically
       await roll.toMessage({
         speaker,
         flavor: formula
+      }, {
+        rollMode: game.settings.get('core', 'rollMode')
       });
-
-      // Trigger 3D dice if Dice So Nice is active
-      if (game.dice3d) {
-        await game.dice3d.showForRoll(roll);
-      }
     } catch (err) {
       console.error(`${MODULE_ID} | Roll error:`, err);
       ui.notifications.error(`Invalid roll formula: ${formula}`);

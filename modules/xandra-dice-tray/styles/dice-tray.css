@@ -6,10 +6,11 @@
   border-top: 1px solid var(--color-border-light-primary, #b5b3a4);
   padding: 4px 0;
   display: flex;
-  flex-direction: row;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   width: 100%;
+  gap: 2px;
 }
 
 /* Dice Row */
@@ -30,30 +31,52 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   min-height: 28px;
-  background: linear-gradient(135deg, var(--color-background-button, #4b4a44) 0%, var(--color-background-button-hover, #3e3d38) 100%);
-  border: 1px solid var(--color-border-dark, #1a1a1a);
-  border-radius: 6px;
+  background: var(--color-background-button, #4b4a44);
+  border: none;
+  border-radius: 4px;
   cursor: pointer;
-  transition: all 0.2s ease;
-  color: var(--color-text-light-highlight, #f0f0e0);
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+  color: var(--color-text-light-primary, #b5b3a4);
   position: relative;
   overflow: visible;
   font-size: 0.75em;
   font-weight: 700;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .dice-tray-button:hover {
-  background: linear-gradient(135deg, var(--color-background-button-hover, #3e3d38) 0%, var(--color-background-button-active, #2e2d29) 100%);
-  border-color: var(--color-border-highlight, #ff0000);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+  background: var(--color-background-button-hover, #3e3d38);
+  color: var(--color-text-light-highlight, #f0f0e0);
+  box-shadow: inset 0 0 0 1px var(--color-border-highlight, #ff0000);
 }
 
 .dice-tray-button:active {
-  box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.6);
+  background: var(--color-background-button-active, #2e2d29);
+  box-shadow: inset 0 0 0 2px var(--color-border-highlight, #ff0000);
 }
 
 .dice-tray-button i {
   font-size: 1.2em;
+}
+
+/* Count badge */
+.dice-count {
+  position: absolute;
+  top: 2px;
+  right: 2px;
+  background: var(--color-border-highlight, #ff0000);
+  color: #fff;
+  font-size: 1.1em;
+  font-weight: 700;
+  padding: 2px 5px;
+  border-radius: 3px;
+  line-height: 1;
+  display: none;
+  pointer-events: none;
+}
+
+.dice-count.visible {
+  display: block;
 }
 
 /* Tooltip uses Foundry's native data-tooltip system */
@@ -187,6 +210,55 @@
   color: #a0f0a0;
 }
 
+/* Actions Row */
+.dice-tray-row.actions {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 1px;
+  width: 100%;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 4px;
+  background: var(--color-background-button, #4b4a44);
+  border: none;
+  border-radius: 4px;
+  color: var(--color-text-light-primary, #b5b3a4);
+  cursor: pointer;
+  font-size: 0.75em;
+  font-weight: 700;
+  transition: background 0.12s ease, box-shadow 0.12s ease;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+}
+
+.action-button:hover {
+  color: var(--color-text-light-highlight, #f0f0e0);
+}
+
+.roll-button {
+  background: #2a3a2a;
+  color: #90e090;
+}
+
+.roll-button:hover {
+  background: #3a5d3a;
+  box-shadow: inset 0 0 0 1px #90e090;
+}
+
+.clear-button {
+  background: #3a2a2a;
+  color: #e09090;
+}
+
+.clear-button:hover {
+  background: #5d3a3a;
+  box-shadow: inset 0 0 0 1px #e09090;
+}
+
 /* Responsive Adjustments */
 @media (max-width: 400px) {
   .dice-tray-button {
@@ -279,4 +351,40 @@
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
-/* Tooltip enhancement uses Foundry's native data-tooltip system */
+/* Sidebar Resize Grabber */
+.sidebar-grabber {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: ew-resize;
+  background: transparent;
+  z-index: 70;
+  transition: background 0.15s ease;
+}
+
+.sidebar-grabber:hover,
+.sidebar-grabber.dragging {
+  background: var(--color-border-highlight, #ff0000);
+}
+
+.sidebar-grabber::after {
+  content: '';
+  position: absolute;
+  left: 2px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 2px;
+  height: 40px;
+  background: var(--color-text-light-primary, #b5b3a4);
+  border-radius: 1px;
+  opacity: 0.3;
+  transition: opacity 0.15s ease;
+}
+
+.sidebar-grabber:hover::after,
+.sidebar-grabber.dragging::after {
+  opacity: 1;
+  background: #fff;
+}
