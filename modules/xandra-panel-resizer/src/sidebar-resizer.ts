@@ -49,7 +49,7 @@ export class SidebarResizer {
 
     console.log('Xandra Panel Resizer | Adding resizer to sidebar');
     
-    this.sidebar.classList.add('sp-sidebar-resizable');
+
     
     this.createGrabber();
     this.restoreWidth();
@@ -83,9 +83,10 @@ export class SidebarResizer {
     if (!sidebarContent) return;
 
     const rect = sidebarContent.getBoundingClientRect();
+    const grabberWidth = 4;
     
-    // Position at left edge of sidebar-content (inside the sidebar)
-    this.grabber.style.left = `${rect.left}px`;
+    // Position grabber ON the divider between tabs and content (not over content)
+    this.grabber.style.left = `${rect.left - grabberWidth}px`;
     this.grabber.style.top = `${rect.top}px`;
     this.grabber.style.height = `${rect.height}px`;
   }
