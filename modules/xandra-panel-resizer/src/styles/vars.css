@@ -1,0 +1,24 @@
+/* ============================================
+   Sample Plugin - CSS Variables
+   ============================================ */
+
+body.sp-sidebar-enabled {
+  /* Core Colors - Dark Mode (Default) */
+  --sp-bg-chat: #0f0f0f;
+  --sp-bg-card: #1a1a1a;
+  --sp-bg-card-hover: #222222;
+  --sp-border-color: #2a2a2a;
+  --sp-border-color-hover: #3a3a3a;
+  
+  /* Accent */
+  --sp-accent-primary: #6366f1;
+  
+  /* Light mode */
+  &.theme-light {
+    --sp-bg-chat: #f5f5f5;
+    --sp-bg-card: #ffffff;
+    --sp-bg-card-hover: #fafafa;
+    --sp-border-color: #e5e7eb;
+    --sp-border-color-hover: #d1d5db;
+  }
+}

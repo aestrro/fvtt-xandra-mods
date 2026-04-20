@@ -1,0 +1,25 @@
+{
+  "SAMPLE_PLUGIN": {
+    "Settings": {
+      "Enabled": {
+        "Name": "Enable Professional Chat",
+        "Hint": "Apply SaaS-style chat enhancements"
+      },
+      "ShowAvatars": {
+        "Name": "Show Speaker Avatars",
+        "Hint": "Display actor portraits next to chat messages"
+      },
+      "ColorCoding": {
+        "Name": "Message Type Colors",
+        "Hint": "Show colored left borders for different message types"
+      },
+      "CompactMode": {
+        "Name": "Compact Mode",
+        "Hint": "Reduce padding for denser chat"
+      }
+    },
+    "Notifications": {
+      "Applied": "Professional Chat styling applied!"
+    }
+  }
+}

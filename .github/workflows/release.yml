@@ -83,12 +83,50 @@ jobs:
           git commit -m "chore: bump ${{ steps.parse.outputs.MODULE_NAME }} to v${{ steps.parse.outputs.VERSION }}"
           git push origin main
 
+      - name: Build module if needed
+        run: |
+          MODULE_NAME=${{ steps.parse.outputs.MODULE_NAME }}
+          if [ -f "modules/$MODULE_NAME/package.json" ]; then
+            HAS_BUILD=$(node -e "const pkg=require('./modules/$MODULE_NAME/package.json'); console.log(pkg.scripts && pkg.scripts.build ? '1' : '0')")
+            if [ "$HAS_BUILD" = "1" ]; then
+              echo "Building $MODULE_NAME..."
+              pnpm --filter $MODULE_NAME build
+            else
+              echo "No build script found for $MODULE_NAME"
+            fi
+          else
+            echo "No package.json found for $MODULE_NAME"
+          fi
+
       - name: Create module zip
         run: |
           MODULE_NAME=${{ steps.parse.outputs.MODULE_NAME }}
           MODULE_ID=${{ steps.manifest.outputs.MODULE_ID }}
           mkdir -p dist/$MODULE_ID
-          cp -r modules/$MODULE_NAME/* dist/$MODULE_ID/
+          
+          # If the module has a dist folder, use that as the source
+          if [ -d "modules/$MODULE_NAME/dist" ] && [ -f "modules/$MODULE_NAME/dist/module.json" ]; then
+            echo "Using dist/ folder for $MODULE_NAME"
+            cp -r modules/$MODULE_NAME/dist/* dist/$MODULE_ID/
+            # Strip dist/ prefixes from manifest paths since dist/ becomes the module root in the zip
+            node -e "
+              const fs = require('fs');
+              const manifestPath = 'dist/$MODULE_ID/module.json';
+              const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+              const stripDist = (p) => typeof p === 'string' ? p.replace(/^dist\//, '') : p;
+              if (manifest.esmodules) manifest.esmodules = manifest.esmodules.map(stripDist);
+              if (manifest.styles) manifest.styles = manifest.styles.map(stripDist);
+              if (manifest.languages) {
+                manifest.languages = manifest.languages.map(l => ({ ...l, path: stripDist(l.path) }));
+              }
+              fs.writeFileSync(manifestPath, JSON.stringify(manifest, null, 2) + '\n');
+              console.log('Rewrote manifest paths for dist-less zip root');
+            "
+          else
+            echo "Using module root for $MODULE_NAME"
+            cp -r modules/$MODULE_NAME/* dist/$MODULE_ID/
+          fi
+          
           cd dist
           zip -r module.zip $MODULE_ID/
 

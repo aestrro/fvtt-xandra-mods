@@ -1,0 +1,15 @@
+{
+  "name": "xandra-panel-resizer",
+  "version": "0.1.0",
+  "description": "Foundry VTT module: draggable sidebar resizer",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && node scripts/build.mjs",
+    "build:watch": "tsc --watch",
+    "dev": "node scripts/build.mjs --watch",
+    "clean": "rimraf dist"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2"
+  }
+}

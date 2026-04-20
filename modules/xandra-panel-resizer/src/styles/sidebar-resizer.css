@@ -1,0 +1,39 @@
+/* ============================================
+   Sidebar Resizer Styles - Minimal
+   ============================================ */
+
+/* Sidebar width constraints */
+#sidebar.sp-sidebar-resizable {
+  min-width: 200px;
+  max-width: 600px;
+}
+
+/* The grabber handle - fixed position */
+.sp-sidebar-grabber {
+  position: fixed;
+  width: 12px;
+  cursor: col-resize;
+  z-index: 99999;
+  background: transparent;
+  border-left: 3px solid rgba(99, 102, 241, 0.5);
+  transition: border-color 0.15s ease;
+}
+
+.sp-sidebar-grabber:hover {
+  border-left-color: rgba(99, 102, 241, 0.9);
+}
+
+body.sp-sidebar-dragging .sp-sidebar-grabber {
+  border-left-color: rgba(99, 102, 241, 1);
+}
+
+/* Cursor during drag */
+body.sp-sidebar-dragging {
+  cursor: col-resize !important;
+  user-select: none;
+}
+
+body.sp-sidebar-dragging * {
+  cursor: col-resize !important;
+  user-select: none !important;
+}
