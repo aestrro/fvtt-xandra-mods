@@ -74,6 +74,12 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           
+          # Check if module.json was actually modified by the version bump
+          if git diff --quiet -- modules/${{ steps.parse.outputs.MODULE_NAME }}/module.json; then
+            echo "No changes to module.json — skipping commit"
+            exit 0
+          fi
+          
           git stash push -m "module-bump" -- modules/${{ steps.parse.outputs.MODULE_NAME }}/module.json
           git fetch origin main
           git checkout main
