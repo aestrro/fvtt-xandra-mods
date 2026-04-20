@@ -25,6 +25,19 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
+      - name: Build modules that need it
+        run: |
+          for dir in modules/*/; do
+            if [ -f "$dir/package.json" ]; then
+              HAS_BUILD=$(node -e "const pkg=require('./$dir/package.json'); console.log(pkg.scripts && pkg.scripts.build ? '1' : '0')")
+              if [ "$HAS_BUILD" = "1" ]; then
+                MOD=$(basename "$dir")
+                echo "Building $MOD..."
+                pnpm --filter "$MOD" build || true
+              fi
+            fi
+          done
+
       - name: Discover and validate modules
         run: |
           node -e "
