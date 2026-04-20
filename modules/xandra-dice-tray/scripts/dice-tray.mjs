@@ -37,11 +37,6 @@ class DiceTray {
     this._trayInjected = false;
     this.queue = {};
     CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
-
-    // Sidebar grabber drag state
-    this._sidebarDragging = false;
-    this._sidebarDragStartX = 0;
-    this._sidebarDragStartWidth = 0;
   }
 
   /**
@@ -61,11 +56,6 @@ class DiceTray {
 
     // System-specific hooks
     Hooks.on('diceSoNiceInit', game.diceTray._onDiceSoNiceInit.bind(game.diceTray));
-
-    // Sidebar resize grabber
-    game.diceTray._initSidebarGrabber();
-    game.diceTray._injectSidebarGrabber();
-    Hooks.on('renderSidebar', () => game.diceTray._injectSidebarGrabber());
 
     // Fallback: inject tray if chat log already rendered
     game.diceTray._injectTrayIfReady();
@@ -104,32 +94,10 @@ class DiceTray {
       default: false
     });
 
-    game.settings.register(MODULE_ID, 'enableSidebarResize', {
-      name: 'Enable Sidebar Resize Handle',
-      hint: 'Show a draggable handle on the left edge of the sidebar to adjust its width',
-      scope: 'client',
-      config: true,
-      type: Boolean,
-      default: true,
-      onChange: value => this._toggleSidebarGrabber(value)
-    });
-
-    game.settings.register(MODULE_ID, 'sidebarWidth', {
-      name: 'Sidebar Width',
-      hint: 'Sidebar width in pixels (300–600)',
-      scope: 'client',
-      config: true,
-      type: Number,
-      default: 300,
-      range: { min: 300, max: 600, step: 10 }
-    });
-
     this.settings = {
       showTray: game.settings.get(MODULE_ID, 'showTray'),
       enableCalculator: game.settings.get(MODULE_ID, 'enableCalculator'),
-      autoRoll: game.settings.get(MODULE_ID, 'autoRoll'),
-      enableSidebarResize: game.settings.get(MODULE_ID, 'enableSidebarResize'),
-      sidebarWidth: game.settings.get(MODULE_ID, 'sidebarWidth')
+      autoRoll: game.settings.get(MODULE_ID, 'autoRoll')
     };
   }
 
@@ -142,92 +110,6 @@ class DiceTray {
     if (tray) {
       tray.style.display = game.settings.get(MODULE_ID, 'showTray') ? 'flex' : 'none';
     }
-  }
-
-  /**
-   * Initialize global sidebar grabber drag listeners (called once)
-   * @private
-   */
-  _initSidebarGrabber() {
-    document.addEventListener('mousemove', (e) => {
-      if (!this._sidebarDragging) return;
-      const delta = this._sidebarDragStartX - e.clientX;
-      let newWidth = this._sidebarDragStartWidth + delta;
-      newWidth = Math.max(300, Math.min(600, newWidth));
-      const sidebar = ui.sidebar?.element;
-      if (sidebar) {
-        sidebar.style.width = `${newWidth}px`;
-        sidebar.style.setProperty('--sidebar-width', `${newWidth}px`);
-      }
-    });
-
-    document.addEventListener('mouseup', () => {
-      if (!this._sidebarDragging) return;
-      this._sidebarDragging = false;
-      document.body.style.cursor = '';
-      document.body.style.userSelect = '';
-      const grabber = ui.sidebar?.element?.querySelector('.sidebar-grabber');
-      if (grabber) grabber.classList.remove('dragging');
-      const sidebar = ui.sidebar?.element;
-      if (sidebar) {
-        const width = sidebar.offsetWidth;
-        game.settings.set(MODULE_ID, 'sidebarWidth', width);
-      }
-    });
-  }
-
-  /**
-   * Inject sidebar resize grabber into the DOM
-   * @private
-   */
-  _injectSidebarGrabber() {
-    if (!game.settings.get(MODULE_ID, 'enableSidebarResize')) return;
-    const sidebar = ui.sidebar?.element;
-    if (!sidebar || sidebar.querySelector('.sidebar-grabber')) return;
-
-    const grabber = document.createElement('div');
-    grabber.className = 'sidebar-grabber';
-    grabber.setAttribute('aria-label', 'Resize Sidebar');
-    grabber.setAttribute('role', 'slider');
-
-    sidebar.style.position = 'relative';
-    sidebar.appendChild(grabber);
-
-    grabber.addEventListener('mousedown', (e) => {
-      this._sidebarDragging = true;
-      this._sidebarDragStartX = e.clientX;
-      this._sidebarDragStartWidth = sidebar.offsetWidth;
-      document.body.style.cursor = 'ew-resize';
-      document.body.style.userSelect = 'none';
-      grabber.classList.add('dragging');
-      e.preventDefault();
-    });
-
-    // Apply saved width on inject
-    const savedWidth = game.settings.get(MODULE_ID, 'sidebarWidth');
-    if (savedWidth && savedWidth >= 300 && savedWidth <= 600) {
-      sidebar.style.width = `${savedWidth}px`;
-      sidebar.style.setProperty('--sidebar-width', `${savedWidth}px`);
-    }
-  }
-
-  /**
-   * Remove sidebar grabber from the DOM
-   * @private
-   */
-  _removeSidebarGrabber() {
-    const grabber = ui.sidebar?.element?.querySelector('.sidebar-grabber');
-    if (grabber) grabber.remove();
-  }
-
-  /**
-   * Toggle sidebar grabber visibility
-   * @param {boolean} enabled
-   * @private
-   */
-  _toggleSidebarGrabber(enabled) {
-    if (enabled) this._injectSidebarGrabber();
-    else this._removeSidebarGrabber();
   }
 
   /**
