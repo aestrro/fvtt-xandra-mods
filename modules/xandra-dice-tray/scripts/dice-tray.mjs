@@ -116,37 +116,61 @@ class DiceTray {
    * Inject tray if chat interface already exists (fallback for late module init)
    * @private
    */
-  _injectTrayIfReady() {
-    if (!game.settings.get(MODULE_ID, 'showTray')) return;
-    const sidebar = document.querySelector('.chat-sidebar');
-    if (sidebar && !sidebar.querySelector('.dice-tray-panel')) {
-      const chatForm = sidebar.querySelector('form.chat-form');
-      if (chatForm) {
-        const tray = this._createTrayElement();
-        const chatMessage = chatForm.querySelector('#chat-message');
-        if (chatMessage) {
-          const inject = () => {
-            const mc = chatMessage.querySelector('.menu-container');
-            if (mc && !mc.previousElementSibling?.classList.contains('dice-tray-panel')) {
-              mc.before(tray);
-              this._activateTrayListeners(tray);
-              return true;
-            }
-            return false;
-          };
-          if (!inject()) {
-            const obs = new MutationObserver(() => { if (inject()) obs.disconnect(); });
-            obs.observe(chatMessage, { childList: true, subtree: true });
-            setTimeout(() => obs.disconnect(), 3000);
-          }
-        } else {
-          const chatControls = chatForm.querySelector('#chat-controls');
-          if (chatControls) chatControls.after(tray);
-          else chatForm.insertBefore(tray, chatForm.firstChild);
-          this._activateTrayListeners(tray);
+  /**
+   * Wait for #chat-message to appear inside the form, then inject tray before .menu-container
+   * @private
+   */
+  _waitAndInjectTray(chatForm) {
+    const tray = this._createTrayElement();
+
+    const doInject = (chatMessage) => {
+      const mc = chatMessage.querySelector('.menu-container');
+      if (mc && !mc.previousElementSibling?.classList.contains('dice-tray-panel')) {
+        mc.before(tray);
+        this._activateTrayListeners(tray);
+        return true;
+      }
+      return false;
+    };
+
+    const chatMessage = chatForm.querySelector('#chat-message');
+    if (chatMessage) {
+      if (!doInject(chatMessage)) {
+        const obs = new MutationObserver(() => { if (doInject(chatMessage)) obs.disconnect(); });
+        obs.observe(chatMessage, { childList: true, subtree: true });
+        setTimeout(() => obs.disconnect(), 3000);
+      }
+      return;
+    }
+
+    // #chat-message not rendered yet — watch the form until it appears
+    const obs = new MutationObserver(() => {
+      const cm = chatForm.querySelector('#chat-message');
+      if (cm) {
+        obs.disconnect();
+        if (!doInject(cm)) {
+          const obs2 = new MutationObserver(() => { if (doInject(cm)) obs2.disconnect(); });
+          obs2.observe(cm, { childList: true, subtree: true });
+          setTimeout(() => obs2.disconnect(), 3000);
         }
       }
-    }
+    });
+    obs.observe(chatForm, { childList: true });
+    setTimeout(() => obs.disconnect(), 5000);
+  }
+
+  /**
+   * Inject tray if chat interface already exists (fallback for late module init)
+   * @private
+   */
+  _injectTrayIfReady() {
+    if (!game.settings.get(MODULE_ID, 'showTray')) return;
+
+    const sidebar = document.getElementById('sidebar');
+    if (!sidebar || sidebar.querySelector('.dice-tray-panel')) return;
+
+    const chatForm = sidebar.querySelector('form.chat-form');
+    if (chatForm) this._waitAndInjectTray(chatForm);
   }
 
   /**
@@ -170,42 +194,18 @@ class DiceTray {
     const element = this._getElement(html);
     if (!element) return;
 
-    const sidebar = element.closest?.('.chat-sidebar') || element;
+    const sidebar = element.closest?.('#sidebar') || document.getElementById('sidebar');
 
     // Inject dice tray before the chat message menu container so it
     // shows/hides with the prose-mirror editor as the sidebar expands/collapses
     if (game.settings.get(MODULE_ID, 'showTray') && !sidebar.querySelector('.dice-tray-panel')) {
       const chatForm = sidebar.querySelector('form.chat-form');
-      if (chatForm) {
-        const tray = this._createTrayElement();
-        const chatMessage = chatForm.querySelector('#chat-message');
-        if (chatMessage) {
-          const inject = () => {
-            const mc = chatMessage.querySelector('.menu-container');
-            if (mc && !mc.previousElementSibling?.classList.contains('dice-tray-panel')) {
-              mc.before(tray);
-              this._activateTrayListeners(tray);
-              return true;
-            }
-            return false;
-          };
-          if (!inject()) {
-            const obs = new MutationObserver(() => { if (inject()) obs.disconnect(); });
-            obs.observe(chatMessage, { childList: true, subtree: true });
-            setTimeout(() => obs.disconnect(), 3000);
-          }
-        } else {
-          const chatControls = chatForm.querySelector('#chat-controls');
-          if (chatControls) chatControls.after(tray);
-          else chatForm.insertBefore(tray, chatForm.firstChild);
-          this._activateTrayListeners(tray);
-        }
-      }
+      if (chatForm) this._waitAndInjectTray(chatForm);
     }
 
     // Inject calculator button (fallback since renderChatControls hook may not exist in V14)
     if (game.settings.get(MODULE_ID, 'enableCalculator')) {
-      const chatControls = sidebar.querySelector('#chat-controls');
+      const chatControls = sidebar.querySelector('#chat-controls') || document.querySelector('#sidebar #chat-controls');
       if (chatControls && !chatControls.querySelector('.dice-calculator-toggle')) {
         const button = document.createElement('button');
         button.type = 'button';
