@@ -123,14 +123,28 @@ class DiceTray {
       const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        const menuContainer = chatForm.querySelector('#chat-message .menu-container');
-        if (menuContainer) menuContainer.before(tray);
-        else {
+        const chatMessage = chatForm.querySelector('#chat-message');
+        if (chatMessage) {
+          const inject = () => {
+            const mc = chatMessage.querySelector('.menu-container');
+            if (mc && !mc.previousElementSibling?.classList.contains('dice-tray-panel')) {
+              mc.before(tray);
+              this._activateTrayListeners(tray);
+              return true;
+            }
+            return false;
+          };
+          if (!inject()) {
+            const obs = new MutationObserver(() => { if (inject()) obs.disconnect(); });
+            obs.observe(chatMessage, { childList: true, subtree: true });
+            setTimeout(() => obs.disconnect(), 3000);
+          }
+        } else {
           const chatControls = chatForm.querySelector('#chat-controls');
           if (chatControls) chatControls.after(tray);
           else chatForm.insertBefore(tray, chatForm.firstChild);
+          this._activateTrayListeners(tray);
         }
-        this._activateTrayListeners(tray);
       }
     }
   }
@@ -164,14 +178,28 @@ class DiceTray {
       const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        const menuContainer = chatForm.querySelector('#chat-message .menu-container');
-        if (menuContainer) menuContainer.before(tray);
-        else {
+        const chatMessage = chatForm.querySelector('#chat-message');
+        if (chatMessage) {
+          const inject = () => {
+            const mc = chatMessage.querySelector('.menu-container');
+            if (mc && !mc.previousElementSibling?.classList.contains('dice-tray-panel')) {
+              mc.before(tray);
+              this._activateTrayListeners(tray);
+              return true;
+            }
+            return false;
+          };
+          if (!inject()) {
+            const obs = new MutationObserver(() => { if (inject()) obs.disconnect(); });
+            obs.observe(chatMessage, { childList: true, subtree: true });
+            setTimeout(() => obs.disconnect(), 3000);
+          }
+        } else {
           const chatControls = chatForm.querySelector('#chat-controls');
           if (chatControls) chatControls.after(tray);
           else chatForm.insertBefore(tray, chatForm.firstChild);
+          this._activateTrayListeners(tray);
         }
-        this._activateTrayListeners(tray);
       }
     }
 
