@@ -123,9 +123,13 @@ class DiceTray {
       const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        const chatControls = chatForm.querySelector('#chat-controls');
-        if (chatControls) chatControls.before(tray);
-        else chatForm.insertBefore(tray, chatForm.firstChild);
+        const menuContainer = chatForm.querySelector('#chat-message .menu-container');
+        if (menuContainer) menuContainer.before(tray);
+        else {
+          const chatControls = chatForm.querySelector('#chat-controls');
+          if (chatControls) chatControls.before(tray);
+          else chatForm.insertBefore(tray, chatForm.firstChild);
+        }
         this._activateTrayListeners(tray);
       }
     }
@@ -154,14 +158,19 @@ class DiceTray {
 
     const sidebar = element.closest?.('.chat-sidebar') || element;
 
-    // Inject dice tray
+    // Inject dice tray before the chat message menu container so it
+    // shows/hides with the prose-mirror editor as the sidebar expands/collapses
     if (game.settings.get(MODULE_ID, 'showTray') && !sidebar.querySelector('.dice-tray-panel')) {
       const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        const chatControls = chatForm.querySelector('#chat-controls');
-        if (chatControls) chatControls.before(tray);
-        else chatForm.insertBefore(tray, chatForm.firstChild);
+        const menuContainer = chatForm.querySelector('#chat-message .menu-container');
+        if (menuContainer) menuContainer.before(tray);
+        else {
+          const chatControls = chatForm.querySelector('#chat-controls');
+          if (chatControls) chatControls.before(tray);
+          else chatForm.insertBefore(tray, chatForm.firstChild);
+        }
         this._activateTrayListeners(tray);
       }
     }
