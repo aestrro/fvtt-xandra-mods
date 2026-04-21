@@ -163,10 +163,14 @@ class DiceTray {
    * Inject tray if chat interface already exists (fallback for late module init)
    * @private
    */
+  _getSidebarElement() {
+    return ui.sidebar?.element || document.getElementById('sidebar');
+  }
+
   _injectTrayIfReady() {
     if (!game.settings.get(MODULE_ID, 'showTray')) return;
 
-    const sidebar = document.getElementById('sidebar');
+    const sidebar = this._getSidebarElement();
     if (!sidebar || sidebar.querySelector('.dice-tray-panel')) return;
 
     const chatForm = sidebar.querySelector('form.chat-form');
@@ -194,7 +198,8 @@ class DiceTray {
     const element = this._getElement(html);
     if (!element) return;
 
-    const sidebar = element.closest?.('#sidebar') || document.getElementById('sidebar');
+    const sidebar = this._getSidebarElement();
+    if (!sidebar) return;
 
     // Inject dice tray before the chat message menu container so it
     // shows/hides with the prose-mirror editor as the sidebar expands/collapses
@@ -205,7 +210,7 @@ class DiceTray {
 
     // Inject calculator button (fallback since renderChatControls hook may not exist in V14)
     if (game.settings.get(MODULE_ID, 'enableCalculator')) {
-      const chatControls = sidebar.querySelector('#chat-controls') || document.querySelector('#sidebar #chat-controls');
+      const chatControls = sidebar.querySelector('#chat-controls');
       if (chatControls && !chatControls.querySelector('.dice-calculator-toggle')) {
         const button = document.createElement('button');
         button.type = 'button';
