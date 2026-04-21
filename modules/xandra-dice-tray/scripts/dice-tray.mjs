@@ -163,18 +163,13 @@ class DiceTray {
    * Inject tray if chat interface already exists (fallback for late module init)
    * @private
    */
-  _getSidebarElement() {
-    return ui.sidebar?.element || document.getElementById('sidebar');
-  }
-
   _injectTrayIfReady() {
     if (!game.settings.get(MODULE_ID, 'showTray')) return;
 
-    const sidebar = this._getSidebarElement();
-    if (!sidebar || sidebar.querySelector('.dice-tray-panel')) return;
+    const chatForm = document.querySelector('form.chat-form') || document.querySelector('form[data-application-part="input"]');
+    if (!chatForm || chatForm.querySelector('.dice-tray-panel')) return;
 
-    const chatForm = sidebar.querySelector('form.chat-form');
-    if (chatForm) this._waitAndInjectTray(chatForm);
+    this._waitAndInjectTray(chatForm);
   }
 
   /**
@@ -198,19 +193,16 @@ class DiceTray {
     const element = this._getElement(html);
     if (!element) return;
 
-    const sidebar = this._getSidebarElement();
-    if (!sidebar) return;
-
     // Inject dice tray before the chat message menu container so it
     // shows/hides with the prose-mirror editor as the sidebar expands/collapses
-    if (game.settings.get(MODULE_ID, 'showTray') && !sidebar.querySelector('.dice-tray-panel')) {
-      const chatForm = sidebar.querySelector('form.chat-form');
-      if (chatForm) this._waitAndInjectTray(chatForm);
+    const chatForm = document.querySelector('form.chat-form') || document.querySelector('form[data-application-part="input"]');
+    if (game.settings.get(MODULE_ID, 'showTray') && chatForm && !chatForm.querySelector('.dice-tray-panel')) {
+      this._waitAndInjectTray(chatForm);
     }
 
     // Inject calculator button (fallback since renderChatControls hook may not exist in V14)
     if (game.settings.get(MODULE_ID, 'enableCalculator')) {
-      const chatControls = sidebar.querySelector('#chat-controls');
+      const chatControls = document.querySelector('#chat-controls');
       if (chatControls && !chatControls.querySelector('.dice-calculator-toggle')) {
         const button = document.createElement('button');
         button.type = 'button';
