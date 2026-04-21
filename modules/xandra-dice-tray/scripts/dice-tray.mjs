@@ -123,8 +123,8 @@ class DiceTray {
       const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        const chatMessage = chatForm.querySelector('#chat-message');
-        if (chatMessage) chatMessage.before(tray);
+        const menuContainer = chatForm.querySelector('#chat-message .menu-container');
+        if (menuContainer) menuContainer.before(tray);
         else {
           const chatControls = chatForm.querySelector('#chat-controls');
           if (chatControls) chatControls.after(tray);
@@ -164,8 +164,8 @@ class DiceTray {
       const chatForm = sidebar.querySelector('form.chat-form');
       if (chatForm) {
         const tray = this._createTrayElement();
-        const chatMessage = chatForm.querySelector('#chat-message');
-        if (chatMessage) chatMessage.before(tray);
+        const menuContainer = chatForm.querySelector('#chat-message .menu-container');
+        if (menuContainer) menuContainer.before(tray);
         else {
           const chatControls = chatForm.querySelector('#chat-controls');
           if (chatControls) chatControls.after(tray);
