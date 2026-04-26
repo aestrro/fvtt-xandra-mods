@@ -117,46 +117,29 @@ class DiceTray {
    * @private
    */
   /**
-   * Wait for #chat-message to appear inside the form, then inject tray before .menu-container
+   * Inject tray into a prose-mirror#chat-message element.
+   * Expanded: before .menu-container. Collapsed: before .editor-container.
    * @private
    */
-  _waitAndInjectTray(chatForm) {
+  _injectTrayIntoChatMessage(chatMessage) {
+    if (chatMessage.querySelector('.dice-tray-panel')) return;
+
     const tray = this._createTrayElement();
+    const target = chatMessage.querySelector('.menu-container')
+      || chatMessage.querySelector('.editor-container');
 
-    const doInject = (chatMessage) => {
-      const mc = chatMessage.querySelector('.menu-container');
-      if (mc && !mc.previousElementSibling?.classList.contains('dice-tray-panel')) {
-        mc.before(tray);
-        this._activateTrayListeners(tray);
-        return true;
-      }
-      return false;
-    };
-
-    const chatMessage = chatForm.querySelector('#chat-message');
-    if (chatMessage) {
-      if (!doInject(chatMessage)) {
-        const obs = new MutationObserver(() => { if (doInject(chatMessage)) obs.disconnect(); });
-        obs.observe(chatMessage, { childList: true, subtree: true });
-        setTimeout(() => obs.disconnect(), 3000);
-      }
-      return;
+    if (target && !target.previousElementSibling?.classList.contains('dice-tray-panel')) {
+      target.before(tray);
+      this._activateTrayListeners(tray);
     }
+  }
 
-    // #chat-message not rendered yet — watch the form until it appears
-    const obs = new MutationObserver(() => {
-      const cm = chatForm.querySelector('#chat-message');
-      if (cm) {
-        obs.disconnect();
-        if (!doInject(cm)) {
-          const obs2 = new MutationObserver(() => { if (doInject(cm)) obs2.disconnect(); });
-          obs2.observe(cm, { childList: true, subtree: true });
-          setTimeout(() => obs2.disconnect(), 3000);
-        }
-      }
-    });
-    obs.observe(chatForm, { childList: true });
-    setTimeout(() => obs.disconnect(), 5000);
+  /**
+   * Inject into every prose-mirror#chat-message found in the document
+   * @private
+   */
+  _injectAllChatMessages() {
+    document.querySelectorAll('prose-mirror#chat-message').forEach(pm => this._injectTrayIntoChatMessage(pm));
   }
 
   /**
@@ -175,34 +158,29 @@ class DiceTray {
       return true;
     };
 
-    if (!tryInject()) {
-      let attempts = 0;
-      const timer = setInterval(() => {
-        attempts++;
-        if (tryInject()) clearInterval(timer);
-        else if (attempts > 50) clearInterval(timer); // 5s max
-      }, 100);
-    }
+    // Also inject into any collapsed chat inputs already in the DOM
+    this._injectAllChatMessages();
 
-    // Start persistent watcher to survive chat-form re-renders
+    // Start persistent watcher to survive sidebar expand/collapse
     this._startTrayWatcher();
   }
 
   /**
-   * Persistent watcher that re-injects the tray whenever it goes missing
+   * Persistent watcher that re-injects the tray whenever a prose-mirror appears or is recreated
    * @private
    */
   _startTrayWatcher() {
-    if (this._trayWatcher) return;
-    this._trayWatcher = setInterval(() => {
+    if (this._trayObserver) return;
+
+    const onMutations = () => {
       if (!game.settings.get(MODULE_ID, 'showTray')) return;
-      const sidebar = ui.sidebar?.element;
-      if (!sidebar) return;
-      const chatForm = sidebar.querySelector('form.chat-form');
-      if (chatForm && !chatForm.querySelector('.dice-tray-panel')) {
-        this._waitAndInjectTray(chatForm);
-      }
-    }, 2000);
+      this._injectAllChatMessages();
+    };
+
+    // Watch the entire UI-right area for prose-mirror elements being added/removed
+    const target = document.getElementById('ui-right') || document.body;
+    this._trayObserver = new MutationObserver(onMutations);
+    this._trayObserver.observe(target, { childList: true, subtree: true });
   }
 
   /**
@@ -226,14 +204,11 @@ class DiceTray {
     const element = this._getElement(html);
     if (!element) return;
 
-    // Inject dice tray before the chat message menu container so it
-    // shows/hides with the prose-mirror editor as the sidebar expands/collapses
-    const sidebar = ui.sidebar?.element;
-    const chatForm = sidebar?.querySelector('form.chat-form');
-    if (game.settings.get(MODULE_ID, 'showTray') && chatForm && !chatForm.querySelector('.dice-tray-panel')) {
-      this._waitAndInjectTray(chatForm);
+    // Inject dice tray into every prose-mirror#chat-message (expanded + collapsed)
+    if (game.settings.get(MODULE_ID, 'showTray')) {
+      this._injectAllChatMessages();
     }
-    // Ensure watcher is running (in case renderChatLog fires before ready)
+    // Ensure watcher is running
     this._startTrayWatcher();
 
     // Inject calculator button (fallback since renderChatControls hook may not exist in V14)
