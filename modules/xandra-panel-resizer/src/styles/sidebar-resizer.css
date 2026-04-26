@@ -2,12 +2,6 @@
    Sidebar Resizer Styles
    ============================================ */
 
-/* Sidebar width constraints */
-#sidebar.sp-sidebar-resizable {
-  min-width: 200px;
-  max-width: 600px;
-}
-
 /* Grabber handle - sits on the divider between tabs and content */
 .sp-sidebar-grabber {
   position: fixed;
@@ -27,7 +21,7 @@ body.sp-sidebar-dragging .sp-sidebar-grabber {
   border-left-color: rgba(99, 102, 241, 1);
 }
 
-/* Cursor during drag — only body, not every element */
+/* Cursor during drag */
 body.sp-sidebar-dragging {
   cursor: col-resize;
 }

@@ -13,13 +13,13 @@ export class Settings {
       name: 'Sidebar Width',
       hint: 'The width of the sidebar in pixels (200-600)',
       scope: 'client',
-      config: false, // Not shown in settings UI - controlled via drag
+      config: false,
       type: Number,
       default: 300,
       onChange: (value: number) => {
-        const sidebar = document.getElementById('sidebar');
+        const sidebar = ui.sidebar?.element;
         if (sidebar) {
-          sidebar.style.width = `${value}px`;
+          sidebar.style.setProperty('--sidebar-width', `${value}px`);
         }
       }
     });
@@ -48,9 +48,9 @@ export class Settings {
       onChange: async () => {
         await game.settings.set(this.MODULE_ID, 'sidebarWidth', 300);
         await game.settings.set(this.MODULE_ID, 'resetWidth', false);
-        const sidebar = document.getElementById('sidebar');
+        const sidebar = ui.sidebar?.element;
         if (sidebar) {
-          sidebar.style.width = '300px';
+          sidebar.style.setProperty('--sidebar-width', '300px');
         }
         ui.notifications?.info('Sidebar width reset to 300px');
       }
@@ -59,16 +59,10 @@ export class Settings {
     console.log('Xandra Panel Resizer: Settings registered');
   }
 
-  /**
-   * Get a setting value
-   */
   static get<T>(key: string): T {
     return game.settings.get(this.MODULE_ID, key) as T;
   }
 
-  /**
-   * Set a setting value
-   */
   static async set(key: string, value: unknown): Promise<void> {
     await game.settings.set(this.MODULE_ID, key, value);
   }
