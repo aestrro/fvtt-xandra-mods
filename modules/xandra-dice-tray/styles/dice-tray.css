@@ -10,14 +10,14 @@
   align-items: center;
   justify-content: center;
   width: 100%;
-  gap: 2px;
+  gap: 3px;
 }
 
 /* Dice Row */
 .dice-tray-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
-  gap: 1px;
+  gap: 2px;
   width: 100%;
   align-items: center;
   justify-items: center;
@@ -31,28 +31,24 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   min-height: 28px;
-  background: var(--color-background-button, #4b4a44);
+  background: #1a1a1a;
   border: none;
   border-radius: 4px;
   cursor: pointer;
-  transition: background 0.12s ease, box-shadow 0.12s ease;
-  color: var(--color-text-light-primary, #b5b3a4);
+  transition: background 0.12s ease;
+  color: #fff;
   position: relative;
   overflow: visible;
   font-size: 0.75em;
   font-weight: 700;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
 }
 
 .dice-tray-button:hover {
-  background: var(--color-background-button-hover, #3e3d38);
-  color: var(--color-text-light-highlight, #f0f0e0);
-  box-shadow: inset 0 0 0 1px var(--color-border-highlight, #ff0000);
+  background: #2a2a2a;
 }
 
 .dice-tray-button:active {
-  background: var(--color-background-button-active, #2e2d29);
-  box-shadow: inset 0 0 0 2px var(--color-border-highlight, #ff0000);
+  background: #3a3a3a;
 }
 
 .dice-tray-button i {
@@ -214,7 +210,7 @@
 .dice-tray-row.actions {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 1px;
+  gap: 2px;
   width: 100%;
 }
 
@@ -232,7 +228,6 @@
   font-size: 0.75em;
   font-weight: 700;
   transition: background 0.12s ease, box-shadow 0.12s ease;
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.06);
   width: 100%;
 }
 

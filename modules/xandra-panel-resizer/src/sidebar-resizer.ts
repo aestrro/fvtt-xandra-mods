@@ -112,7 +112,15 @@ export class SidebarResizer {
     this.grabber.className = 'sp-sidebar-grabber';
     this.grabber.setAttribute('title', 'Drag to resize sidebar');
     this.grabber.addEventListener('mousedown', this.onMouseDown.bind(this));
-    document.body.appendChild(this.grabber);
+
+    // Append to #sidebar with absolute positioning so we survive V14 transforms
+    const sidebar = ui.sidebar?.element;
+    if (sidebar) {
+      sidebar.style.position = 'relative';
+      sidebar.appendChild(this.grabber);
+    } else {
+      document.body.appendChild(this.grabber);
+    }
   }
 
   private static syncGrabberVisibility(): void {
@@ -136,12 +144,16 @@ export class SidebarResizer {
     const content = this.getSidebarContent();
     if (!content) return;
 
-    const rect = content.getBoundingClientRect();
-    const grabberWidth = 4;
+    const sidebar = ui.sidebar?.element;
+    if (!sidebar) return;
 
-    this.grabber.style.left = `${rect.left - grabberWidth}px`;
-    this.grabber.style.top = `${rect.top}px`;
-    this.grabber.style.height = `${rect.height}px`;
+    const sidebarRect = sidebar.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
+
+    // Position relative to sidebar (positioning context)
+    this.grabber.style.left = `${contentRect.left - sidebarRect.left}px`;
+    this.grabber.style.top = `${contentRect.top - sidebarRect.top}px`;
+    this.grabber.style.height = `${contentRect.height}px`;
   }
 
   /* ================================================================ */
