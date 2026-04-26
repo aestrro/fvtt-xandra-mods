@@ -14,6 +14,9 @@ declare const game: {
 };
 
 declare const ui: {
+  sidebar?: {
+    element: HTMLElement;
+  };
   notifications?: {
     info(message: string, options?: Record<string, unknown>): void;
     warn(message: string, options?: Record<string, unknown>): void;

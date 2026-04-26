@@ -1,156 +1,148 @@
 import { Settings } from './settings.js';
 
 /**
- * Sidebar Resizer - Adds a draggable handle to resize the sidebar
+ * Sidebar Resizer - Draggable handle to resize the sidebar via --sidebar-width.
+ * Only visible when #sidebar-content has the .expanded class.
  */
 export class SidebarResizer {
   static MODULE_ID = 'xandra-panel-resizer';
   static MIN_WIDTH = 200;
   static MAX_WIDTH = 600;
 
-  
-  private static sidebar: HTMLElement | null = null;
   private static grabber: HTMLElement | null = null;
   private static isDragging = false;
   private static startX = 0;
   private static startWidth = 0;
+  private static expandedObserver: MutationObserver | null = null;
 
   static init(): void {
-    console.log('Xandra Panel Resizer | SidebarResizer initializing...');
-    
-    Hooks.on('renderSidebar', this.onSidebarRender.bind(this));
-    
+    console.log('Xandra Panel Resizer | Initializing...');
+
     Hooks.once('ready', () => {
-      console.log('Xandra Panel Resizer | Setting up sidebar...');
-      this.setupSidebar();
+      this.setup();
     });
-    
-    // Update grabber position on window resize
+
     window.addEventListener('resize', () => this.updateGrabberPosition());
   }
 
-  private static setupSidebar(): void {
-    const enabled = Settings.get<boolean>('enableResizer');
-    if (!enabled) {
-      console.log('Xandra Panel Resizer | Resizer disabled in settings');
+  private static setup(): void {
+    if (!Settings.get<boolean>('enableResizer')) {
+      console.log('Xandra Panel Resizer | Disabled in settings');
       return;
     }
 
-    this.sidebar = document.getElementById('sidebar');
-    if (!this.sidebar) {
-      console.warn('Xandra Panel Resizer | Sidebar element not found');
+    const sidebar = ui.sidebar?.element;
+    if (!sidebar) {
+      console.warn('Xandra Panel Resizer | ui.sidebar.element not available');
       return;
     }
 
-    // Remove existing grabber if any
-    if (this.grabber) {
-      this.grabber.remove();
-    }
+    sidebar.classList.add('sp-sidebar-resizable');
 
-    console.log('Xandra Panel Resizer | Adding resizer to sidebar');
-    
-
-    
-    this.createGrabber();
     this.restoreWidth();
-    this.setupGlobalEvents();
-  }
+    this.createGrabber();
+    this.syncGrabberVisibility();
 
-  private static onSidebarRender(): void {
-    this.setupSidebar();
+    const content = sidebar.querySelector('#sidebar-content');
+    if (content) {
+      this.expandedObserver = new MutationObserver(() => this.syncGrabberVisibility());
+      this.expandedObserver.observe(content, { attributes: true, attributeFilter: ['class'] });
+    }
+
+    document.addEventListener('mousemove', this.onMouseMove.bind(this));
+    document.addEventListener('mouseup', this.onMouseUp.bind(this));
   }
 
   private static createGrabber(): void {
+    if (this.grabber) return;
+
     this.grabber = document.createElement('div');
     this.grabber.className = 'sp-sidebar-grabber';
     this.grabber.setAttribute('title', 'Drag to resize sidebar');
-    
     this.grabber.addEventListener('mousedown', this.onMouseDown.bind(this));
-    
-    // Append to body for fixed positioning
+
     document.body.appendChild(this.grabber);
-    
-    this.updateGrabberPosition();
-    
-    console.log('Xandra Panel Resizer | Grabber created');
+  }
+
+  private static syncGrabberVisibility(): void {
+    if (!this.grabber) return;
+
+    const sidebar = ui.sidebar?.element;
+    const content = sidebar?.querySelector('#sidebar-content');
+    const isExpanded = content?.classList.contains('expanded');
+
+    this.grabber.style.display = isExpanded ? 'block' : 'none';
+    if (isExpanded) this.updateGrabberPosition();
   }
 
   private static updateGrabberPosition(): void {
-    if (!this.grabber || !this.sidebar) return;
+    if (!this.grabber) return;
 
-    // Find sidebar-content element
-    const sidebarContent = this.sidebar.querySelector('#sidebar-content') || this.sidebar.querySelector('.sidebar-content');
-    if (!sidebarContent) return;
+    const sidebar = ui.sidebar?.element;
+    const content = sidebar?.querySelector('#sidebar-content') as HTMLElement | null;
+    if (!content) return;
 
-    const rect = sidebarContent.getBoundingClientRect();
+    const rect = content.getBoundingClientRect();
     const grabberWidth = 4;
-    
-    // Position grabber ON the divider between tabs and content (not over content)
+
     this.grabber.style.left = `${rect.left - grabberWidth}px`;
     this.grabber.style.top = `${rect.top}px`;
     this.grabber.style.height = `${rect.height}px`;
   }
 
-  private static restoreWidth(): void {
-    if (!this.sidebar) return;
+  private static getSidebarWidth(): number {
+    const sidebar = ui.sidebar?.element;
+    if (!sidebar) return 0;
+    const raw = getComputedStyle(sidebar).getPropertyValue('--sidebar-width').trim();
+    const parsed = parseInt(raw, 10);
+    return Number.isFinite(parsed) ? parsed : 0;
+  }
 
+  private static restoreWidth(): void {
     const savedWidth = Settings.get<number>('sidebarWidth');
     if (savedWidth && savedWidth >= this.MIN_WIDTH && savedWidth <= this.MAX_WIDTH) {
       this.setSidebarWidth(savedWidth);
-      console.log(`Xandra Panel Resizer | Restored sidebar width: ${savedWidth}px`);
+      console.log(`Xandra Panel Resizer | Restored --sidebar-width: ${savedWidth}px`);
     }
   }
 
   private static setSidebarWidth(width: number): void {
-    if (!this.sidebar) return;
-    
-    // Only set the sidebar width - let Foundry handle the content sizing
-    this.sidebar.style.width = `${width}px`;
-    
-    // Update grabber position
+    const sidebar = ui.sidebar?.element;
+    if (!sidebar) return;
+
+    sidebar.style.setProperty('--sidebar-width', `${width}px`);
     this.updateGrabberPosition();
   }
 
-  private static setupGlobalEvents(): void {
-    document.addEventListener('mousemove', this.onMouseMove.bind(this));
-    document.addEventListener('mouseup', this.onMouseUp.bind(this));
-  }
-
   private static onMouseDown(e: MouseEvent): void {
-    if (!this.sidebar) return;
-    
     e.preventDefault();
     e.stopPropagation();
-    
+
     this.isDragging = true;
     this.startX = e.clientX;
-    this.startWidth = this.sidebar.offsetWidth;
-    
+    this.startWidth = this.getSidebarWidth();
+
     document.body.classList.add('sp-sidebar-dragging');
-    
-    console.log('Xandra Panel Resizer | Drag started');
   }
 
   private static onMouseMove(e: MouseEvent): void {
-    if (!this.isDragging || !this.sidebar) return;
-    
+    if (!this.isDragging) return;
+
     const delta = this.startX - e.clientX;
     const newWidth = Math.max(this.MIN_WIDTH, Math.min(this.MAX_WIDTH, this.startWidth + delta));
-    
     this.setSidebarWidth(newWidth);
   }
 
   private static onMouseUp(): void {
     if (!this.isDragging) return;
-    
+
     this.isDragging = false;
     document.body.classList.remove('sp-sidebar-dragging');
-    
-    if (this.sidebar) {
-      const width = parseInt(this.sidebar.style.width, 10);
+
+    const width = this.getSidebarWidth();
+    if (width > 0) {
       Settings.set('sidebarWidth', width);
-      console.log(`Xandra Panel Resizer | Saved sidebar width: ${width}px`);
-      this.setSidebarWidth(width);
+      console.log(`Xandra Panel Resizer | Saved --sidebar-width: ${width}px`);
     }
   }
 }
