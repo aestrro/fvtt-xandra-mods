@@ -166,7 +166,7 @@ class DiceTray {
   _injectTrayIfReady() {
     if (!game.settings.get(MODULE_ID, 'showTray')) return;
 
-    const inject = () => {
+    const tryInject = () => {
       const sidebar = ui.sidebar?.element;
       if (!sidebar) return false;
       const chatForm = sidebar.querySelector('form.chat-form');
@@ -175,18 +175,34 @@ class DiceTray {
       return true;
     };
 
-    if (!inject()) {
-      // ui.sidebar may not be ready during the ready hook; poll briefly
+    if (!tryInject()) {
       let attempts = 0;
       const timer = setInterval(() => {
         attempts++;
-        if (inject()) {
-          clearInterval(timer);
-        } else if (attempts > 30) {
-          clearInterval(timer);
-        }
+        if (tryInject()) clearInterval(timer);
+        else if (attempts > 50) clearInterval(timer); // 5s max
       }, 100);
     }
+
+    // Start persistent watcher to survive chat-form re-renders
+    this._startTrayWatcher();
+  }
+
+  /**
+   * Persistent watcher that re-injects the tray whenever it goes missing
+   * @private
+   */
+  _startTrayWatcher() {
+    if (this._trayWatcher) return;
+    this._trayWatcher = setInterval(() => {
+      if (!game.settings.get(MODULE_ID, 'showTray')) return;
+      const sidebar = ui.sidebar?.element;
+      if (!sidebar) return;
+      const chatForm = sidebar.querySelector('form.chat-form');
+      if (chatForm && !chatForm.querySelector('.dice-tray-panel')) {
+        this._waitAndInjectTray(chatForm);
+      }
+    }, 2000);
   }
 
   /**
@@ -217,6 +233,8 @@ class DiceTray {
     if (game.settings.get(MODULE_ID, 'showTray') && chatForm && !chatForm.querySelector('.dice-tray-panel')) {
       this._waitAndInjectTray(chatForm);
     }
+    // Ensure watcher is running (in case renderChatLog fires before ready)
+    this._startTrayWatcher();
 
     // Inject calculator button (fallback since renderChatControls hook may not exist in V14)
     if (game.settings.get(MODULE_ID, 'enableCalculator')) {
