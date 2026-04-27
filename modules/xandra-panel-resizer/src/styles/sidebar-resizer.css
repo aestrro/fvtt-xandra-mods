@@ -8,19 +8,19 @@
   width: 6px;
   cursor: col-resize;
   z-index: 999999;
-  background: rgba(99, 102, 241, 0.15);
-  border-left: 3px solid rgba(99, 102, 241, 0.7);
+  background: #00000050;
+  border-left: 3px solid #00000050;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
 
 .sp-sidebar-grabber:hover {
-  background: rgba(99, 102, 241, 0.3);
-  border-left-color: rgba(99, 102, 241, 0.95);
+  background: #000000;
+  border-left-color: #000000;
 }
 
 body.sp-sidebar-dragging .sp-sidebar-grabber {
-  background: rgba(99, 102, 241, 0.4);
-  border-left-color: rgba(99, 102, 241, 1);
+  background: #000000;
+  border-left-color: #000000;
 }
 
 /* Cursor during drag */
