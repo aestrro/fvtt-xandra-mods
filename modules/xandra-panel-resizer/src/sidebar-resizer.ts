@@ -113,8 +113,14 @@ export class SidebarResizer {
     this.grabber.setAttribute('title', 'Drag to resize sidebar');
     this.grabber.addEventListener('mousedown', this.onMouseDown.bind(this));
 
-    // Append to body with fixed positioning so it floats above everything
-    document.body.appendChild(this.grabber);
+    // Append to #interface so it lives inside Foundry's UI layer, not body
+    const uiInterface = document.getElementById('interface');
+    if (uiInterface) {
+      uiInterface.style.position = 'relative';
+      uiInterface.appendChild(this.grabber);
+    } else {
+      document.body.appendChild(this.grabber);
+    }
   }
 
   private static syncGrabberVisibility(): void {
@@ -138,13 +144,20 @@ export class SidebarResizer {
     const content = this.getSidebarContent();
     if (!content) return;
 
-    const rect = content.getBoundingClientRect();
+    const contentRect = content.getBoundingClientRect();
     const grabberWidth = 6;
 
-    // Viewport coordinates since grabber is position:fixed on body
-    this.grabber.style.left = `${rect.left - grabberWidth}px`;
-    this.grabber.style.top = `${rect.top}px`;
-    this.grabber.style.height = `${rect.height}px`;
+    // Position relative to #interface (our positioning context)
+    const uiInterface = document.getElementById('interface');
+    if (uiInterface) {
+      const interfaceRect = uiInterface.getBoundingClientRect();
+      this.grabber.style.left = `${contentRect.left - interfaceRect.left - grabberWidth}px`;
+      this.grabber.style.top = `${contentRect.top - interfaceRect.top}px`;
+    } else {
+      this.grabber.style.left = `${contentRect.left - grabberWidth}px`;
+      this.grabber.style.top = `${contentRect.top}px`;
+    }
+    this.grabber.style.height = `${contentRect.height}px`;
   }
 
   /* ================================================================ */
