@@ -423,10 +423,10 @@ class DiceTray {
   _rollQueue() {
     let formula = this._buildFormula();
 
-    // In advantage/disadvantage mode with an empty queue, default to 1d20
+    // In advantage/disadvantage mode with an empty queue, default to 2d20
     if (!formula && this.rollMode !== 'normal') {
       const keep = this.rollMode === 'advantage' ? 'kh' : 'kl';
-      formula = `1d20${keep}`;
+      formula = `2d20${keep}`;
     }
 
     if (!formula) {

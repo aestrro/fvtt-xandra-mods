@@ -21,6 +21,7 @@ export class SidebarResizer {
   private static hasInitializedWidth = false;
   private static expandedObserver: MutationObserver | null = null;
   private static uiRightObserver: MutationObserver | null = null;
+  private static positionInterval: number | null = null;
 
   /* ================================================================ */
   /*  Public API                                                      */
@@ -125,11 +126,29 @@ export class SidebarResizer {
         this.hasInitializedWidth = true;
       }
       this.grabber.style.display = 'block';
-      // Sidebar expand may still be mid-transition; recalc immediately
-      // and again after the next paint to settle into the correct spot.
+
+      // Sidebar expand has a CSS transition (~250 ms).  Update the grabber
+      // position continuously for a short window so it tracks the sliding
+      // content and lands exactly on the divider instead of jumping from
+      // the collapsed position.
+      if (this.positionInterval) {
+        clearInterval(this.positionInterval);
+      }
       this.updateGrabberPosition();
-      requestAnimationFrame(() => this.updateGrabberPosition());
+      let frames = 0;
+      this.positionInterval = window.setInterval(() => {
+        this.updateGrabberPosition();
+        frames++;
+        if (frames >= 18) { // ~300 ms at 60 fps
+          clearInterval(this.positionInterval!);
+          this.positionInterval = null;
+        }
+      }, 16);
     } else {
+      if (this.positionInterval) {
+        clearInterval(this.positionInterval);
+        this.positionInterval = null;
+      }
       this.grabber.style.display = 'none';
     }
   }
