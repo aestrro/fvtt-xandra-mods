@@ -36,6 +36,7 @@ class DiceTray {
     this.calculator = null;
     this._trayInjected = false;
     this.queue = {};
+    this.rollMode = 'normal'; // 'normal' | 'advantage' | 'disadvantage'
     CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
   }
 
@@ -297,9 +298,27 @@ class DiceTray {
       diceRow.appendChild(btn);
     });
 
-    // Actions row
+    // Actions row: Clear | Disadvantage | Roll | Advantage
+    const isDnd = game.system?.id === 'dnd5e';
     const actionsRow = document.createElement('div');
     actionsRow.className = 'dice-tray-row actions';
+    if (isDnd) actionsRow.classList.add('has-advantage');
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'action-button clear-button';
+    clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+    actionsRow.appendChild(clearBtn);
+
+    if (isDnd) {
+      const disBtn = document.createElement('button');
+      disBtn.type = 'button';
+      disBtn.className = 'action-button mode-button disadvantage-button';
+      disBtn.dataset.mode = 'disadvantage';
+      disBtn.setAttribute('data-tooltip', 'Disadvantage');
+      disBtn.innerHTML = '<i class="fas fa-minus"></i><span class="mode-badge">DIS</span>';
+      actionsRow.appendChild(disBtn);
+    }
 
     const rollBtn = document.createElement('button');
     rollBtn.type = 'button';
@@ -307,11 +326,15 @@ class DiceTray {
     rollBtn.innerHTML = '<i class="fas fa-dice-d20"></i> Roll';
     actionsRow.appendChild(rollBtn);
 
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'action-button clear-button';
-    clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
-    actionsRow.appendChild(clearBtn);
+    if (isDnd) {
+      const advBtn = document.createElement('button');
+      advBtn.type = 'button';
+      advBtn.className = 'action-button mode-button advantage-button';
+      advBtn.dataset.mode = 'advantage';
+      advBtn.setAttribute('data-tooltip', 'Advantage');
+      advBtn.innerHTML = '<i class="fas fa-plus"></i><span class="mode-badge">ADV</span>';
+      actionsRow.appendChild(advBtn);
+    }
 
     panel.appendChild(diceRow);
     panel.appendChild(actionsRow);
@@ -350,6 +373,16 @@ class DiceTray {
 
     const clearBtn = panel?.querySelector('.clear-button');
     if (clearBtn) clearBtn.addEventListener('click', () => this._clearQueue(panel));
+
+    // Mode toggle buttons (advantage / disadvantage)
+    panel?.querySelectorAll('.mode-button').forEach(btn => {
+      btn.addEventListener('click', () => {
+        this._setRollMode(btn.dataset.mode);
+      });
+    });
+
+    // Sync mode buttons on this tray to current global state
+    this._updateModeButtons(panel);
   }
 
   /**
@@ -366,32 +399,79 @@ class DiceTray {
   }
 
   /**
+   * Build formula from queue, optionally applying advantage/disadvantage
+   * @private
+   */
+  _buildFormula() {
+    const parts = [];
+    for (const [type, count] of Object.entries(this.queue)) {
+      if (count <= 0) continue;
+      if (type === 'd20' && this.rollMode !== 'normal') {
+        const keep = this.rollMode === 'advantage' ? 'kh' : 'kl';
+        parts.push(`${count * 2}d20${keep}${count}`);
+      } else {
+        parts.push(`${count}${type}`);
+      }
+    }
+    return parts.join(' + ');
+  }
+
+  /**
    * Roll all queued dice
    * @private
    */
   _rollQueue() {
-    const parts = [];
-    for (const [type, count] of Object.entries(this.queue)) {
-      if (count > 0) parts.push(`${count}${type}`);
-    }
-    if (parts.length === 0) {
+    const formula = this._buildFormula();
+    if (!formula) {
       ui.notifications.warn('No dice selected');
       return;
     }
-    const formula = parts.join(' + ');
     this._rollFormula(formula);
     this._clearQueue(document.querySelector('.dice-tray-panel'));
   }
 
   /**
-   * Clear the queue and hide badges
+   * Clear the queue, mode, and hide badges
    * @private
    */
   _clearQueue(panel) {
     CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
+    this.rollMode = 'normal';
     if (panel) {
       panel.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
     }
+    this._syncModeButtons();
+  }
+
+  /**
+   * Toggle roll mode (advantage / disadvantage). Clicking same mode turns it off.
+   * @private
+   */
+  _setRollMode(mode) {
+    this.rollMode = this.rollMode === mode ? 'normal' : mode;
+    this._syncModeButtons();
+  }
+
+  /**
+   * Sync mode button visuals across all tray instances
+   * @private
+   */
+  _syncModeButtons() {
+    document.querySelectorAll('.dice-tray-panel').forEach(panel => {
+      this._updateModeButtons(panel);
+    });
+  }
+
+  /**
+   * Update mode buttons on a single tray panel
+   * @private
+   */
+  _updateModeButtons(panel) {
+    if (!panel) return;
+    const advBtn = panel.querySelector('.advantage-button');
+    const disBtn = panel.querySelector('.disadvantage-button');
+    if (advBtn) advBtn.classList.toggle('active', this.rollMode === 'advantage');
+    if (disBtn) disBtn.classList.toggle('active', this.rollMode === 'disadvantage');
   }
 
   /**
