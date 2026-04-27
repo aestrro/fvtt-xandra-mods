@@ -164,8 +164,8 @@ export class SidebarResizer {
     const inset = 10;
 
     // Viewport coordinates — grabber is position:fixed on body
-    // Shift 5px further left for breathing room; inset 10px from top/bottom
-    this.grabber.style.left = `${rect.left - grabberWidth - 5}px`;
+    // Positioned on the divider between sidebar tabs and content
+    this.grabber.style.left = `${rect.left - grabberWidth + 3}px`;
     this.grabber.style.top = `${rect.top + inset}px`;
     this.grabber.style.height = `${Math.max(20, rect.height - inset * 2)}px`;
   }
