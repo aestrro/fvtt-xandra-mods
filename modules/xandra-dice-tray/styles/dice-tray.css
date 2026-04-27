@@ -209,13 +209,13 @@
 /* Actions Row */
 .dice-tray-row.actions {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: 1fr 2fr;
   gap: 2px;
   width: 100%;
 }
 
 .dice-tray-row.actions.has-advantage {
-  grid-template-columns: 1.5fr 1fr 2fr 1fr;
+  grid-template-columns: 1fr 1fr 2fr 1fr;
 }
 
 .action-button {
@@ -234,6 +234,11 @@
   transition: background 0.12s ease, box-shadow 0.12s ease;
   width: 100%;
   position: relative;
+  aspect-ratio: 1 / 1;
+}
+
+.action-button.roll-button {
+  aspect-ratio: auto;
 }
 
 .action-button:hover {

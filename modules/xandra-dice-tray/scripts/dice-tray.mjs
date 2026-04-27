@@ -421,7 +421,14 @@ class DiceTray {
    * @private
    */
   _rollQueue() {
-    const formula = this._buildFormula();
+    let formula = this._buildFormula();
+
+    // In advantage/disadvantage mode with an empty queue, default to 1d20
+    if (!formula && this.rollMode !== 'normal') {
+      const keep = this.rollMode === 'advantage' ? 'kh' : 'kl';
+      formula = `1d20${keep}`;
+    }
+
     if (!formula) {
       ui.notifications.warn('No dice selected');
       return;
@@ -437,9 +444,9 @@ class DiceTray {
   _clearQueue(panel) {
     CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
     this.rollMode = 'normal';
-    if (panel) {
-      panel.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
-    }
+    document.querySelectorAll('.dice-tray-panel').forEach(p => {
+      p.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
+    });
     this._syncModeButtons();
   }
 
@@ -449,6 +456,11 @@ class DiceTray {
    */
   _setRollMode(mode) {
     this.rollMode = this.rollMode === mode ? 'normal' : mode;
+    // Clear the entire queue whenever a mode is toggled
+    CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
+    document.querySelectorAll('.dice-tray-panel').forEach(p => {
+      p.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
+    });
     this._syncModeButtons();
   }
 
