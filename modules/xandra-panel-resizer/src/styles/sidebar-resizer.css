@@ -4,7 +4,7 @@
 
 /* Grabber handle - sits on the divider between tabs and content */
 .sp-sidebar-grabber {
-  position: absolute;
+  position: fixed;
   width: 6px;
   cursor: col-resize;
   z-index: 999999;

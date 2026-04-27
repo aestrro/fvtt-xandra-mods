@@ -113,14 +113,7 @@ export class SidebarResizer {
     this.grabber.setAttribute('title', 'Drag to resize sidebar');
     this.grabber.addEventListener('mousedown', this.onMouseDown.bind(this));
 
-    // Append to #interface so it lives inside Foundry's UI layer, not body
-    const uiInterface = document.getElementById('interface');
-    if (uiInterface) {
-      uiInterface.style.position = 'relative';
-      uiInterface.appendChild(this.grabber);
-    } else {
-      document.body.appendChild(this.grabber);
-    }
+    document.body.appendChild(this.grabber);
   }
 
   private static syncGrabberVisibility(): void {
@@ -132,7 +125,10 @@ export class SidebarResizer {
         this.hasInitializedWidth = true;
       }
       this.grabber.style.display = 'block';
+      // Sidebar expand may still be mid-transition; recalc immediately
+      // and again after the next paint to settle into the correct spot.
       this.updateGrabberPosition();
+      requestAnimationFrame(() => this.updateGrabberPosition());
     } else {
       this.grabber.style.display = 'none';
     }
@@ -144,20 +140,13 @@ export class SidebarResizer {
     const content = this.getSidebarContent();
     if (!content) return;
 
-    const contentRect = content.getBoundingClientRect();
+    const rect = content.getBoundingClientRect();
     const grabberWidth = 6;
 
-    // Position relative to #interface (our positioning context)
-    const uiInterface = document.getElementById('interface');
-    if (uiInterface) {
-      const interfaceRect = uiInterface.getBoundingClientRect();
-      this.grabber.style.left = `${contentRect.left - interfaceRect.left - grabberWidth}px`;
-      this.grabber.style.top = `${contentRect.top - interfaceRect.top}px`;
-    } else {
-      this.grabber.style.left = `${contentRect.left - grabberWidth}px`;
-      this.grabber.style.top = `${contentRect.top}px`;
-    }
-    this.grabber.style.height = `${contentRect.height}px`;
+    // Viewport coordinates — grabber is position:fixed on body
+    this.grabber.style.left = `${rect.left - grabberWidth}px`;
+    this.grabber.style.top = `${rect.top}px`;
+    this.grabber.style.height = `${rect.height}px`;
   }
 
   /* ================================================================ */
