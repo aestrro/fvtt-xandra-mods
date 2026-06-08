@@ -301,8 +301,11 @@ class DiceTray {
       diceRow.appendChild(btn);
     });
 
-    // Actions row: Clear | Disadvantage | Roll | Advantage
+    // Actions container: two rows (buttons + clear link)
     const isDnd = game.system?.id === 'dnd5e';
+    const actionsContainer = document.createElement('div');
+    actionsContainer.className = 'dice-tray-actions';
+
     const actionsRow = document.createElement('div');
     actionsRow.className = 'dice-tray-row actions';
     if (isDnd) actionsRow.classList.add('has-advantage');
@@ -317,12 +320,6 @@ class DiceTray {
       disBtn.innerHTML = '<i class="fas fa-minus"></i><span class="mode-badge">DIS</span>';
       actionsRow.appendChild(disBtn);
     }
-
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'action-button clear-button';
-    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
-    actionsRow.appendChild(clearBtn);
 
     const rollBtn = document.createElement('button');
     rollBtn.type = 'button';
@@ -341,8 +338,19 @@ class DiceTray {
       actionsRow.appendChild(advBtn);
     }
 
+    const clearRow = document.createElement('div');
+    clearRow.className = 'dice-tray-row clear-row';
+    const clearLink = document.createElement('button');
+    clearLink.type = 'button';
+    clearLink.className = 'clear-rolls';
+    clearLink.textContent = 'clear rolls';
+    clearRow.appendChild(clearLink);
+
+    actionsContainer.appendChild(actionsRow);
+    actionsContainer.appendChild(clearRow);
+
     panel.appendChild(diceRow);
-    panel.appendChild(actionsRow);
+    panel.appendChild(actionsContainer);
 
     return panel;
   }
@@ -376,8 +384,8 @@ class DiceTray {
     const rollBtn = panel?.querySelector('.roll-button');
     if (rollBtn) rollBtn.addEventListener('click', () => this._rollQueue());
 
-    const clearBtn = panel?.querySelector('.clear-button');
-    if (clearBtn) clearBtn.addEventListener('click', () => this._clearQueue(panel));
+    const clearLink = panel?.querySelector('.clear-rolls');
+    if (clearLink) clearLink.addEventListener('click', () => this._clearQueue(panel));
 
     // Mode toggle buttons (advantage / disadvantage)
     panel?.querySelectorAll('.mode-button').forEach(btn => {

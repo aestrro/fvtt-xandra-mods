@@ -227,15 +227,20 @@
 }
 
 /* Actions Row */
+.dice-tray-actions {
+  padding: 2px;
+  background: #1E1E2F;
+}
+
 .dice-tray-row.actions {
   display: grid;
-  grid-template-columns: 1fr 2fr;
+  grid-template-columns: 1fr;
   grid-gap: 2px;
   width: 100%;
 }
 
 .dice-tray-row.actions.has-advantage {
-  grid-template-columns: auto auto 1fr auto;
+  grid-template-columns: auto 1fr auto;
 }
 
 .action-button {
@@ -293,13 +298,24 @@
   color: #e09090;
 }
 
-.clear-button {
-  background: #1E1E2F;
-  color: #F4F6FC;
+.dice-tray-row.clear-row {
+  padding-top: 2px;
+  text-align: center;
 }
 
-.clear-button:hover {
-  background: #2A2A40;
+.clear-rolls {
+  background: transparent;
+  border: none;
+  color: #F4F6FC;
+  font-weight: 400;
+  font-size: 0.75em;
+  cursor: pointer;
+  text-decoration: underline;
+  padding: 0;
+}
+
+.clear-rolls:hover {
+  color: #fff;
 }
 
 /* Advantage / Disadvantage mode buttons */
