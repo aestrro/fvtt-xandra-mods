@@ -221,6 +221,8 @@ class DiceTray {
         button.className = 'dice-calculator-toggle ui-control icon';
         button.setAttribute('aria-label', 'Open Dice Calculator');
         button.setAttribute('data-tooltip', 'Dice Calculator');
+    button.setAttribute('data-tooltip-direction', 'UP');
+        button.setAttribute('data-tooltip-direction', 'UP');
         button.innerHTML = '<i class="fas fa-calculator"></i>';
         button.addEventListener('click', () => this._toggleCalculator());
 
@@ -283,6 +285,7 @@ class DiceTray {
       btn.dataset.sides = die.sides;
       btn.setAttribute('aria-label', `Roll ${die.label}`);
       btn.setAttribute('data-tooltip', die.label);
+      btn.setAttribute('data-tooltip-direction', 'UP');
 
       if (die.icon) {
         btn.innerHTML = `<i class="fas ${die.icon}"></i>`;
@@ -316,6 +319,7 @@ class DiceTray {
       disBtn.className = 'action-button mode-button disadvantage-button';
       disBtn.dataset.mode = 'disadvantage';
       disBtn.setAttribute('data-tooltip', 'Disadvantage');
+      disBtn.setAttribute('data-tooltip-direction', 'UP');
       disBtn.innerHTML = '<i class="fas fa-minus"></i><span class="mode-badge">DIS</span>';
       actionsRow.appendChild(disBtn);
     }
@@ -332,6 +336,7 @@ class DiceTray {
       advBtn.className = 'action-button mode-button advantage-button';
       advBtn.dataset.mode = 'advantage';
       advBtn.setAttribute('data-tooltip', 'Advantage');
+      advBtn.setAttribute('data-tooltip-direction', 'UP');
       advBtn.innerHTML = '<i class="fas fa-plus"></i><span class="mode-badge">ADV</span>';
       actionsRow.appendChild(advBtn);
     }
