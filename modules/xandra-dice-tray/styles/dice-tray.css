@@ -231,7 +231,7 @@
 }
 
 .dice-tray-row.actions.has-advantage {
-  grid-template-columns: 1fr auto 2fr auto;
+  grid-template-columns: auto auto 1fr auto;
 }
 
 .action-button {
@@ -292,7 +292,6 @@
 .clear-button {
   background: #1E1E2F;
   color: #F4F6FC;
-  aspect-ratio: auto;
 }
 
 .clear-button:hover {

@@ -307,12 +307,6 @@ class DiceTray {
     actionsRow.className = 'dice-tray-row actions';
     if (isDnd) actionsRow.classList.add('has-advantage');
 
-    const clearBtn = document.createElement('button');
-    clearBtn.type = 'button';
-    clearBtn.className = 'action-button clear-button';
-    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
-    actionsRow.appendChild(clearBtn);
-
     if (isDnd) {
       const disBtn = document.createElement('button');
       disBtn.type = 'button';
@@ -323,6 +317,12 @@ class DiceTray {
       disBtn.innerHTML = '<i class="fas fa-minus"></i><span class="mode-badge">DIS</span>';
       actionsRow.appendChild(disBtn);
     }
+
+    const clearBtn = document.createElement('button');
+    clearBtn.type = 'button';
+    clearBtn.className = 'action-button clear-button';
+    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
+    actionsRow.appendChild(clearBtn);
 
     const rollBtn = document.createElement('button');
     rollBtn.type = 'button';
@@ -493,6 +493,10 @@ class DiceTray {
     if (rollBtn) {
       rollBtn.classList.toggle('advantage-active', this.rollMode === 'advantage');
       rollBtn.classList.toggle('disadvantage-active', this.rollMode === 'disadvantage');
+      let label = 'Roll';
+      if (this.rollMode === 'advantage') label = 'Roll w/ Advantage';
+      if (this.rollMode === 'disadvantage') label = 'Roll w/ Disadvantage';
+      rollBtn.innerHTML = `<i class="fas fa-dice-d20"></i> ${label}`;
     }
   }
 
