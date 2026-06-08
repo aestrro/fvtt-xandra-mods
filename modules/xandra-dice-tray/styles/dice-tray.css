@@ -2,7 +2,7 @@
 
 /* Main Tray Container */
 .dice-tray-panel {
-  background: var(--color-background-darker, #1E1E2F);
+  background: transparent;
   border-top: 1px solid #2A2A40;
   padding: 4px 0;
   display: flex;
