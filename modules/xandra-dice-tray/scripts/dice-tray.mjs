@@ -60,6 +60,7 @@ class DiceTray {
 
     // Fallback: inject tray if chat log already rendered
     game.diceTray._injectTrayIfReady();
+    game.diceTray._attachExpandedObserver();
   }
 
   /**
@@ -118,21 +119,23 @@ class DiceTray {
    * @private
    */
   /**
-   * Inject tray into a prose-mirror#chat-message element.
-   * Expanded: before .menu-container. Collapsed: before .editor-container.
+   * Inject tray as a sibling BEFORE the prose-mirror#chat-message element.
+   * This keeps the tray outside the prose-mirror so it doesn't expand its height.
    * @private
    */
   _injectTrayIntoChatMessage(chatMessage) {
-    if (chatMessage.querySelector('.dice-tray-panel')) return;
+    const parent = chatMessage.parentElement;
+    const existingTray = parent?.querySelector(':scope > .dice-tray-panel');
+    if (existingTray) {
+      this._syncTray(existingTray);
+      return;
+    }
 
     const tray = this._createTrayElement();
-    const target = chatMessage.querySelector('.menu-container')
-      || chatMessage.querySelector('.editor-container');
-
-    if (target && !target.previousElementSibling?.classList.contains('dice-tray-panel')) {
-      target.before(tray);
-      this._activateTrayListeners(tray);
-    }
+    chatMessage.before(tray);
+    this._activateTrayListeners(tray);
+    this._syncTray(tray);
+    this._toggleTrayVisibility();
   }
 
   /**
@@ -149,36 +152,30 @@ class DiceTray {
    */
   _injectTrayIfReady() {
     if (!game.settings.get(MODULE_ID, 'showTray')) return;
-
-    const tryInject = () => {
-      const sidebar = ui.sidebar?.element;
-      if (!sidebar) return false;
-      const chatForm = sidebar.querySelector('form.chat-form');
-      if (!chatForm || chatForm.querySelector('.dice-tray-panel')) return false;
-      this._waitAndInjectTray(chatForm);
-      return true;
-    };
-
-    // Also inject into any collapsed chat inputs already in the DOM
     this._injectAllChatMessages();
-
-    // Start persistent watcher to survive sidebar expand/collapse
     this._startTrayWatcher();
   }
 
   /**
-   * Persistent watcher that re-injects the tray whenever a prose-mirror appears or is recreated
+   * Persistent watcher that re-injects the tray only when a prose-mirror is added
    * @private
    */
   _startTrayWatcher() {
     if (this._trayObserver) return;
 
-    const onMutations = () => {
+    const onMutations = (mutations) => {
       if (!game.settings.get(MODULE_ID, 'showTray')) return;
-      this._injectAllChatMessages();
+      for (const m of mutations) {
+        if (m.type !== 'childList') continue;
+        for (const node of m.addedNodes) {
+          if (node instanceof HTMLElement && (node.tagName === 'PROSE-MIRROR' || node.querySelector?.('prose-mirror#chat-message'))) {
+            this._injectAllChatMessages();
+            return;
+          }
+        }
+      }
     };
 
-    // Watch the entire UI-right area for prose-mirror elements being added/removed
     const target = document.getElementById('ui-right') || document.body;
     this._trayObserver = new MutationObserver(onMutations);
     this._trayObserver.observe(target, { childList: true, subtree: true });
@@ -317,7 +314,7 @@ class DiceTray {
       disBtn.dataset.mode = 'disadvantage';
       disBtn.setAttribute('data-tooltip', 'Disadvantage');
       disBtn.setAttribute('data-tooltip-direction', 'UP');
-      disBtn.innerHTML = '<i class="fas fa-minus"></i><span class="mode-badge">DIS</span>';
+      disBtn.textContent = 'DIS';
       actionsRow.appendChild(disBtn);
     }
 
@@ -334,7 +331,7 @@ class DiceTray {
       advBtn.dataset.mode = 'advantage';
       advBtn.setAttribute('data-tooltip', 'Advantage');
       advBtn.setAttribute('data-tooltip-direction', 'UP');
-      advBtn.innerHTML = '<i class="fas fa-plus"></i><span class="mode-badge">ADV</span>';
+      advBtn.textContent = 'ADV';
       actionsRow.appendChild(advBtn);
     }
 
@@ -493,6 +490,49 @@ class DiceTray {
   }
 
   /**
+   * Sync tray state (badges + mode buttons) on an existing tray element
+   * @private
+   */
+  _syncTray(tray) {
+    tray.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
+    this._updateModeButtons(tray);
+  }
+
+  /**
+   * Show only the tray that matches the current sidebar state.
+   * When expanded: show tray inside #sidebar-content, hide others.
+   * When collapsed: show tray outside #sidebar-content, hide inside.
+   * @private
+   */
+  _toggleTrayVisibility() {
+    const sidebarContent = document.getElementById('sidebar-content');
+    const isExpanded = sidebarContent?.classList.contains('expanded') ?? false;
+
+    document.querySelectorAll('.dice-tray-panel').forEach(tray => {
+      const isInsideExpanded = tray.closest('#sidebar-content') !== null;
+      if (isExpanded) {
+        tray.style.display = isInsideExpanded ? 'flex' : 'none';
+      } else {
+        tray.style.display = isInsideExpanded ? 'none' : 'flex';
+      }
+    });
+  }
+
+  /**
+   * Watch sidebar-content for .expanded class and toggle tray visibility.
+   * @private
+   */
+  _attachExpandedObserver() {
+    const sidebarContent = document.getElementById('sidebar-content');
+    if (!sidebarContent) return;
+
+    this._toggleTrayVisibility();
+
+    const observer = new MutationObserver(() => this._toggleTrayVisibility());
+    observer.observe(sidebarContent, { attributes: true, attributeFilter: ['class'] });
+  }
+
+  /**
    * Update mode buttons on a single tray panel
    * @private
    */
@@ -553,20 +593,10 @@ class DiceTray {
     try {
       const roll = new Roll(formula);
 
-      // Build speaker from selected token, or fall back to default
-      let speaker = ChatMessage.getSpeaker();
-      const selectedTokens = canvas?.tokens?.controlled ?? [];
-      if (selectedTokens.length > 0) {
-        const token = selectedTokens[0];
-        speaker = {
-          alias: token.name,
-          actor: token.id
-        };
-      }
-
-      // Create chat message — toMessage handles evaluation and Dice So Nice automatically
+      // ChatMessage.getSpeaker() automatically uses the controlled token's
+      // actor name if a character is selected, or the player's name if not.
       await roll.toMessage({
-        speaker,
+        speaker: ChatMessage.getSpeaker(),
         flavor: formula
       }, {
         rollMode: game.settings.get('core', 'rollMode')

@@ -11,6 +11,7 @@
   justify-content: center;
   width: 100%;
   gap: 3px;
+  pointer-events: auto;
 }
 
 /* Prevent chat message overflow from clipping the floating badge */
@@ -52,6 +53,7 @@
 
 .dice-tray-button.has-count {
   background: #2A2A40;
+  border-color: var(--button-focus-outline-color);
 }
 
 .dice-tray-button:hover {
@@ -228,9 +230,10 @@
 
 /* Actions Row */
 .dice-tray-actions {
-  padding: 2px;
+  padding: 4px 2px 2px 2px;
   background: #1E1E2F;
   border-radius: 4px;
+  width: 100%;
 }
 
 .dice-tray-row.actions {
@@ -259,9 +262,12 @@
   font-weight: 700;
   transition: background 0.12s ease, box-shadow 0.12s ease;
   width: 100%;
-  min-height: 32px;
+  height: 36px;
   position: relative;
-  aspect-ratio: 1 / 1;
+}
+
+.mode-button {
+  width: 42px;
 }
 
 .action-button.roll-button {
@@ -290,18 +296,29 @@
 }
 
 .roll-button.advantage-active {
-  background: #2A4A2A;
-  color: #90e090;
+  background: #1a4a2a;
+  border-color: #4ade80;
+  color: #4ade80;
+}
+
+.roll-button.advantage-active:hover {
+  border-color: #86efac;
 }
 
 .roll-button.disadvantage-active {
-  background: #4A2A2A;
-  color: #e09090;
+  background: #4a1a1a;
+  border-color: #f87171;
+  color: #f87171;
+}
+
+.roll-button.disadvantage-active:hover {
+  border-color: #fca5a5;
 }
 
 .dice-tray-row.clear-row {
   padding-top: 2px;
   text-align: center;
+  grid-template-columns: 1fr;
 }
 
 .clear-rolls {
@@ -312,13 +329,15 @@
   font-size: 0.75em;
   cursor: pointer;
   text-decoration: underline;
-  padding: 0;
+  padding: 0 0 4px 0;
   white-space: nowrap;
   display: inline-block;
+  opacity: 0.7;
 }
 
 .clear-rolls:hover {
   color: #fff;
+  opacity: 1;
 }
 
 /* Advantage / Disadvantage mode buttons */
@@ -332,15 +351,15 @@
 }
 
 .advantage-button.active {
-  background: #2A2A40;
-  color: #F4F6FC;
-  border-color: #F4F6FC;
+  background: #1a4a2a;
+  color: #4ade80;
+  border-color: #4ade80;
 }
 
 .disadvantage-button.active {
-  background: #2A2A40;
-  color: #F4F6FC;
-  border-color: #F4F6FC;
+  background: #4a1a1a;
+  color: #f87171;
+  border-color: #f87171;
 }
 
 /* Mode badge (red popup above button) */
