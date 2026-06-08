@@ -230,6 +230,7 @@
 .dice-tray-actions {
   padding: 2px;
   background: #1E1E2F;
+  border-radius: 4px;
 }
 
 .dice-tray-row.actions {
@@ -249,7 +250,7 @@
   justify-content: center;
   gap: 4px;
   padding: 4px;
-  background: #1E1E2F;
+  background: #0a0a14;
   border: 2px solid transparent;
   border-radius: 4px;
   color: #F4F6FC;
@@ -279,7 +280,7 @@
 }
 
 .roll-button {
-  background: #1E1E2F;
+  background: #0a0a14;
   color: #F4F6FC;
   transition: all 0.2s ease;
 }
@@ -307,11 +308,13 @@
   background: transparent;
   border: none;
   color: #F4F6FC;
-  font-weight: 400;
+  font-weight: 300;
   font-size: 0.75em;
   cursor: pointer;
   text-decoration: underline;
   padding: 0;
+  white-space: nowrap;
+  display: inline-block;
 }
 
 .clear-rolls:hover {
@@ -320,7 +323,7 @@
 
 /* Advantage / Disadvantage mode buttons */
 .mode-button {
-  background: #1E1E2F;
+  background: #0a0a14;
   color: #F4F6FC;
 }
 
