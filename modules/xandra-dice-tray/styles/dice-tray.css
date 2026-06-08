@@ -22,7 +22,10 @@
 .dice-tray-row {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
+  grid-gap: 2px;
   width: 100%;
+  padding-left: 3px;
+  padding-right: 3px;
   align-items: center;
   justify-items: center;
 }
@@ -37,7 +40,7 @@
   min-height: 32px;
   background: #1E1E2F;
   border: 2px solid transparent;
-  border-radius: 2px;
+  border-radius: 4px;
   cursor: pointer;
   transition: all 0.2s ease;
   color: #F4F6FC;
@@ -50,6 +53,12 @@
 .dice-tray-button:hover {
   background: #2A2A40;
   border-color: #F4F6FC;
+}
+
+.dice-tray-button:focus {
+  outline: none;
+  box-shadow: none;
+  border-color: var(--button-focus-outline-color);
 }
 
 .dice-tray-button:active {
@@ -217,6 +226,7 @@
 .dice-tray-row.actions {
   display: grid;
   grid-template-columns: 1fr 2fr;
+  grid-gap: 2px;
   width: 100%;
 }
 
@@ -232,7 +242,7 @@
   padding: 4px;
   background: #1E1E2F;
   border: none;
-  border-radius: 2px;
+  border-radius: 4px;
   color: #F4F6FC;
   cursor: pointer;
   font-size: 0.75em;
@@ -341,7 +351,6 @@
 }
 
 /* Accessibility - Focus indicators */
-.dice-tray-button:focus-visible,
 .calc-btn:focus-visible {
   outline: 2px solid #F4F6FC;
   outline-offset: 2px;
