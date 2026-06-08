@@ -260,6 +260,7 @@
 
 .action-button:hover {
   color: #F4F6FC;
+  border-color: #F4F6FC;
 }
 
 .action-button:focus {
@@ -275,7 +276,6 @@
 
 .roll-button:hover {
   background: #2A2A40;
-  box-shadow: inset 0 0 0 1px #F4F6FC;
 }
 
 .clear-button {
@@ -286,7 +286,6 @@
 
 .clear-button:hover {
   background: #2A2A40;
-  box-shadow: inset 0 0 0 1px #F4F6FC;
 }
 
 /* Advantage / Disadvantage mode buttons */
@@ -302,13 +301,13 @@
 .advantage-button.active {
   background: #2A2A40;
   color: #F4F6FC;
-  box-shadow: inset 0 0 0 1px #F4F6FC;
+  border-color: #F4F6FC;
 }
 
 .disadvantage-button.active {
   background: #2A2A40;
   color: #F4F6FC;
-  box-shadow: inset 0 0 0 1px #F4F6FC;
+  border-color: #F4F6FC;
 }
 
 /* Mode badge (red popup above button) */
