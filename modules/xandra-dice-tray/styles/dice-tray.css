@@ -58,8 +58,9 @@
 /* Count badge */
 .dice-count {
   position: absolute;
-  top: 2px;
-  right: 2px;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.8);
   background: #F4F6FC;
   color: #1E1E2F;
   font-size: 1.1em;
@@ -67,12 +68,14 @@
   padding: 2px 5px;
   border-radius: 3px;
   line-height: 1;
-  display: none;
+  opacity: 0;
   pointer-events: none;
+  transition: opacity 0.12s ease, transform 0.12s ease;
 }
 
 .dice-count.visible {
-  display: block;
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
 }
 
 /* Tooltip uses Foundry's native data-tooltip system */
