@@ -2,8 +2,8 @@
 
 /* Main Tray Container */
 .dice-tray-panel {
-  background: var(--color-background-darker, rgba(0, 0, 0, 0.5));
-  border-top: 1px solid var(--color-border-light-primary, #b5b3a4);
+  background: var(--color-background-darker, #1E1E2F);
+  border-top: 1px solid #2A2A40;
   padding: 4px 0;
   display: flex;
   flex-direction: column;
@@ -31,12 +31,12 @@
   width: 100%;
   aspect-ratio: 1 / 1;
   min-height: 28px;
-  background: #1a1a1a;
+  background: #1E1E2F;
   border: none;
   border-radius: 4px;
   cursor: pointer;
   transition: background 0.12s ease;
-  color: #fff;
+  color: #F4F6FC;
   position: relative;
   overflow: visible;
   font-size: 0.75em;
@@ -44,11 +44,11 @@
 }
 
 .dice-tray-button:hover {
-  background: #2a2a2a;
+  background: #2A2A40;
 }
 
 .dice-tray-button:active {
-  background: #3a3a3a;
+  background: #353550;
 }
 
 .dice-tray-button i {
@@ -60,8 +60,8 @@
   position: absolute;
   top: 2px;
   right: 2px;
-  background: var(--color-border-highlight, #ff0000);
-  color: #fff;
+  background: #F4F6FC;
+  color: #1E1E2F;
   font-size: 1.1em;
   font-weight: 700;
   padding: 2px 5px;
@@ -92,8 +92,8 @@
 }
 
 .dice-calculator-toggle:hover {
-  color: var(--color-text-light-highlight, #f0f0e0);
-  background: var(--color-background-button-hover, rgba(255, 255, 255, 0.1));
+  color: #F4F6FC;
+  background: rgba(244, 246, 252, 0.1);
 }
 
 .dice-calculator-toggle i {
@@ -102,7 +102,7 @@
 
 /* Calculator Application */
 .dice-tray-calculator .window-content {
-  background: var(--color-background-darker, rgba(0, 0, 0, 0.9));
+  background: #1E1E2F;
   padding: 12px;
 }
 
@@ -122,10 +122,10 @@
   padding: 10px;
   font-size: 1.2em;
   font-family: monospace;
-  background: var(--color-background-dark, rgba(0, 0, 0, 0.6));
-  border: 2px solid var(--color-border-dark-primary, #5d5c54);
+  background: #1E1E2F;
+  border: 2px solid #2A2A40;
   border-radius: 4px;
-  color: var(--color-text-light-highlight, #f0f0e0);
+  color: #F4F6FC;
   text-align: right;
 }
 
@@ -138,10 +138,10 @@
 
 .calc-btn {
   padding: 12px;
-  background: var(--color-background-button, #4b4a44);
-  border: 1px solid var(--color-border-dark, #1a1a1a);
+  background: #1E1E2F;
+  border: 1px solid #2A2A40;
   border-radius: 4px;
-  color: var(--color-text-light-primary, #b5b3a4);
+  color: #F4F6FC;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
@@ -151,8 +151,8 @@
 }
 
 .calc-btn:hover {
-  background: var(--color-background-button-hover, #3e3d38);
-  color: var(--color-text-light-highlight, #f0f0e0);
+  background: #2A2A40;
+  color: #F4F6FC;
   transform: scale(1.05);
 }
 
@@ -162,48 +162,48 @@
 
 /* Specific Button Types */
 .calc-dice {
-  background: linear-gradient(135deg, #5d4b3a 0%, #4b3a2a 100%);
-  color: #e0c090;
+  background: linear-gradient(135deg, #1E1E2F 0%, #2A2A40 100%);
+  color: #F4F6FC;
 }
 
 .calc-dice:hover {
-  background: linear-gradient(135deg, #6d5b4a 0%, #5d4a3a 100%);
-  color: #f0d0a0;
+  background: linear-gradient(135deg, #2A2A40 0%, #353550 100%);
+  color: #F4F6FC;
 }
 
 .calc-op {
-  background: linear-gradient(135deg, #3a4a5d 0%, #2a3a4b 100%);
-  color: #90c0e0;
+  background: linear-gradient(135deg, #1E1E2F 0%, #2A2A40 100%);
+  color: #F4F6FC;
   font-size: 1.2em;
 }
 
 .calc-op:hover {
-  background: linear-gradient(135deg, #4a5a6d 0%, #3a4a5b 100%);
-  color: #a0d0f0;
+  background: linear-gradient(135deg, #2A2A40 0%, #353550 100%);
+  color: #F4F6FC;
 }
 
 .calc-clear {
-  background: linear-gradient(135deg, #5d3a3a 0%, #4b2a2a 100%);
-  color: #e09090;
+  background: linear-gradient(135deg, #1E1E2F 0%, #2A2A40 100%);
+  color: #F4F6FC;
 }
 
 .calc-clear:hover {
-  background: linear-gradient(135deg, #6d4a4a 0%, #5d3a3a 100%);
-  color: #f0a0a0;
+  background: linear-gradient(135deg, #2A2A40 0%, #353550 100%);
+  color: #F4F6FC;
 }
 
 .calc-roll {
   grid-column: span 2;
-  background: linear-gradient(135deg, #3a5d3a 0%, #2a4b2a 100%);
-  color: #90e090;
+  background: linear-gradient(135deg, #1E1E2F 0%, #2A2A40 100%);
+  color: #F4F6FC;
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 1px;
 }
 
 .calc-roll:hover {
-  background: linear-gradient(135deg, #4a6d4a 0%, #3a5d3a 100%);
-  color: #a0f0a0;
+  background: linear-gradient(135deg, #2A2A40 0%, #353550 100%);
+  color: #F4F6FC;
 }
 
 /* Actions Row */
@@ -224,10 +224,10 @@
   justify-content: center;
   gap: 4px;
   padding: 4px;
-  background: var(--color-background-button, #4b4a44);
+  background: #1E1E2F;
   border: none;
   border-radius: 4px;
-  color: var(--color-text-light-primary, #b5b3a4);
+  color: #F4F6FC;
   cursor: pointer;
   font-size: 0.75em;
   font-weight: 700;
@@ -242,49 +242,49 @@
 }
 
 .action-button:hover {
-  color: var(--color-text-light-highlight, #f0f0e0);
+  color: #F4F6FC;
 }
 
 .roll-button {
-  background: #2a3a2a;
-  color: #90e090;
+  background: #1E1E2F;
+  color: #F4F6FC;
 }
 
 .roll-button:hover {
-  background: #3a5d3a;
-  box-shadow: inset 0 0 0 1px #90e090;
+  background: #2A2A40;
+  box-shadow: inset 0 0 0 1px #F4F6FC;
 }
 
 .clear-button {
-  background: #3a2a2a;
-  color: #e09090;
+  background: #1E1E2F;
+  color: #F4F6FC;
 }
 
 .clear-button:hover {
-  background: #5d3a3a;
-  box-shadow: inset 0 0 0 1px #e09090;
+  background: #2A2A40;
+  box-shadow: inset 0 0 0 1px #F4F6FC;
 }
 
 /* Advantage / Disadvantage mode buttons */
 .mode-button {
-  background: #2a2a2a;
-  color: #b5b3a4;
+  background: #1E1E2F;
+  color: #F4F6FC;
 }
 
 .mode-button:hover {
-  background: #3a3a3a;
+  background: #2A2A40;
 }
 
 .advantage-button.active {
-  background: #2a4a2a;
-  color: #90e090;
-  box-shadow: inset 0 0 0 1px #90e090;
+  background: #2A2A40;
+  color: #F4F6FC;
+  box-shadow: inset 0 0 0 1px #F4F6FC;
 }
 
 .disadvantage-button.active {
-  background: #4a2a2a;
-  color: #e09090;
-  box-shadow: inset 0 0 0 1px #e09090;
+  background: #2A2A40;
+  color: #F4F6FC;
+  box-shadow: inset 0 0 0 1px #F4F6FC;
 }
 
 /* Mode badge (red popup above button) */
@@ -293,8 +293,8 @@
   top: -6px;
   left: 50%;
   transform: translateX(-50%);
-  background: var(--color-border-highlight, #ff0000);
-  color: #fff;
+  background: #F4F6FC;
+  color: #1E1E2F;
   font-size: 0.55em;
   font-weight: 700;
   padding: 1px 4px;
@@ -336,14 +336,14 @@
 /* Accessibility - Focus indicators */
 .dice-tray-button:focus-visible,
 .calc-btn:focus-visible {
-  outline: 2px solid var(--color-border-highlight, #ff0000);
+  outline: 2px solid #F4F6FC;
   outline-offset: 2px;
 }
 
 /* Dark mode compatibility */
 [data-theme="dark"] .dice-tray-panel {
-  background: rgba(0, 0, 0, 0.7);
-  border-color: #444;
+  background: #1E1E2F;
+  border-color: #2A2A40;
 }
 
 /* Calculator Display Row */
@@ -360,34 +360,34 @@
   padding: 10px 12px;
   font-size: 1.2em;
   font-family: 'Courier New', monospace;
-  background: var(--color-background-dark, rgba(0, 0, 0, 0.6));
-  border: 2px solid var(--color-border-dark-primary, #5d5c54);
+  background: #1E1E2F;
+  border: 2px solid #2A2A40;
   border-radius: 4px;
-  color: var(--color-text-light-highlight, #f0f0e0);
+  color: #F4F6FC;
   text-align: right;
   transition: border-color 0.2s ease;
 }
 
 .calc-display:focus {
   outline: none;
-  border-color: var(--color-border-highlight, #ff0000);
-  box-shadow: 0 0 0 2px rgba(255, 0, 0, 0.2);
+  border-color: #F4F6FC;
+  box-shadow: 0 0 0 2px rgba(244, 246, 252, 0.2);
 }
 
 /* History button */
 .calc-history {
   padding: 0 12px;
-  background: var(--color-background-button, #4b4a44);
-  border: 1px solid var(--color-border-dark, #1a1a1a);
+  background: #1E1E2F;
+  border: 1px solid #2A2A40;
   border-radius: 4px;
-  color: var(--color-text-light-primary, #b5b3a4);
+  color: #F4F6FC;
   cursor: pointer;
   transition: all 0.2s ease;
 }
 
 .calc-history:hover {
-  background: var(--color-background-button-hover, #3e3d38);
-  color: var(--color-text-light-highlight, #f0f0e0);
+  background: #2A2A40;
+  color: #F4F6FC;
 }
 
 /* Ensure roll button spans properly */
@@ -397,8 +397,8 @@
 
 /* Active state for buttons */
 .dice-tray-button.active {
-  background: var(--color-border-highlight, #ff0000);
-  color: white;
+  background: #2A2A40;
+  color: #F4F6FC;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.3);
 }
 
