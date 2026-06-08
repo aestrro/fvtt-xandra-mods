@@ -310,7 +310,7 @@ class DiceTray {
     const clearBtn = document.createElement('button');
     clearBtn.type = 'button';
     clearBtn.className = 'action-button clear-button';
-    clearBtn.innerHTML = '<i class="fas fa-times"></i> Clear';
+    clearBtn.innerHTML = '<i class="fas fa-times"></i>';
     actionsRow.appendChild(clearBtn);
 
     if (isDnd) {
@@ -487,8 +487,13 @@ class DiceTray {
     if (!panel) return;
     const advBtn = panel.querySelector('.advantage-button');
     const disBtn = panel.querySelector('.disadvantage-button');
+    const rollBtn = panel.querySelector('.roll-button');
     if (advBtn) advBtn.classList.toggle('active', this.rollMode === 'advantage');
     if (disBtn) disBtn.classList.toggle('active', this.rollMode === 'disadvantage');
+    if (rollBtn) {
+      rollBtn.classList.toggle('advantage-active', this.rollMode === 'advantage');
+      rollBtn.classList.toggle('disadvantage-active', this.rollMode === 'disadvantage');
+    }
   }
 
   /**

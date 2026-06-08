@@ -272,10 +272,21 @@
 .roll-button {
   background: #1E1E2F;
   color: #F4F6FC;
+  transition: all 0.2s ease;
 }
 
 .roll-button:hover {
   background: #2A2A40;
+}
+
+.roll-button.advantage-active {
+  background: #2A4A2A;
+  color: #90e090;
+}
+
+.roll-button.disadvantage-active {
+  background: #4A2A2A;
+  color: #e09090;
 }
 
 .clear-button {
