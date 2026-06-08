@@ -364,7 +364,7 @@
 
 /* Dark mode compatibility */
 [data-theme="dark"] .dice-tray-panel {
-  background: #1E1E2F;
+  background: transparent;
   border-color: #2A2A40;
 }
 
