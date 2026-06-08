@@ -60,7 +60,7 @@
   position: absolute;
   top: -10px;
   left: 50%;
-  transform: translateX(-50%) scale(0.8);
+  transform: translateX(-50%);
   background: #F4F6FC;
   color: #1E1E2F;
   font-size: 1.1em;
@@ -70,12 +70,11 @@
   line-height: 1;
   opacity: 0;
   pointer-events: none;
-  transition: opacity 0.12s ease, transform 0.12s ease;
+  transition: opacity 0.12s ease;
 }
 
 .dice-count.visible {
   opacity: 1;
-  transform: translateX(-50%) scale(1);
 }
 
 /* Tooltip uses Foundry's native data-tooltip system */
