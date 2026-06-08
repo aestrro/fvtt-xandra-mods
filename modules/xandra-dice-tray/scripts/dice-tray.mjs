@@ -462,9 +462,12 @@ class DiceTray {
    * @private
    */
   _setRollMode(mode) {
-    this.rollMode = this.rollMode === mode ? 'normal' : mode;
+    const wasActive = this.rollMode === mode;
+    this.rollMode = wasActive ? 'normal' : mode;
     // Clear the entire queue whenever a mode is toggled
     CONFIG.DICE_TYPES.forEach(d => this.queue[d.type] = 0);
+    // Queue a d20 when entering advantage/disadvantage mode
+    if (!wasActive) this.queue['d20'] = 1;
     document.querySelectorAll('.dice-tray-panel').forEach(p => {
       p.querySelectorAll('.dice-tray-button').forEach(btn => this._updateDieBadge(btn));
     });
