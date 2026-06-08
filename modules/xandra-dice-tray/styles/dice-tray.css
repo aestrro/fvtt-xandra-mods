@@ -50,6 +50,10 @@
   font-weight: 700;
 }
 
+.dice-tray-button.has-count {
+  background: #2A2A40;
+}
+
 .dice-tray-button:hover {
   background: #2A2A40;
   border-color: #F4F6FC;

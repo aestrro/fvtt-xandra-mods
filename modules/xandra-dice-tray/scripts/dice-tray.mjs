@@ -396,11 +396,13 @@ class DiceTray {
    */
   _updateDieBadge(btn) {
     const dice = btn.dataset.dice;
+    const count = this.queue[dice];
     const badge = btn.querySelector('.dice-count');
     if (badge) {
-      badge.textContent = this.queue[dice];
-      badge.classList.toggle('visible', this.queue[dice] > 0);
+      badge.textContent = count;
+      badge.classList.toggle('visible', count > 0);
     }
+    btn.classList.toggle('has-count', count > 0);
   }
 
   /**
