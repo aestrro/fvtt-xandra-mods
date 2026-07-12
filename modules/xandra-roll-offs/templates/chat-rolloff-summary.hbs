@@ -1,0 +1,17 @@
+<div class="xro-chat-card xro-roll-off-summary">
+  <div class="xro-ended">{{localize 'XANDRA_ROLL_OFFS.Labels.RollOffComplete'}}</div>
+  {{#each rounds}}
+  <div class="xro-summary-row">
+    <span>{{localize 'XANDRA_ROLL_OFFS.Labels.Round' round=round}}</span>
+    <span class="xro-winner">{{winnerName}}</span>
+  </div>
+  {{/each}}
+  <hr />
+  <h4>{{localize 'XANDRA_ROLL_OFFS.Labels.Leaderboard'}}</h4>
+  {{#each tallies}}
+  <div class="xro-summary-row">
+    <span>{{name}}</span>
+    <span class="xro-winner">{{score}}</span>
+  </div>
+  {{/each}}
+</div>

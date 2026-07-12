@@ -1,0 +1,69 @@
+<div class="xandra-roll-offs-app">
+  {{#if isActive}}
+  <section class="xro-section">
+    <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.CurrentRound'}}</h3>
+    <p class="xro-current-round">{{currentRoundLabel}}</p>
+    <ul class="xro-status-list">
+      {{#each participantStatuses}}
+      <li>
+        <span>{{name}}</span>
+        <span class="{{#if rolled}}rolled{{else}}waiting{{/if}}">
+          {{#if rolled}}{{value}}{{else}}{{localize 'XANDRA_ROLL_OFFS.Labels.NotRolled'}}{{/if}}
+        </span>
+      </li>
+      {{/each}}
+    </ul>
+    <div class="xro-actions">
+      <button type="button" data-action="forceResolve">{{localize 'XANDRA_ROLL_OFFS.Actions.ForceResolve'}}</button>
+      <button type="button" data-action="cancelRollOff">{{localize 'XANDRA_ROLL_OFFS.Actions.Cancel'}}</button>
+    </div>
+  </section>
+
+  <section class="xro-section">
+    <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.Leaderboard'}}</h3>
+    <ul class="xro-leaderboard">
+      {{#each leaderboard}}
+      <li>
+        <span>{{name}}</span>
+        <span class="score">{{score}}</span>
+      </li>
+      {{/each}}
+    </ul>
+    <div class="xro-actions">
+      <button type="button" data-action="resetTallies">{{localize 'XANDRA_ROLL_OFFS.Actions.ResetTallies'}}</button>
+    </div>
+  </section>
+  {{else}}
+  <section class="xro-section">
+    <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.ConfigureRollOff'}}</h3>
+    <form class="xro-config-form">
+      <div class="xro-form-row">
+        <label>{{localize 'XANDRA_ROLL_OFFS.Labels.DieType'}}</label>
+        <select name="dieType">
+          {{#each dieChoices}}
+          <option value="{{value}}" {{selected}}>{{label}}</option>
+          {{/each}}
+        </select>
+      </div>
+      <div class="xro-form-row">
+        <label>{{localize 'XANDRA_ROLL_OFFS.Labels.TotalRounds'}}</label>
+        <input type="number" name="totalRounds" min="1" value="3" />
+      </div>
+      <div class="xro-form-row">
+        <label>{{localize 'XANDRA_ROLL_OFFS.Labels.Participants'}}</label>
+        <div class="xro-participant-list">
+          {{#each users}}
+          <label>
+            <input type="checkbox" name="participants" value="{{id}}" checked />
+            {{name}} {{#if isGM}}(GM){{/if}}
+          </label>
+          {{/each}}
+        </div>
+      </div>
+      <div class="xro-actions">
+        <button type="submit" data-action="startRollOff">{{localize 'XANDRA_ROLL_OFFS.Actions.Start'}}</button>
+      </div>
+    </form>
+  </section>
+  {{/if}}
+</div>

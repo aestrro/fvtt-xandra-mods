@@ -1,0 +1,171 @@
+:root {
+  --xro-gap: 0.5rem;
+  --xro-radius: 6px;
+  --xro-border: 1px solid var(--color-border-light-2, #b7b7b7);
+  --xro-panel-width: 360px;
+}
+
+/* GM Panel */
+.xandra-roll-offs-app {
+  width: var(--xro-panel-width);
+  min-height: 300px;
+}
+
+.xandra-roll-offs-app .window-content {
+  padding: var(--xro-gap);
+}
+
+.xro-section {
+  margin-bottom: var(--xro-gap);
+  padding: var(--xro-gap);
+  border: var(--xro-border);
+  border-radius: var(--xro-radius);
+  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+}
+
+.xro-section h3 {
+  margin: 0 0 var(--xro-gap) 0;
+  font-size: 1.1em;
+  border-bottom: var(--xro-border);
+}
+
+.xro-form-row {
+  display: flex;
+  align-items: center;
+  gap: var(--xro-gap);
+  margin-bottom: var(--xro-gap);
+}
+
+.xro-form-row label {
+  flex: 0 0 110px;
+  font-weight: 600;
+}
+
+.xro-form-row input,
+.xro-form-row select {
+  flex: 1;
+  min-width: 0;
+}
+
+.xro-participant-list {
+  max-height: 160px;
+  overflow-y: auto;
+  border: var(--xro-border);
+  border-radius: var(--xro-radius);
+  padding: var(--xro-gap);
+  background: var(--color-bg-window, #fff);
+}
+
+.xro-participant-list label {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  margin-bottom: 0.2rem;
+}
+
+.xro-actions {
+  display: flex;
+  gap: var(--xro-gap);
+  flex-wrap: wrap;
+}
+
+.xro-actions button {
+  flex: 1;
+  min-width: 100px;
+}
+
+.xro-status-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.xro-status-list li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--color-border-light-1, #ddd);
+}
+
+.xro-status-list li:last-child {
+  border-bottom: none;
+}
+
+.xro-status-list .rolled {
+  color: var(--color-text-dark-success, #006400);
+  font-weight: 600;
+}
+
+.xro-status-list .waiting {
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.xro-leaderboard {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.xro-leaderboard li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.2rem 0;
+  border-bottom: 1px solid var(--color-border-light-1, #ddd);
+}
+
+.xro-leaderboard .score {
+  font-weight: 600;
+}
+
+/* Chat Cards */
+.xro-chat-card {
+  border: var(--xro-border);
+  border-radius: var(--xro-radius);
+  padding: var(--xro-gap);
+  margin: 0.2rem 0;
+  background: var(--color-bg-window, #fff);
+}
+
+.xro-chat-card .xro-roll-button {
+  margin-top: var(--xro-gap);
+}
+
+.xro-chat-card .xro-summary-row {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.15rem 0;
+}
+
+.xro-chat-card .xro-winner {
+  font-weight: 700;
+  color: var(--color-text-dark-success, #006400);
+}
+
+.xro-chat-card .xro-tie {
+  color: var(--color-text-dark-warning, #8a6d00);
+}
+
+.xro-chat-card .xro-ended {
+  font-weight: 700;
+  text-align: center;
+  margin: var(--xro-gap) 0;
+}
+
+/* Player prompt small app */
+.xandra-roll-offs-player-prompt {
+  width: 280px;
+}
+
+.xandra-roll-offs-player-prompt .xro-prompt-body {
+  padding: var(--xro-gap);
+  text-align: center;
+}
+
+.xandra-roll-offs-player-prompt .xro-prompt-body button {
+  margin-top: var(--xro-gap);
+  width: 100%;
+}
+
+button[data-action] {
+  cursor: pointer;
+}

@@ -1,0 +1,15 @@
+<div class="xro-chat-card xro-round-summary">
+  <h4>{{localize 'XANDRA_ROLL_OFFS.Labels.RoundSummary' round=round}}</h4>
+  {{#each rolls}}
+  <div class="xro-summary-row">
+    <span>{{name}}</span>
+    <span>{{value}}</span>
+  </div>
+  {{/each}}
+  {{#if winner}}
+  <div class="xro-winner">{{localize 'XANDRA_ROLL_OFFS.Labels.Winner' name=winnerName}}</div>
+  {{else}}
+  <div class="xro-tie">{{localize 'XANDRA_ROLL_OFFS.Labels.Tie' names=tiedNames}}</div>
+  <p>Tiebreak incoming…</p>
+  {{/if}}
+</div>

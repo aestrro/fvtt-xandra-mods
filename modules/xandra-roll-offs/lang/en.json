@@ -1,0 +1,45 @@
+{
+  "XANDRA_ROLL_OFFS": {
+    "Name": "Xandra Roll-Offs",
+    "Actions": {
+      "Start": "Start Roll-Off",
+      "Roll": "Roll",
+      "Cancel": "Cancel Roll-Off",
+      "ResetTallies": "Reset Tallies",
+      "ForceResolve": "Force Resolve"
+    },
+    "Labels": {
+      "ConfigureRollOff": "Configure Roll-Off",
+      "DieType": "Die Type",
+      "TotalRounds": "Total Rounds",
+      "Participants": "Participants",
+      "CurrentRound": "Current Round",
+      "Round": "Round {round}",
+      "Tiebreak": "Tiebreak",
+      "Leaderboard": "Leaderboard",
+      "NotRolled": "Not rolled",
+      "Rolled": "Rolled",
+      "Waiting": "Waiting for other players…",
+      "RollOffComplete": "Roll-Off Complete",
+      "Winner": "Winner: {name}",
+      "Tie": "Tie between {names}",
+      "RoundSummary": "Round {round} Summary",
+      "RollOffSummary": "Roll-Off Summary"
+    },
+    "Chat": {
+      "RollFlavor": "{user} rolls for {round}",
+      "RollFlavorNoUser": "Roll for {round}",
+      "RoundWinner": "Winner: {name}",
+      "RoundTie": "Tie — tiebreak incoming among {names}",
+      "RollOffWinner": "Roll-Off Winner: {name}"
+    },
+    "Errors": {
+      "NeedTwoParticipants": "A roll-off needs at least two participants.",
+      "OnlyGmStarts": "Only the GM can start a roll-off.",
+      "AlreadyRolled": "You have already rolled this round.",
+      "NotParticipant": "You are not a participant in this round.",
+      "NoActiveRollOff": "No roll-off is currently active.",
+      "DiePatternMismatch": "That roll does not match the configured die pattern ({pattern})."
+    }
+  }
+}
