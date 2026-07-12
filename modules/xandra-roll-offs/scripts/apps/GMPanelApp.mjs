@@ -11,6 +11,8 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static #instance = null;
   static #hookId = null;
 
+  #selectedParticipants = null;
+
   static DEFAULT_OPTIONS = {
     id: 'xandra-roll-offs-gm-panel',
     classes: ['xandra-roll-offs-app'],
@@ -52,6 +54,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   constructor(options = {}) {
     super(options);
+    this.#selectedParticipants = null;
     if (!this.constructor.#hookId) {
       this.constructor.#hookId = Hooks.on('xandraRollOffs.stateUpdated', () => {
         if (this.constructor.#instance?.rendered) this.constructor.#instance.render({ force: true });
@@ -106,7 +109,12 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
         .sort((a, b) => b.score - a.score);
     } else {
       const includeGM = game.settings.get(MODULE_ID, SETTINGS.INCLUDE_GM_BY_DEFAULT);
-      users = game.users.map((u) => ({ id: u.id, name: u.name, isGM: u.isGM, checked: includeGM || !u.isGM }));
+      users = game.users.map((u) => {
+        const isChecked = this.#selectedParticipants !== null
+          ? this.#selectedParticipants.has(u.id)
+          : includeGM || !u.isGM;
+        return { id: u.id, name: u.name, isGM: u.isGM, checked: isChecked };
+      });
     }
 
     return {
@@ -120,6 +128,26 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
+  async _onRender(context, options) {
+    await super._onRender(context, options);
+    const container = this.element?.querySelector('.xro-config-form');
+    if (!container) return;
+
+    const checkboxes = container.querySelectorAll('input[name="participants"]');
+    const updateSelection = () => {
+      this.#selectedParticipants = new Set(
+        Array.from(checkboxes)
+          .filter((cb) => cb.checked)
+          .map((cb) => cb.value)
+      );
+      console.log(`${MODULE_ID} | GM panel selection updated`, [...this.#selectedParticipants]);
+    };
+
+    for (const cb of checkboxes) {
+      cb.addEventListener('change', updateSelection);
+    }
+  }
+
   static async startRollOff(event, target) {
     event.preventDefault();
     console.log(`${MODULE_ID} | startRollOff clicked`);
@@ -127,15 +155,19 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const container = GMPanelApp.#instance?.element?.querySelector('.xro-config-form');
+    const instance = GMPanelApp.#instance;
+    const container = instance?.element?.querySelector('.xro-config-form');
     if (!container) {
       console.warn(`${MODULE_ID} | startRollOff: config container not found`);
       return;
     }
     const dieType = container.querySelector('select[name="dieType"]')?.value;
     const totalRounds = Number(container.querySelector('input[name="totalRounds"]')?.value);
-    const participants = Array.from(container.querySelectorAll('input[name="participants"]:checked')).map((cb) => cb.value);
-    console.log(`${MODULE_ID} | startRollOff manual config`, { dieType, totalRounds, participants });
+    const stored = instance?.#selectedParticipants;
+    const participants = stored !== null && stored.size > 0
+      ? [...stored]
+      : Array.from(container.querySelectorAll('input[name="participants"]:checked')).map((cb) => cb.value);
+    console.log(`${MODULE_ID} | startRollOff manual config`, { dieType, totalRounds, participants, fromStorage: stored !== null });
     if (participants.length < 2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.NeedTwoParticipants'));
       return;
