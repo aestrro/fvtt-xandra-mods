@@ -102,10 +102,10 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
         value: activeRound.rolls[userId]?.total ?? null,
       }));
 
-      leaderboard = Object.entries(tallies)
-        .map(([userId, score]) => ({
+      leaderboard = activeRollOff.participants
+        .map((userId) => ({
           name: game.users.get(userId)?.name ?? userId,
-          score,
+          score: tallies[userId] || 0,
         }))
         .sort((a, b) => b.score - a.score);
     } else {

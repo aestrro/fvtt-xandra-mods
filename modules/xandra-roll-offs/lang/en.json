@@ -23,7 +23,7 @@
       "RollOffComplete": "Roll-Off Complete",
       "Winner": "Winner: {name}",
       "Tie": "Tie between {names}",
-      "RoundSummary": "Round {round} Summary",
+      "RoundSummary": "{round} Summary",
       "RollOffSummary": "Roll-Off Summary"
     },
     "PlayerPrompt": {
