@@ -237,7 +237,7 @@ export class RollOffSocketHandler {
   }
 
   _emit(type, payload) {
-    game.socket.emit(SOCKET_NAMESPACE, { type, payload });
+    game.socket.emit(SOCKET_NAMESPACE, { type, ...payload });
     Hooks.callAll(`xandraRollOffs.${type}`, payload);
   }
 }
