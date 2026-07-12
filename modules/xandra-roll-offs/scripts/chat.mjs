@@ -69,6 +69,25 @@ export async function postRollOffStarted(round, totalRounds, participants, dieTy
   });
 }
 
+export async function postRoundStarted(round, participants, dieType) {
+  if (!round) return;
+
+  const participantNames = participants.map((id) => game.users.get(id)?.name ?? id).join(', ');
+  const content = game.i18n.format('XANDRA_ROLL_OFFS.Chat.RoundStartedBody', {
+    round: round.label,
+    participants: participantNames,
+    die: dieType,
+  });
+
+  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user);
+
+  return ChatMessage.create({
+    content,
+    speaker,
+    flavor: game.i18n.localize('XANDRA_ROLL_OFFS.Chat.RoundStarted'),
+  });
+}
+
 /**
  * Posts a round or tiebreak resolution summary to chat.
  *

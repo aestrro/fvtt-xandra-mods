@@ -168,6 +168,7 @@ export class RollOffSocketHandler {
     await setWinTallies(getWinTallies()); // ensure initialized
     const startedRound = State.findActiveRound(activeRollOff.roundStack);
     await Chat.postRollOffStarted(startedRound, data.totalRounds, data.participants, data.dieType);
+    await Chat.postRoundStarted(startedRound, data.participants, data.dieType);
     this._emit('stateUpdated', activeRollOff);
     this._emit('roundStarted', startedRound);
   }
@@ -194,6 +195,7 @@ export class RollOffSocketHandler {
 
       if (activeRollOff.active) {
         const newRound = State.findActiveRound(activeRollOff.roundStack);
+        await Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType);
         this._emit('roundStarted', newRound);
       } else {
         await Chat.postRollOffSummary(activeRollOff.history, getWinTallies());
@@ -206,6 +208,7 @@ export class RollOffSocketHandler {
       const topRound = State.findActiveRound(activeRollOff.roundStack);
       const tiedUserIds = topRound.participants;
       await Chat.postRoundSummary(topRound.parent, null, true, tiedUserIds);
+      await Chat.postRoundStarted(topRound, tiedUserIds, activeRollOff.dieType);
       this._emit('tiebreakStarted', topRound);
       this._emit('stateUpdated', activeRollOff);
     }

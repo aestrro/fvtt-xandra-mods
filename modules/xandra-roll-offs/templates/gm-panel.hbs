@@ -36,7 +36,7 @@
   {{else}}
   <section class="xro-section">
     <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.ConfigureRollOff'}}</h3>
-    <form class="xro-config-form" onsubmit="event.preventDefault(); return false;">
+    <div class="xro-config-form">
       <div class="xro-form-row">
         <label>{{localize 'XANDRA_ROLL_OFFS.Labels.DieType'}}</label>
         <select name="dieType">
@@ -63,7 +63,7 @@
       <div class="xro-actions">
         <button type="button" data-action="startRollOff">{{localize 'XANDRA_ROLL_OFFS.Actions.Start'}}</button>
       </div>
-    </form>
+    </div>
   </section>
   {{/if}}
 </div>

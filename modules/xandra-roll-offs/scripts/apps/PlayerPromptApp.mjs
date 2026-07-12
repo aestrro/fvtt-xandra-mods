@@ -39,13 +39,13 @@ export class PlayerPromptApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Otherwise close any existing prompt.
    */
   static renderIfNeeded() {
+    const activeRollOff = getActiveRollOff();
+    const canRoll = activeRollOff?.active && canUserRoll(activeRollOff, game.userId);
+    console.log(`${MODULE_ID} | renderIfNeeded user=${game.user?.name} canRoll=${canRoll}`);
     if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_PLAYER_PROMPT)) {
       if (this.#instance) this.#instance.close();
       return;
     }
-
-    const activeRollOff = getActiveRollOff();
-    const canRoll = activeRollOff?.active && canUserRoll(activeRollOff, game.userId);
 
     if (!canRoll) {
       if (this.#instance) this.#instance.close();

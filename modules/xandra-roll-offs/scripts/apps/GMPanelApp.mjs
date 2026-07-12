@@ -127,16 +127,15 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const form = GMPanelApp.#instance?.element?.querySelector('form.xro-config-form');
-    if (!form) {
-      console.warn(`${MODULE_ID} | startRollOff: config form not found`);
+    const container = GMPanelApp.#instance?.element?.querySelector('.xro-config-form');
+    if (!container) {
+      console.warn(`${MODULE_ID} | startRollOff: config container not found`);
       return;
     }
-    const fd = new foundry.applications.ux.FormDataExtended(form);
-    console.log(`${MODULE_ID} | startRollOff form data`, fd.object);
-    const dieType = fd.object.dieType;
-    const totalRounds = Number(fd.object.totalRounds);
-    const participants = fd.object.participants ?? [];
+    const dieType = container.querySelector('select[name="dieType"]')?.value;
+    const totalRounds = Number(container.querySelector('input[name="totalRounds"]')?.value);
+    const participants = Array.from(container.querySelectorAll('input[name="participants"]:checked')).map((cb) => cb.value);
+    console.log(`${MODULE_ID} | startRollOff manual config`, { dieType, totalRounds, participants });
     if (participants.length < 2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.NeedTwoParticipants'));
       return;
