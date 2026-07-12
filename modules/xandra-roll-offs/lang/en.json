@@ -26,6 +26,9 @@
       "RoundSummary": "Round {round} Summary",
       "RollOffSummary": "Roll-Off Summary"
     },
+    "PlayerPrompt": {
+      "Hint": "Or type /roll {die} in chat, or use the Roll-Offs sidebar tab."
+    },
     "Settings": {
       "ShowChatButton": {
         "Name": "Show Chat Button",
@@ -55,6 +58,8 @@
     "Chat": {
       "RollFlavor": "{user} rolls for {round}",
       "RollFlavorNoUser": "Roll for {round}",
+      "RollOffStarted": "Roll-Off Started",
+      "RollOffStartedBody": "Round {round} of {total}. Participants: {participants}. Roll by clicking the prompt, the sidebar tab, or typing /roll {die}.",
       "RoundWinner": "Winner: {name}",
       "RoundTie": "Tie — tiebreak incoming among {names}",
       "RollOffWinner": "Roll-Off Winner: {name}"
