@@ -174,6 +174,7 @@ export class RollOffSocketHandler {
 
   _onBroadcast(data) {
     // Broadcasts reach every client; the UI reacts via local hooks.
+    Hooks.callAll(`xandraRollOffs.${data.type}`, data.payload ?? data);
   }
 
   /* ================================================================ */

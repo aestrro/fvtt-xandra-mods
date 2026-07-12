@@ -29,6 +29,11 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       resetTallies: GMPanelApp.resetTallies,
       forceResolve: GMPanelApp.forceResolve,
     },
+    form: {
+      handler: null,
+      submitOnChange: false,
+      closeOnSubmit: false,
+    },
   };
 
   static PARTS = {
