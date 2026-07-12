@@ -122,7 +122,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const form = this.#instance?.element?.querySelector('form.xro-config-form');
+    const form = GMPanelApp.#instance?.element?.querySelector('form.xro-config-form');
     if (!form) {
       console.warn(`${MODULE_ID} | startRollOff: config form not found`);
       return;
