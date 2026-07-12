@@ -8,7 +8,6 @@ const SETTINGS = {
   ACTIVE_ROLL_OFF: 'activeRollOff',
   WIN_TALLIES: 'winTallies',
   SHOW_CHAT_BUTTON: 'showChatButton',
-  SHOW_PLAYER_PROMPT: 'showPlayerPrompt',
   POST_PER_ROLL_CARD: 'postPerRollCard',
   DEFAULT_DIE_TYPE: 'defaultDieType',
   DEFAULT_WINS_NEEDED: 'defaultWinsNeeded',
@@ -52,16 +51,6 @@ export function registerSettings() {
       const btn = document.querySelector('#chat-controls .xro-open-gm-panel');
       if (btn) btn.style.display = value ? '' : 'none';
     }
-  });
-
-  // Visible client setting: auto-open the player prompt
-  game.settings.register(MODULE_ID, SETTINGS.SHOW_PLAYER_PROMPT, {
-    name: 'XANDRA_ROLL_OFFS.Settings.ShowPlayerPrompt.Name',
-    hint: 'XANDRA_ROLL_OFFS.Settings.ShowPlayerPrompt.Hint',
-    scope: 'client',
-    config: true,
-    type: Boolean,
-    default: true,
   });
 
   // Visible world setting: post individual roll cards

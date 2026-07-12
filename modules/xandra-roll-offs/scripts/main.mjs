@@ -1,5 +1,4 @@
 import { GMPanelApp } from './apps/GMPanelApp.mjs';
-import { PlayerPromptApp } from './apps/PlayerPromptApp.mjs';
 import { RollOffWindow } from './apps/RollOffWindow.mjs';
 import { registerSidebarTab } from './apps/RollOffSidebarTab.mjs';
 import { initSocketHandler } from './socket.mjs';
@@ -24,7 +23,6 @@ Hooks.once('ready', async () => {
   // Pre-load templates so AppV2 parts resolve
   const templates = [
     'modules/xandra-roll-offs/templates/gm-panel.hbs',
-    'modules/xandra-roll-offs/templates/player-prompt.hbs',
     'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
     'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
     'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs',
@@ -79,26 +77,15 @@ Hooks.once('ready', async () => {
 
   Hooks.on('xandraRollOffs.roundStarted', () => {
     RollOffWindow.open();
-    if (game.settings.get(MODULE_ID, 'showPlayerPrompt')) {
-      PlayerPromptApp.renderIfNeeded();
-    }
   });
   Hooks.on('xandraRollOffs.tiebreakStarted', () => {
     RollOffWindow.open();
-    if (game.settings.get(MODULE_ID, 'showPlayerPrompt')) {
-      PlayerPromptApp.renderIfNeeded();
-    }
   });
   Hooks.on('xandraRollOffs.rollOffEnded', () => RollOffWindow.close());
   Hooks.on('xandraRollOffs.rollOffCancelled', () => RollOffWindow.close());
 
   // Wire /roll interception for active participants
   Hooks.on('chatMessage', (chatLog, messageText, data) => onChatMessage(chatLog, messageText, data));
-
-  // If a prompt should already be open on ready, show it once
-  if (game.settings.get(MODULE_ID, 'showPlayerPrompt')) {
-    PlayerPromptApp.renderIfNeeded();
-  }
 });
 
 /* ================================================================ */
