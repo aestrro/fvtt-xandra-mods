@@ -165,7 +165,7 @@ export class RollOffSocketHandler {
     });
 
     await setActiveRollOff(activeRollOff);
-    await setWinTallies(getWinTallies()); // ensure initialized
+    await setWinTallies({}); // per-roll-off tallies
     const startedRound = State.findActiveRound(activeRollOff.roundStack);
     await Chat.postRollOffStarted(startedRound, data.winsNeeded, data.participants, data.dieType);
     await Chat.postRoundStarted(startedRound, data.participants, data.dieType);

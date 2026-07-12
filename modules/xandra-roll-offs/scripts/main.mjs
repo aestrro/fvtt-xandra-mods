@@ -36,6 +36,7 @@ Hooks.once('ready', async () => {
 
   // Inject a Roll-Offs button into the chat controls (matches dice-tray pattern)
   const injectChatButton = () => {
+    if (!game.user.isGM) return;
     if (!game.settings.get(MODULE_ID, 'showChatButton')) return;
 
     const chatControls = document.querySelector('#chat-controls');
