@@ -24,15 +24,10 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       height: 'auto',
     },
     actions: {
-      startRollOff: 'startRollOff',
-      cancelRollOff: 'cancelRollOff',
-      resetTallies: 'resetTallies',
-      forceResolve: 'forceResolve',
-    },
-    form: {
-      handler: null,
-      submitOnChange: false,
-      closeOnSubmit: false,
+      startRollOff: GMPanelApp.startRollOff,
+      cancelRollOff: GMPanelApp.cancelRollOff,
+      resetTallies: GMPanelApp.resetTallies,
+      forceResolve: GMPanelApp.forceResolve,
     },
   };
 
@@ -120,14 +115,14 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  async startRollOff(event, target) {
+  static async startRollOff(event, target) {
     event.preventDefault();
     console.log(`${MODULE_ID} | startRollOff clicked`);
     if (!game.user.isGM) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const form = this.element.querySelector('form.xro-config-form');
+    const form = this.#instance?.element?.querySelector('form.xro-config-form');
     if (!form) {
       console.warn(`${MODULE_ID} | startRollOff: config form not found`);
       return;
@@ -145,13 +140,13 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     await socket.startRollOff({ dieType, totalRounds, participants });
   }
 
-  async cancelRollOff(event, target) {
+  static async cancelRollOff(event, target) {
     if (!game.user.isGM) return;
     const socket = game.modules.get(MODULE_ID).socketHandler;
     await socket.cancelRollOff();
   }
 
-  async resetTallies(event, target) {
+  static async resetTallies(event, target) {
     if (!game.user.isGM) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: 'Reset Tallies' },
@@ -163,7 +158,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  async forceResolve(event, target) {
+  static async forceResolve(event, target) {
     if (!game.user.isGM) return;
     const socket = game.modules.get(MODULE_ID).socketHandler;
     await socket.forceResolve();
