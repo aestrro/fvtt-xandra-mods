@@ -11,7 +11,7 @@
     "Labels": {
       "ConfigureRollOff": "Configure Roll-Off",
       "DieType": "Die Type",
-      "TotalRounds": "Total Rounds",
+      "WinsNeeded": "Wins Needed",
       "Participants": "Participants",
       "CurrentRound": "Current Round",
       "Round": "Round {round}",
@@ -46,6 +46,10 @@
         "Name": "Default Die Type",
         "Hint": "Default die type used when starting a new roll-off."
       },
+      "WinsNeeded": {
+        "Name": "Default Wins Needed",
+        "Hint": "Default number of wins needed to win a new roll-off."
+      },
       "ShowSidebarTab": {
         "Name": "Show Sidebar Tab",
         "Hint": "Show the Roll-Offs tab in the sidebar between Chat and Combat."
@@ -59,7 +63,7 @@
       "RollFlavor": "{user} rolls for {round}",
       "RollFlavorNoUser": "Roll for {round}",
       "RollOffStarted": "Roll-Off Started",
-      "RollOffStartedBody": "Round {round} of {total}. Participants: {participants}. Roll by clicking the prompt, the sidebar tab, or typing /roll {die}.",
+      "RollOffStartedBody": "Round {round}. First to {winsNeeded} wins. Participants: {participants}. Roll by clicking the prompt, the sidebar tab, or typing /roll {die}.",
       "RoundStarted": "Round Started",
       "RoundStartedBody": "{round}. Participants: {participants}. Roll by clicking the prompt, the sidebar tab, or typing /roll {die}.",
       "RoundWinner": "Winner: {name}",

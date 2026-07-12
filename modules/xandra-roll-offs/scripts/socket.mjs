@@ -60,7 +60,7 @@ export class RollOffSocketHandler {
 
   /**
    * Start a new roll-off. GM only; broadcasts to all clients.
-   * @param {{dieType: string, totalRounds: number, participants: string[]}} config
+   * @param {{dieType: string, winsNeeded: number, participants: string[]}} config
    */
   async startRollOff(config) {
     if (game.user.isGM) {
@@ -152,22 +152,22 @@ export class RollOffSocketHandler {
   async _onRequestStartRollOff(data) {
     if (!game.user.isGM) return;
 
-    if (!data.dieType || !data.totalRounds || !Array.isArray(data.participants) || data.participants.length < 2) {
+    if (!data.dieType || !data.winsNeeded || !Array.isArray(data.participants) || data.participants.length < 2) {
       console.warn(`${MODULE_ID} | requestStartRollOff rejected: invalid configuration`, data);
-      ui.notifications?.warn?.('Roll-off requires a die type, at least one round, and at least two participants.');
+      ui.notifications?.warn?.('Roll-off requires a die type, a wins-needed target, and at least two participants.');
       return;
     }
 
     const activeRollOff = State.startRollOff({
       dieType: data.dieType,
-      totalRounds: data.totalRounds,
+      winsNeeded: data.winsNeeded,
       participants: data.participants,
     });
 
     await setActiveRollOff(activeRollOff);
     await setWinTallies(getWinTallies()); // ensure initialized
     const startedRound = State.findActiveRound(activeRollOff.roundStack);
-    await Chat.postRollOffStarted(startedRound, data.totalRounds, data.participants, data.dieType);
+    await Chat.postRollOffStarted(startedRound, data.winsNeeded, data.participants, data.dieType);
     await Chat.postRoundStarted(startedRound, data.participants, data.dieType);
     this._emit('stateUpdated', activeRollOff);
     this._emit('roundStarted', startedRound);
@@ -191,19 +191,24 @@ export class RollOffSocketHandler {
       tallies[result.winnerId] = (tallies[result.winnerId] || 0) + 1;
       await setWinTallies(tallies);
       await Chat.postRoundSummary(result.round, game.users.get(result.winnerId), false, []);
-      this._emit('stateUpdated', activeRollOff);
 
-      if (activeRollOff.active) {
-        const newRound = State.findActiveRound(activeRollOff.roundStack);
-        await Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType);
-        this._emit('roundStarted', newRound);
-      } else {
-        await Chat.postRollOffSummary(activeRollOff.history, getWinTallies());
+      if ((tallies[result.winnerId] || 0) >= activeRollOff.winsNeeded) {
+        activeRollOff.active = false;
+        activeRollOff.roundStack = [];
+        await setActiveRollOff(activeRollOff);
+        await Chat.postRollOffSummary(activeRollOff.history, getWinTallies(), game.users.get(result.winnerId));
+        this._emit('stateUpdated', activeRollOff);
         this._emit('rollOffEnded', {
           winnerByRound: activeRollOff.history,
           finalTallies: getWinTallies(),
         });
+        return;
       }
+
+      this._emit('stateUpdated', activeRollOff);
+      const newRound = State.findActiveRound(activeRollOff.roundStack);
+      await Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType);
+      this._emit('roundStarted', newRound);
     } else if (result.type === 'tiebreak') {
       const topRound = State.findActiveRound(activeRollOff.roundStack);
       const tiedUserIds = topRound.participants;

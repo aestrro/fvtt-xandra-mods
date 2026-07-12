@@ -11,6 +11,7 @@ const SETTINGS = {
   SHOW_PLAYER_PROMPT: 'showPlayerPrompt',
   POST_PER_ROLL_CARD: 'postPerRollCard',
   DEFAULT_DIE_TYPE: 'defaultDieType',
+  DEFAULT_WINS_NEEDED: 'defaultWinsNeeded',
   SHOW_SIDEBAR_TAB: 'showSidebarTab',
   INCLUDE_GM_BY_DEFAULT: 'includeGMByDefault',
 };
@@ -100,6 +101,16 @@ export function registerSettings() {
       '1d20': 'd20',
       '1d100': 'd100',
     },
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.DEFAULT_WINS_NEEDED, {
+    name: 'XANDRA_ROLL_OFFS.Settings.WinsNeeded.Name',
+    hint: 'XANDRA_ROLL_OFFS.Settings.WinsNeeded.Hint',
+    scope: 'world',
+    config: true,
+    type: Number,
+    default: 2,
+    range: { min: 1, max: 20, step: 1 },
   });
 
   // Visible client setting: show the sidebar tab between chat and combat

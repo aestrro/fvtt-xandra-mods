@@ -72,6 +72,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const tallies = getWinTallies();
     const isActive = activeRollOff?.active ?? false;
     const defaultDieType = game.settings.get(MODULE_ID, SETTINGS.DEFAULT_DIE_TYPE);
+    const defaultWinsNeeded = game.settings.get(MODULE_ID, SETTINGS.DEFAULT_WINS_NEEDED);
 
     const dieChoices = [
       { value: '1d4', label: 'd4' },
@@ -124,7 +125,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       leaderboard,
       dieChoices,
       users,
-      defaultDieType,
+      defaultWinsNeeded,
     };
   }
 
@@ -162,18 +163,18 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     const dieType = container.querySelector('select[name="dieType"]')?.value;
-    const totalRounds = Number(container.querySelector('input[name="totalRounds"]')?.value);
+    const winsNeeded = Number(container.querySelector('input[name="winsNeeded"]')?.value);
     const stored = instance?.#selectedParticipants;
     const participants = stored !== null && stored.size > 0
       ? [...stored]
       : Array.from(container.querySelectorAll('input[name="participants"]:checked')).map((cb) => cb.value);
-    console.log(`${MODULE_ID} | startRollOff manual config`, { dieType, totalRounds, participants, fromStorage: stored !== null });
+    console.log(`${MODULE_ID} | startRollOff manual config`, { dieType, winsNeeded, participants, fromStorage: stored !== null });
     if (participants.length < 2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.NeedTwoParticipants'));
       return;
     }
     const socket = game.modules.get(MODULE_ID).socketHandler;
-    await socket.startRollOff({ dieType, totalRounds, participants });
+    await socket.startRollOff({ dieType, winsNeeded, participants });
   }
 
   static async cancelRollOff(event, target) {

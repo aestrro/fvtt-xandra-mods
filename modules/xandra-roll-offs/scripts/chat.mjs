@@ -49,13 +49,13 @@ export async function postRollToChat(user, roll, roundLabel) {
   });
 }
 
-export async function postRollOffStarted(round, totalRounds, participants, dieType) {
+export async function postRollOffStarted(round, winsNeeded, participants, dieType) {
   if (!round) return;
 
   const participantNames = participants.map((id) => game.users.get(id)?.name ?? id).join(', ');
   const content = game.i18n.format('XANDRA_ROLL_OFFS.Chat.RollOffStartedBody', {
     round: round.label,
-    total: totalRounds,
+    winsNeeded,
     participants: participantNames,
     die: dieType,
   });
@@ -147,7 +147,7 @@ export async function postRoundSummary(
  * @param {Object<string, number>} tallies - Map of userId to lifetime win count.
  * @returns {Promise<ChatMessage>} The created chat message document.
  */
-export async function postRollOffSummary(history, tallies) {
+export async function postRollOffSummary(history, tallies, winner) {
   const rounds = (history ?? []).map((entry) => ({
     round: entry.round,
     winnerName: game.users.get(entry.winner)?.name ?? entry.winner,
@@ -160,11 +160,14 @@ export async function postRollOffSummary(history, tallies) {
     }))
     .sort((a, b) => b.score - a.score);
 
+  const winnerName = winner?.name ?? (talliesList[0]?.name ?? '');
+
   const content = await foundry.applications.handlebars.renderTemplate(
     "modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs",
     {
       rounds,
       tallies: talliesList,
+      winner: winnerName,
     }
   );
 

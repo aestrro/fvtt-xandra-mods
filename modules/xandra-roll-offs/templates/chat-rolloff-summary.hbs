@@ -1,5 +1,8 @@
 <div class="xandra-roll-offs-chat xro-roll-off-summary">
   <h4>{{localize 'XANDRA_ROLL_OFFS.Labels.RollOffComplete'}}</h4>
+  {{#if winner}}
+  <h2 class="xro-winner">{{localize 'XANDRA_ROLL_OFFS.Chat.RollOffWinner' name=winner}}</h2>
+  {{/if}}
   {{#if rounds.length}}
   <ul class="xro-round-list">
     {{#each rounds}}

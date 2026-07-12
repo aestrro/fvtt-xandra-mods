@@ -37,7 +37,7 @@
  * The full in-progress state of a roll-off.
  * @property {boolean} active - Whether the roll-off is still in progress.
  * @property {string} dieType - Roll formula for the whole roll-off.
- * @property {number} totalRounds - Total number of top-level rounds configured.
+ * @property {number} winsNeeded - Number of wins required to win the roll-off.
  * @property {number} currentRoundIndex - 0-based index of the current top-level round.
  * @property {string[]} participants - Full participant list for the roll-off.
  * @property {Round[]} roundStack - Active/historical round stack; last entry is active.
@@ -147,18 +147,14 @@ export function advanceToNextRoundOrEnd(activeRollOff) {
     throw new Error("advanceToNextRoundOrEnd requires an activeRollOff object");
   }
 
-  // Collapse the resolved tiebreak stack, preserving only history entries.
-  // Top-level rounds are never retained in the stack after resolution; history
-  // already holds the record.
   activeRollOff.roundStack = [];
 
-  if (activeRollOff.currentRoundIndex + 1 >= activeRollOff.totalRounds) {
-    activeRollOff.active = false;
-  } else {
-    activeRollOff.currentRoundIndex += 1;
-    pushNewRound(activeRollOff);
+  if (!activeRollOff.active) {
+    return activeRollOff;
   }
 
+  activeRollOff.currentRoundIndex += 1;
+  pushNewRound(activeRollOff);
   return activeRollOff;
 }
 
@@ -167,16 +163,16 @@ export function advanceToNextRoundOrEnd(activeRollOff) {
  *
  * @param {Object} config - Configuration for the roll-off.
  * @param {string} config.dieType - Roll formula (e.g. "1d20", "1d100", "2d6").
- * @param {number} config.totalRounds - Number of top-level rounds.
+ * @param {number} config.winsNeeded - Number of wins required to win the roll-off.
  * @param {string[]} config.participants - Ordered list of participant user IDs.
  * @returns {ActiveRollOff} A fresh, active roll-off state object.
  */
-export function startRollOff({ dieType, totalRounds, participants }) {
+export function startRollOff({ dieType, winsNeeded, participants }) {
   if (!dieType || typeof dieType !== "string") {
     throw new Error("startRollOff requires a non-empty dieType string");
   }
-  if (!Number.isInteger(totalRounds) || totalRounds < 1) {
-    throw new Error("startRollOff requires totalRounds >= 1");
+  if (!Number.isInteger(winsNeeded) || winsNeeded < 1) {
+    throw new Error("startRollOff requires winsNeeded >= 1");
   }
   if (!Array.isArray(participants) || participants.length < 2) {
     throw new Error("startRollOff requires at least 2 participants");
@@ -185,7 +181,7 @@ export function startRollOff({ dieType, totalRounds, participants }) {
   const activeRollOff = {
     active: true,
     dieType,
-    totalRounds,
+    winsNeeded,
     currentRoundIndex: 0,
     participants: [...participants],
     roundStack: [],
