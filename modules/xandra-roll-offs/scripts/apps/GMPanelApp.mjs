@@ -1,5 +1,6 @@
-import { getActiveRollOff, getWinTallies, setWinTallies } from '../settings.mjs';
+import { getActiveRollOff, getWinTallies, setWinTallies, SETTINGS } from '../settings.mjs';
 import { canUserRoll } from '../state.mjs';
+import { MODULE_ID } from '../utils.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -67,16 +68,20 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     const activeRollOff = getActiveRollOff();
     const tallies = getWinTallies();
     const isActive = activeRollOff?.active ?? false;
+    const defaultDieType = game.settings.get(MODULE_ID, SETTINGS.DEFAULT_DIE_TYPE);
 
     const dieChoices = [
-      { value: '1d20', label: 'd20', selected: 'selected' },
-      { value: '1d100', label: 'd100', selected: '' },
-      { value: '1d12', label: 'd12', selected: '' },
-      { value: '1d10', label: 'd10', selected: '' },
-      { value: '1d8', label: 'd8', selected: '' },
-      { value: '1d6', label: 'd6', selected: '' },
-      { value: '1d4', label: 'd4', selected: '' },
-    ];
+      { value: '1d4', label: 'd4' },
+      { value: '1d6', label: 'd6' },
+      { value: '1d8', label: 'd8' },
+      { value: '1d10', label: 'd10' },
+      { value: '1d12', label: 'd12' },
+      { value: '1d20', label: 'd20' },
+      { value: '1d100', label: 'd100' },
+    ].map((choice) => ({
+      ...choice,
+      selected: choice.value === defaultDieType ? 'selected' : '',
+    }));
 
     let currentRoundLabel = '';
     let participantStatuses = [];
@@ -100,7 +105,8 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
         }))
         .sort((a, b) => b.score - a.score);
     } else {
-      users = game.users.map((u) => ({ id: u.id, name: u.name, isGM: u.isGM }));
+      const includeGM = game.settings.get(MODULE_ID, SETTINGS.INCLUDE_GM_BY_DEFAULT);
+      users = game.users.map((u) => ({ id: u.id, name: u.name, isGM: u.isGM, checked: includeGM || !u.isGM }));
     }
 
     return {
@@ -110,6 +116,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       leaderboard,
       dieChoices,
       users,
+      defaultDieType,
     };
   }
 

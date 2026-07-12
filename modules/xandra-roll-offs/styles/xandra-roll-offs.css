@@ -166,6 +166,29 @@
   width: 100%;
 }
 
+/* Sidebar tab */
+.xandra-roll-offs-sidebar {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.xandra-roll-offs-sidebar .xro-sidebar-content {
+  flex: 1;
+  overflow-y: auto;
+  padding: var(--xro-gap);
+}
+
+.xandra-roll-offs-sidebar .xro-empty {
+  text-align: center;
+  color: var(--color-text-dark-secondary, #666);
+}
+
 button[data-action] {
   cursor: pointer;
+}
+
+/* Sidebar tab icon active state */
+#sidebar-tabs .item[data-tab="roll-offs"].active {
+  color: var(--color-text-hyperlink, #ff0000);
 }

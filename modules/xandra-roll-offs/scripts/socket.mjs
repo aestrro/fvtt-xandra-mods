@@ -1,4 +1,4 @@
-import { getActiveRollOff, setActiveRollOff, getWinTallies, setWinTallies } from './settings.mjs';
+import { getActiveRollOff, setActiveRollOff, getWinTallies, setWinTallies, SETTINGS } from './settings.mjs';
 import * as State from './state.mjs';
 import * as Chat from './chat.mjs';
 
@@ -135,7 +135,9 @@ export class RollOffSocketHandler {
       State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id });
       await setActiveRollOff(activeRollOff);
 
-      await this._postAuditRoll(userId, roll, activeRound.label);
+      if (game.settings.get(MODULE_ID, SETTINGS.POST_PER_ROLL_CARD)) {
+        await this._postAuditRoll(userId, roll, activeRound.label);
+      }
       this._emit('stateUpdated', activeRollOff);
 
       if (State.isRoundComplete(activeRollOff)) {

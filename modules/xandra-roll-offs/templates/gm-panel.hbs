@@ -54,7 +54,7 @@
         <div class="xro-participant-list">
           {{#each users}}
           <label>
-            <input type="checkbox" name="participants" value="{{id}}" checked />
+            <input type="checkbox" name="participants" value="{{id}}" {{#if checked}}checked{{/if}} />
             {{name}} {{#if isGM}}(GM){{/if}}
           </label>
           {{/each}}

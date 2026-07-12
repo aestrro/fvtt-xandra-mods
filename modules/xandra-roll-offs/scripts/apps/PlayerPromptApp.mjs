@@ -1,5 +1,6 @@
-import { getActiveRollOff } from '../settings.mjs';
+import { getActiveRollOff, SETTINGS } from '../settings.mjs';
 import { canUserRoll } from '../state.mjs';
+import { MODULE_ID } from '../utils.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
 
@@ -38,6 +39,11 @@ export class PlayerPromptApp extends HandlebarsApplicationMixin(ApplicationV2) {
    * Otherwise close any existing prompt.
    */
   static renderIfNeeded() {
+    if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_PLAYER_PROMPT)) {
+      if (this.#instance) this.#instance.close();
+      return;
+    }
+
     const activeRollOff = getActiveRollOff();
     const canRoll = activeRollOff?.active && canUserRoll(activeRollOff, game.userId);
 

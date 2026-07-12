@@ -26,6 +26,32 @@
       "RoundSummary": "Round {round} Summary",
       "RollOffSummary": "Roll-Off Summary"
     },
+    "Settings": {
+      "ShowChatButton": {
+        "Name": "Show Chat Button",
+        "Hint": "Show the Roll-Offs button in the chat controls."
+      },
+      "ShowPlayerPrompt": {
+        "Name": "Show Roll Prompt",
+        "Hint": "Open a prompt when it is your turn to roll in a roll-off."
+      },
+      "PostPerRollCard": {
+        "Name": "Post Per-Roll Cards",
+        "Hint": "Post a standard chat roll card for each participant's roll."
+      },
+      "DefaultDieType": {
+        "Name": "Default Die Type",
+        "Hint": "Default die type used when starting a new roll-off."
+      },
+      "ShowSidebarTab": {
+        "Name": "Show Sidebar Tab",
+        "Hint": "Show the Roll-Offs tab in the sidebar between Chat and Combat."
+      },
+      "IncludeGMByDefault": {
+        "Name": "Include GM by Default",
+        "Hint": "Check the GM as a participant by default when configuring a new roll-off."
+      }
+    },
     "Chat": {
       "RollFlavor": "{user} rolls for {round}",
       "RollFlavorNoUser": "Roll for {round}",
