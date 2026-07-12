@@ -3,5 +3,8 @@
   "version": "0.0.0",
   "private": true,
   "description": "Monorepo for Xandra's Foundry VTT modules",
-  "packageManager": "pnpm@10.0.0"
+  "packageManager": "pnpm@10.0.0",
+  "scripts": {
+    "test:roll-offs": "cd modules/xandra-roll-offs && node --test tests/*.test.mjs"
+  }
 }

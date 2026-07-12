@@ -38,6 +38,19 @@ jobs:
             fi
           done
 
+      - name: Run module tests
+        run: |
+          for dir in modules/*/; do
+            if [ -f "$dir/package.json" ]; then
+              HAS_TEST=$(node -e "const pkg=require('./$dir/package.json'); console.log(pkg.scripts && pkg.scripts.test ? '1' : '0')")
+              if [ "$HAS_TEST" = "1" ]; then
+                MOD=$(basename "$dir")
+                echo "Testing $MOD..."
+                pnpm --filter "$MOD" test
+              fi
+            fi
+          done
+
       - name: Discover and validate modules
         run: |
           node -e "
