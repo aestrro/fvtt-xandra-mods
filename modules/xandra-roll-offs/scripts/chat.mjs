@@ -45,7 +45,7 @@ export async function postRollToChat(user, roll, roundLabel) {
     flavor,
     speaker,
     rolls: [roll],
-    type: CONST.CHAT_MESSAGE_TYPES.ROLL,
+    type: 0, // ROLL
     sound: CONFIG.sounds.dice,
   });
 }
@@ -82,7 +82,7 @@ export async function postRoundSummary(
     ? tiedUserIds.map((id) => game.users.get(id)?.name ?? id).join(", ")
     : "";
 
-  const content = await renderTemplate(
+  const content = await foundry.applications.handlebars.renderTemplate(
     "modules/xandra-roll-offs/templates/chat-round-summary.hbs",
     {
       round: round.label,
@@ -98,7 +98,7 @@ export async function postRoundSummary(
   return ChatMessage.create({
     content,
     speaker,
-    type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+    type: 0, // OTHER
   });
 }
 
@@ -123,7 +123,7 @@ export async function postRollOffSummary(history, tallies) {
     }))
     .sort((a, b) => b.score - a.score);
 
-  const content = await renderTemplate(
+  const content = await foundry.applications.handlebars.renderTemplate(
     "modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs",
     {
       rounds,
@@ -136,6 +136,6 @@ export async function postRollOffSummary(history, tallies) {
   return ChatMessage.create({
     content,
     speaker,
-    type: CONST.CHAT_MESSAGE_TYPES.OTHER,
+    type: 0, // OTHER
   });
 }

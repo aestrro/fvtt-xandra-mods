@@ -222,7 +222,6 @@ export class RollOffSocketHandler {
     await roll.toMessage({
       speaker,
       flavor,
-      type: 5, // ROLL
     }, { create: true });
   }
 
