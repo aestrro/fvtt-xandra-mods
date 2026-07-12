@@ -24,13 +24,13 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       height: 'auto',
     },
     actions: {
-      startRollOff: GMPanelApp.startRollOff,
-      cancelRollOff: GMPanelApp.cancelRollOff,
-      resetTallies: GMPanelApp.resetTallies,
-      forceResolve: GMPanelApp.forceResolve,
+      startRollOff: 'startRollOff',
+      cancelRollOff: 'cancelRollOff',
+      resetTallies: 'resetTallies',
+      forceResolve: 'forceResolve',
     },
     form: {
-      handler: 'startRollOff',
+      handler: null,
       submitOnChange: false,
       closeOnSubmit: false,
     },
@@ -120,29 +120,33 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     };
   }
 
-  static async startRollOff(event, form, formData) {
+  async startRollOff(event, target) {
+    event.preventDefault();
     if (!game.user.isGM) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const dieType = formData.object.dieType;
-    const totalRounds = Number(formData.object.totalRounds);
-    const participants = formData.object.participants ?? [];
+    const form = this.element.querySelector('form.xro-config-form');
+    if (!form) return;
+    const fd = new FormDataExtended(form);
+    const dieType = fd.object.dieType;
+    const totalRounds = Number(fd.object.totalRounds);
+    const participants = fd.object.participants ?? [];
     if (participants.length < 2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.NeedTwoParticipants'));
       return;
     }
-    const socket = game.modules.get('xandra-roll-offs').socketHandler;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
     await socket.startRollOff({ dieType, totalRounds, participants });
   }
 
-  static async cancelRollOff(event, target) {
+  async cancelRollOff(event, target) {
     if (!game.user.isGM) return;
-    const socket = game.modules.get('xandra-roll-offs').socketHandler;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
     await socket.cancelRollOff();
   }
 
-  static async resetTallies(event, target) {
+  async resetTallies(event, target) {
     if (!game.user.isGM) return;
     const confirmed = await foundry.applications.api.DialogV2.confirm({
       window: { title: 'Reset Tallies' },
@@ -154,9 +158,9 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
-  static async forceResolve(event, target) {
+  async forceResolve(event, target) {
     if (!game.user.isGM) return;
-    const socket = game.modules.get('xandra-roll-offs').socketHandler;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
     await socket.forceResolve();
   }
 }
