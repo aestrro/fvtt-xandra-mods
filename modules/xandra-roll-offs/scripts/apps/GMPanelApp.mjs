@@ -14,7 +14,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static DEFAULT_OPTIONS = {
     id: 'xandra-roll-offs-gm-panel',
     classes: ['xandra-roll-offs-app'],
-    tag: 'form',
+    tag: 'div',
     window: {
       title: 'Xandra Roll-Offs',
       resizable: true,
@@ -126,7 +126,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const form = this.element.querySelector('form.xro-config-form');
+    const form = this.element.querySelector('div.xro-config-form');
     if (!form) return;
     const fd = new FormDataExtended(form);
     const dieType = fd.object.dieType;
