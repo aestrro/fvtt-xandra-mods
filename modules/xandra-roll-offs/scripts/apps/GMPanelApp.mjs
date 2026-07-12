@@ -122,13 +122,18 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async startRollOff(event, target) {
     event.preventDefault();
+    console.log(`${MODULE_ID} | startRollOff clicked`);
     if (!game.user.isGM) {
       ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
       return;
     }
-    const form = this.element.querySelector('div.xro-config-form');
-    if (!form) return;
+    const form = this.element.querySelector('form.xro-config-form');
+    if (!form) {
+      console.warn(`${MODULE_ID} | startRollOff: config form not found`);
+      return;
+    }
     const fd = new FormDataExtended(form);
+    console.log(`${MODULE_ID} | startRollOff form data`, fd.object);
     const dieType = fd.object.dieType;
     const totalRounds = Number(fd.object.totalRounds);
     const participants = fd.object.participants ?? [];
