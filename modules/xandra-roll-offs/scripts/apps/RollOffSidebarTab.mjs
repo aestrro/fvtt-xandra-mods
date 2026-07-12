@@ -78,28 +78,17 @@ export class RollOffSidebarTab extends SidebarTab {
 /**
  * Register the Roll-Offs sidebar tab between "chat" and "combat".
  *
- * Foundry v14 initializes sidebar tabs from CONFIG.ui.sidebar and stores
- * instances on ui.sidebar.tabs. We inject ourselves into the tab list and
- * instantiate our tab after the core sidebar renders.
+ * In Foundry v14 the sidebar is an ApplicationV1 instance with a `tabs` map.
+ * We inject a navigation button and attach our tab instance to `ui.sidebar.tabs`
+ * so `activateTab('roll-offs')` renders the tab content in the sidebar.
  */
 export function registerSidebarTab() {
-  // Insert the tab configuration between chat and combat.
-  const tabs = CONFIG.ui.sidebar?.tabs ?? {};
-  const ordered = [];
-  for (const [key, value] of Object.entries(tabs)) {
-    if (key === 'combat') ordered.push(['roll-offs', RollOffSidebarTab]);
-    ordered.push([key, value]);
-  }
-  if (!ordered.some(([k]) => k === 'roll-offs')) {
-    ordered.push(['roll-offs', RollOffSidebarTab]);
-  }
-  CONFIG.ui.sidebar.tabs = Object.fromEntries(ordered);
-
-  // After the sidebar is rendered, patch the tab navigation to include our
-  // tab icon between Chat and Combat.
+  // After the sidebar is rendered, inject our tab nav button and make sure
+  // the tab instance is registered in the sidebar's tab map.
   Hooks.on('renderSidebar', () => {
     if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) return;
     injectSidebarTabNav();
+    registerTabInstance();
   });
 
   // Re-render our sidebar tab whenever the roll-off state changes.
@@ -107,6 +96,18 @@ export function registerSidebarTab() {
     const tab = ui.sidebar?.tabs?.['roll-offs'];
     if (tab?.rendered) tab.render();
   });
+}
+
+/**
+ * Ensure the Roll-Offs tab instance is attached to the sidebar tab map.
+ */
+function registerTabInstance() {
+  if (!ui.sidebar?.tabs) return;
+  if (!ui.sidebar.tabs['roll-offs']) {
+    const tab = new RollOffSidebarTab();
+    ui.sidebar.tabs['roll-offs'] = tab;
+    console.log(`${MODULE_ID} | Roll-Offs sidebar tab registered`);
+  }
 }
 
 /**

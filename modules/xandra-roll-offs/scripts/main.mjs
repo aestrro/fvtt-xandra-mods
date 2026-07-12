@@ -10,7 +10,7 @@ import { MODULE_ID, log } from './utils.mjs';
 /*  Bootstrap                                                        */
 /* ================================================================ */
 
-Hooks.once('init', async () => {
+Hooks.once('ready', async () => {
   log('Initializing…');
 
   registerSettings();
@@ -58,10 +58,6 @@ Hooks.once('init', async () => {
   };
 
   log('Initialization complete.');
-});
-
-Hooks.once('ready', () => {
-  log('Ready.');
 
   // Open player prompt for the current user whenever a round/tiebreak starts
   // and they are eligible to roll.
