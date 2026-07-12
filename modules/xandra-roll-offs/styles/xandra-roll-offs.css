@@ -5,6 +5,121 @@
   --xro-panel-width: 360px;
 }
 
+/* Dedicated Roll-Off Window */
+.xandra-roll-offs-window {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.xandra-roll-offs-window .window-content {
+  padding: 0;
+  flex: 1;
+  overflow: hidden;
+}
+
+.xro-window-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap);
+  padding: var(--xro-gap);
+  overflow-y: auto;
+  min-height: 0;
+}
+
+.xro-history {
+  flex: 0 0 auto;
+  max-height: 45%;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.xro-history-list {
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap);
+  min-height: 0;
+}
+
+.xro-history-card {
+  border: var(--xro-border);
+  border-radius: var(--xro-radius);
+  padding: var(--xro-gap);
+  background: var(--color-bg-window, #fff);
+}
+
+.xro-history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.25rem;
+}
+
+.xro-history-round {
+  font-weight: 700;
+}
+
+.xro-history-winner {
+  font-weight: 700;
+  color: var(--color-text-dark-success, #006400);
+}
+
+.xro-history-rolls {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.xro-history-rolls li {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.1rem 0;
+  border-bottom: 1px solid var(--color-border-light-1, #ddd);
+}
+
+.xro-history-rolls li:last-child {
+  border-bottom: none;
+}
+
+.xro-roll-value {
+  font-weight: 600;
+}
+
+.xro-current-round {
+  flex: 0 0 auto;
+}
+
+.xro-leaderboard-section {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.xro-empty {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.xro-subtitle {
+  margin: 0 0 var(--xro-gap) 0;
+  font-size: 0.9em;
+  color: var(--color-text-dark-secondary, #666);
+}
+
+.xro-current-round-label {
+  font-weight: 700;
+  margin: 0 0 0.25rem 0;
+}
+
 /* GM Panel */
 .xandra-roll-offs-app {
   width: var(--xro-panel-width);

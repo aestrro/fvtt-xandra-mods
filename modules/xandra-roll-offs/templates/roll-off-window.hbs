@@ -1,0 +1,66 @@
+<div class="xandra-roll-offs-window">
+  {{#if isActive}}
+  <div class="xro-window-body">
+    {{#if roundHistory.length}}
+    <section class="xro-section xro-history">
+      <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.RoundHistory'}}</h3>
+      <div class="xro-history-list">
+        {{#each roundHistory}}
+        <div class="xro-history-card">
+          <div class="xro-history-header">
+            <span class="xro-history-round">{{label}}</span>
+            <span class="xro-history-winner">{{localize 'XANDRA_ROLL_OFFS.Chat.RoundWinner' name=winnerName}}</span>
+          </div>
+          <ul class="xro-history-rolls">
+            {{#each rolls}}
+            <li>
+              <span>{{name}}</span>
+              <span class="xro-roll-value">{{value}}</span>
+            </li>
+            {{/each}}
+          </ul>
+        </div>
+        {{/each}}
+      </div>
+    </section>
+    {{/if}}
+
+    <section class="xro-section xro-current-round">
+      <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.CurrentRound'}}</h3>
+      <p class="xro-current-round-label">{{roundLabel}}</p>
+      <p class="xro-subtitle">{{localize 'XANDRA_ROLL_OFFS.Labels.WinsNeeded'}}: {{winsNeeded}} | {{localize 'XANDRA_ROLL_OFFS.Labels.DieType'}}: {{dieType}}</p>
+      <ul class="xro-status-list">
+        {{#each participantStatuses}}
+        <li>
+          <span>{{name}}</span>
+          <span class="{{#if rolled}}rolled{{else}}waiting{{/if}}">
+            {{#if rolled}}{{value}}{{else}}{{localize 'XANDRA_ROLL_OFFS.Labels.NotRolled'}}{{/if}}
+          </span>
+        </li>
+        {{/each}}
+      </ul>
+      {{#if canCurrentUserRoll}}
+      <div class="xro-actions">
+        <button type="button" data-action="roll-off-roll">{{localize 'XANDRA_ROLL_OFFS.Actions.Roll'}}</button>
+      </div>
+      {{/if}}
+    </section>
+
+    <section class="xro-section xro-leaderboard-section">
+      <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.Leaderboard'}}</h3>
+      <ul class="xro-leaderboard">
+        {{#each leaderboard}}
+        <li>
+          <span>{{name}}</span>
+          <span class="score">{{score}}</span>
+        </li>
+        {{/each}}
+      </ul>
+    </section>
+  </div>
+  {{else}}
+  <div class="xro-window-body xro-empty">
+    <p>{{localize 'XANDRA_ROLL_OFFS.Labels.NoActiveRollOff'}}</p>
+  </div>
+  {{/if}}
+</div>

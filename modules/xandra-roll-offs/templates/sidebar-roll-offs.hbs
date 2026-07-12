@@ -4,28 +4,10 @@
     <div class="xro-section">
       <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.CurrentRound'}}</h3>
       <p class="xro-current-round">{{roundLabel}}</p>
-      <ul class="xro-status-list">
-        {{#each participantStatuses}}
-        <li>
-          <span>{{name}}</span>
-          <span class="{{#if rolled}}rolled{{else}}waiting{{/if}}">
-            {{#if rolled}}{{value}}{{else}}{{localize 'XANDRA_ROLL_OFFS.Labels.NotRolled'}}{{/if}}
-          </span>
-        </li>
-        {{/each}}
-      </ul>
-      {{#if canCurrentUserRoll}}
       <div class="xro-actions">
-        <button type="button" data-action="roll-off-roll">{{localize 'XANDRA_ROLL_OFFS.Actions.Roll'}}</button>
+        <button type="button" data-action="open-roll-off-window">{{localize 'XANDRA_ROLL_OFFS.Actions.OpenRollOff'}}</button>
       </div>
-      {{/if}}
     </div>
-
-    {{#if isGM}}
-    <div class="xro-actions">
-      <button type="button" data-action="open-gm-panel">{{localize 'XANDRA_ROLL_OFFS.Labels.ConfigureRollOff'}}</button>
-    </div>
-    {{/if}}
 
     <div class="xro-section">
       <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.Leaderboard'}}</h3>
@@ -41,11 +23,9 @@
     {{else}}
     <div class="xro-section xro-empty">
       <p>{{localize 'XANDRA_ROLL_OFFS.Labels.Waiting'}}</p>
-      {{#if isGM}}
       <div class="xro-actions">
-        <button type="button" data-action="open-gm-panel">{{localize 'XANDRA_ROLL_OFFS.Labels.ConfigureRollOff'}}</button>
+        <button type="button" data-action="open-roll-off-window">{{localize 'XANDRA_ROLL_OFFS.Actions.OpenRollOff'}}</button>
       </div>
-      {{/if}}
     </div>
     {{/if}}
   </section>

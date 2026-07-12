@@ -1,5 +1,6 @@
 import { GMPanelApp } from './apps/GMPanelApp.mjs';
 import { PlayerPromptApp } from './apps/PlayerPromptApp.mjs';
+import { RollOffWindow } from './apps/RollOffWindow.mjs';
 import { registerSidebarTab } from './apps/RollOffSidebarTab.mjs';
 import { initSocketHandler } from './socket.mjs';
 import { registerSettings, getActiveRollOff } from './settings.mjs';
@@ -27,6 +28,7 @@ Hooks.once('ready', async () => {
     'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
     'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
     'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs',
+    'modules/xandra-roll-offs/templates/roll-off-window.hbs',
   ];
   const loadTemplatesFn = foundry.applications.handlebars?.loadTemplates ?? loadTemplates;
   await loadTemplatesFn(templates);
@@ -64,22 +66,31 @@ Hooks.once('ready', async () => {
   // Register a macro-friendly global function for opening the panel
   game.xandraRollOffs = {
     openGMPanel: () => GMPanelApp.render(),
+    openRollOffWindow: () => RollOffWindow.open(),
   };
 
   log('Initialization complete.');
 
-  // Open player prompt for the current user whenever a round/tiebreak starts
-  // and they are eligible to roll.
+  // Open the roll-off window if one is already active, then keep it in sync
+  // with future round starts/tiebreaks/ends.
+  if (getActiveRollOff()?.active) {
+    RollOffWindow.open();
+  }
+
   Hooks.on('xandraRollOffs.roundStarted', () => {
+    RollOffWindow.open();
     if (game.settings.get(MODULE_ID, 'showPlayerPrompt')) {
       PlayerPromptApp.renderIfNeeded();
     }
   });
   Hooks.on('xandraRollOffs.tiebreakStarted', () => {
+    RollOffWindow.open();
     if (game.settings.get(MODULE_ID, 'showPlayerPrompt')) {
       PlayerPromptApp.renderIfNeeded();
     }
   });
+  Hooks.on('xandraRollOffs.rollOffEnded', () => RollOffWindow.close());
+  Hooks.on('xandraRollOffs.rollOffCancelled', () => RollOffWindow.close());
 
   // Wire /roll interception for active participants
   Hooks.on('chatMessage', (chatLog, messageText, data) => onChatMessage(chatLog, messageText, data));

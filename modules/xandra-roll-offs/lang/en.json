@@ -6,7 +6,8 @@
       "Roll": "Roll",
       "Cancel": "Cancel Roll-Off",
       "ResetTallies": "Reset Tallies",
-      "ForceResolve": "Force Resolve"
+      "ForceResolve": "Force Resolve",
+      "OpenRollOff": "Open Roll-Off"
     },
     "Labels": {
       "ConfigureRollOff": "Configure Roll-Off",
@@ -24,7 +25,9 @@
       "Winner": "Winner: {name}",
       "Tie": "Tie between {names}",
       "RoundSummary": "{round} Summary",
-      "RollOffSummary": "Roll-Off Summary"
+      "RollOffSummary": "Roll-Off Summary",
+      "RoundHistory": "Round History",
+      "NoActiveRollOff": "No active roll-off."
     },
     "PlayerPrompt": {
       "Hint": "Or type /roll {die} in chat, or use the Roll-Offs sidebar tab."
