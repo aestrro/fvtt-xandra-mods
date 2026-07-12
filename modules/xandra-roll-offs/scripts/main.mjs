@@ -28,12 +28,14 @@ Hooks.once('ready', async () => {
     'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
     'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs',
   ];
-  await foundry.applications.handlebars.loadTemplates(templates);
+  const loadTemplatesFn = foundry.applications.handlebars?.loadTemplates ?? loadTemplates;
+  await loadTemplatesFn(templates);
+  log('Templates loaded.');
 
   initSocketHandler();
 
   // Inject a Roll-Offs button into the chat controls (matches dice-tray pattern)
-  Hooks.on('renderChatLog', (app, html) => {
+  const injectChatButton = () => {
     if (!game.settings.get(MODULE_ID, 'showChatButton')) return;
 
     const chatControls = document.querySelector('#chat-controls');
@@ -54,7 +56,9 @@ Hooks.once('ready', async () => {
     } else {
       chatControls.appendChild(button);
     }
-  });
+  };
+  Hooks.on('renderChatLog', injectChatButton);
+  injectChatButton(); // Chat log may already be rendered
 
   // Register a macro-friendly global function for opening the panel
   game.xandraRollOffs = {

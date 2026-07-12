@@ -90,13 +90,18 @@ export function registerSidebarTab() {
     'roll-offs': RollOffSidebarTab,
   });
 
-  // After the sidebar is rendered, inject our tab nav button and make sure
-  // the tab instance is registered in the sidebar's tab map.
-  Hooks.on('renderSidebar', () => {
+  const inject = () => {
     if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) return;
     injectSidebarTabNav();
     registerTabInstance();
-  });
+  };
+
+  // After the sidebar is rendered, inject our tab nav button and make sure
+  // the tab instance is registered in the sidebar's tab map.
+  Hooks.on('renderSidebar', inject);
+
+  // The sidebar may already be rendered by the time modules reach ready.
+  if (ui.sidebar?.rendered) inject();
 
   // Re-render our sidebar tab whenever the roll-off state changes.
   Hooks.on('xandraRollOffs.stateUpdated', () => {
