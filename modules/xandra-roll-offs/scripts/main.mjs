@@ -10,6 +10,11 @@ import { MODULE_ID, log } from './utils.mjs';
 /*  Bootstrap                                                        */
 /* ================================================================ */
 
+Hooks.once('init', () => {
+  // Register the sidebar tab class early so the Sidebar constructor picks it up.
+  registerSidebarTab();
+});
+
 Hooks.once('ready', async () => {
   log('Initializing…');
 
@@ -26,7 +31,6 @@ Hooks.once('ready', async () => {
   await foundry.applications.handlebars.loadTemplates(templates);
 
   initSocketHandler();
-  registerSidebarTab();
 
   // Inject a Roll-Offs button into the chat controls (matches dice-tray pattern)
   Hooks.on('renderChatLog', (app, html) => {

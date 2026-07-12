@@ -2,26 +2,25 @@ import { getActiveRollOff, getWinTallies, SETTINGS } from '../settings.mjs';
 import { canUserRoll, findActiveRound } from '../state.mjs';
 import { MODULE_ID } from '../utils.mjs';
 
+const { AbstractSidebarTab } = foundry.applications.sidebar;
+
 /**
  * Sidebar tab that sits between Chat and Combat for Xandra Roll-Offs.
  *
- * This intentionally extends SidebarTab rather than ApplicationV2 so Foundry
- * treats it as a first-class sidebar tab. In v14 SidebarTab is still
- * ApplicationV1-based; this keeps compatibility with the existing tab system.
+ * Extends Foundry v14's AbstractSidebarTab (ApplicationV2) so the tab renders
+ * inside the sidebar like a first-class panel.
  */
-export class RollOffSidebarTab extends SidebarTab {
-  /** @override */
-  static get defaultOptions() {
-    const options = super.defaultOptions;
-    options.id = 'roll-offs';
-    options.template = 'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs';
-    options.title = 'XANDRA_ROLL_OFFS.Name';
-    options.scrollY = ['.xro-sidebar-content'];
-    return options;
-  }
+export class RollOffSidebarTab extends AbstractSidebarTab {
+  static tabName = 'roll-offs';
+
+  static DEFAULT_OPTIONS = {
+    id: 'roll-offs',
+    template: 'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs',
+    title: 'XANDRA_ROLL_OFFS.Name',
+  };
 
   /** @override */
-  getData(options = {}) {
+  async _prepareContext() {
     const activeRollOff = getActiveRollOff();
     const tallies = getWinTallies();
     const isActive = activeRollOff?.active ?? false;
@@ -59,10 +58,12 @@ export class RollOffSidebarTab extends SidebarTab {
   }
 
   /** @override */
-  activateListeners(html) {
-    super.activateListeners(html);
-    html.find('[data-action="roll-off-roll"]').click(() => this._onRoll());
-    html.find('[data-action="open-gm-panel"]').click(() => this._onOpenGMPanel());
+  _onRender(context, options) {
+    super._onRender(context, options);
+    const html = this.element;
+    if (!html) return;
+    html.querySelector('[data-action="roll-off-roll"]')?.addEventListener('click', () => this._onRoll());
+    html.querySelector('[data-action="open-gm-panel"]')?.addEventListener('click', () => this._onOpenGMPanel());
   }
 
   async _onRoll() {
@@ -78,11 +79,17 @@ export class RollOffSidebarTab extends SidebarTab {
 /**
  * Register the Roll-Offs sidebar tab between "chat" and "combat".
  *
- * In Foundry v14 the sidebar is an ApplicationV1 instance with a `tabs` map.
- * We inject a navigation button and attach our tab instance to `ui.sidebar.tabs`
- * so `activateTab('roll-offs')` renders the tab content in the sidebar.
+ * In Foundry v14 the sidebar is an ApplicationV2 instance. Its tab classes are
+ * defined on the static Sidebar.TABS mapping. We add our tab there and also
+ * attach an instance to the already-rendered sidebar so the tab can be activated
+ * immediately.
  */
 export function registerSidebarTab() {
+  const Sidebar = foundry.applications.sidebar.Sidebar;
+  Sidebar.TABS = foundry.utils.mergeObject(Sidebar.TABS, {
+    'roll-offs': RollOffSidebarTab,
+  });
+
   // After the sidebar is rendered, inject our tab nav button and make sure
   // the tab instance is registered in the sidebar's tab map.
   Hooks.on('renderSidebar', () => {
@@ -100,13 +107,16 @@ export function registerSidebarTab() {
 
 /**
  * Ensure the Roll-Offs tab instance is attached to the sidebar tab map.
+ *
+ * The Sidebar constructor should already have created the tab from Sidebar.TABS,
+ * but if the tab was registered after the sidebar was built, instantiate it now.
  */
 function registerTabInstance() {
   if (!ui.sidebar?.tabs) return;
   if (!ui.sidebar.tabs['roll-offs']) {
     const tab = new RollOffSidebarTab();
     ui.sidebar.tabs['roll-offs'] = tab;
-    console.log(`${MODULE_ID} | Roll-Offs sidebar tab registered`);
+    console.log(`${MODULE_ID} | Roll-Offs sidebar tab instance attached`);
   }
 }
 
@@ -129,7 +139,7 @@ function injectSidebarTabNav() {
   item.dataset.tooltipDirection = 'UP';
   item.setAttribute('aria-label', 'Roll-Offs');
   item.innerHTML = '<i class="fas fa-dice"></i>';
-  item.addEventListener('click', () => ui.sidebar.activateTab('roll-offs'));
+  item.addEventListener('click', () => ui.sidebar.changeTab('roll-offs', { triggerCallback: true }));
 
   if (insertBefore) {
     tabBar.insertBefore(item, insertBefore);
