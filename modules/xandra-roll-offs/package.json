@@ -1,6 +1,6 @@
 {
   "name": "xandra-roll-offs",
-  "version": "0.1.4",
+  "version": "0.1.5",
   "private": true,
   "description": "GM-run, multi-round roll-off contests with automatic tiebreak resolution and persistent win tallies."
 }
