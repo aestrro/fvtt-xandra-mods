@@ -222,7 +222,7 @@ export class RollOffSocketHandler {
     await roll.toMessage({
       speaker,
       flavor,
-      type: CONST.CHAT_MESSAGE_TYPES.ROLL,
+      type: 5, // ROLL
     }, { create: true });
   }
 

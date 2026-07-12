@@ -127,7 +127,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       console.warn(`${MODULE_ID} | startRollOff: config form not found`);
       return;
     }
-    const fd = new FormDataExtended(form);
+    const fd = new foundry.applications.ux.FormDataExtended(form);
     console.log(`${MODULE_ID} | startRollOff form data`, fd.object);
     const dieType = fd.object.dieType;
     const totalRounds = Number(fd.object.totalRounds);

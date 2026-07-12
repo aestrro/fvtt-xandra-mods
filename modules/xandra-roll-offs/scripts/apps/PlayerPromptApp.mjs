@@ -87,7 +87,7 @@ export class PlayerPromptApp extends HandlebarsApplicationMixin(ApplicationV2) {
   static async submitRoll(event, target) {
     const socket = game.modules.get('xandra-roll-offs').socketHandler;
     await socket.requestRoll(game.userId);
-    const app = this.#instance;
+    const app = PlayerPromptApp.#instance;
     if (app?.rendered) app.render({ force: true });
   }
 }
