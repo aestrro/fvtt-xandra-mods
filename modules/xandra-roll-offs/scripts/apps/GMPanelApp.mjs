@@ -30,7 +30,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       forceResolve: GMPanelApp.forceResolve,
     },
     form: {
-      handler: GMPanelApp.startRollOff,
+      handler: 'startRollOff',
       submitOnChange: false,
       closeOnSubmit: false,
     },
