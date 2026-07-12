@@ -92,7 +92,7 @@ Hooks.once('ready', async () => {
 /*  /roll Interception                                              */
 /* ================================================================ */
 
-async function onChatMessage(chatLog, messageText, data) {
+function onChatMessage(chatLog, messageText, data) {
   const text = messageText.trim().toLowerCase();
   if (!text.startsWith('/roll') && !text.startsWith('/r')) return;
 
@@ -110,9 +110,17 @@ async function onChatMessage(chatLog, messageText, data) {
     return;
   }
 
-  // Send the roll request to the GM authority
   const socket = game.modules.get(MODULE_ID).socketHandler;
-  await socket.requestRoll(game.userId);
+  if (!socket) {
+    console.warn(`${MODULE_ID} | Socket handler not ready; /roll ignored`);
+    return;
+  }
+
+  // Fire the roll-off request without awaiting so the hook can return false
+  // synchronously and suppress the default chat message.
+  socket.requestRoll(game.userId).catch((err) => {
+    console.error(`${MODULE_ID} | requestRoll failed`, err);
+  });
 
   // Suppress the default chat message
   return false;
