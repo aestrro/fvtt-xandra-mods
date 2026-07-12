@@ -26,7 +26,7 @@ export function registerSettings() {
     scope: 'world',
     config: false,
     type: Object,
-    default: null
+    default: {}
   });
 
   // Persistent win tallies across roll-off sessions (world-scope, hidden from config UI)
