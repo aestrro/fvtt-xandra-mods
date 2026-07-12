@@ -45,7 +45,6 @@ export async function postRollToChat(user, roll, roundLabel) {
     flavor,
     speaker,
     rolls: [roll],
-    type: 0, // ROLL
     sound: CONFIG.sounds.dice,
   });
 }
@@ -66,7 +65,6 @@ export async function postRollOffStarted(round, totalRounds, participants, dieTy
   return ChatMessage.create({
     content,
     speaker,
-    type: 0, // OTHER
     flavor: game.i18n.localize('XANDRA_ROLL_OFFS.Chat.RollOffStarted'),
   });
 }
@@ -119,7 +117,6 @@ export async function postRoundSummary(
   return ChatMessage.create({
     content,
     speaker,
-    type: 0, // OTHER
   });
 }
 
@@ -157,6 +154,5 @@ export async function postRollOffSummary(history, tallies) {
   return ChatMessage.create({
     content,
     speaker,
-    type: 0, // OTHER
   });
 }
