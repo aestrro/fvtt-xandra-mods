@@ -5,9 +5,12 @@
       "Start": "Start Roll-Off",
       "Roll": "Roll",
       "Cancel": "Cancel Roll-Off",
+      "CloseRollOff": "Close Roll-Off",
       "ResetTallies": "Reset Tallies",
       "ForceResolve": "Force Resolve",
-      "OpenRollOff": "Open Roll-Off"
+      "OpenRollOff": "Open Roll-Off",
+      "Close": "Close",
+      "NextRound": "Next Round"
     },
     "Labels": {
       "ConfigureRollOff": "Configure Roll-Off",
@@ -21,13 +24,17 @@
       "NotRolled": "Not rolled",
       "Rolled": "Rolled",
       "Waiting": "Waiting for other players…",
+      "WaitingForGM": "Waiting for GM…",
+      "NotParticipating": "You are not in this roll-off.",
       "RollOffComplete": "Roll-Off Complete",
-      "Winner": "Winner: {name}",
+      "Winner": "Winner",
+      "Wins": "Wins",
       "Tie": "Tie between {names}",
       "RoundSummary": "{round} Summary",
       "RollOffSummary": "Roll-Off Summary",
       "RoundHistory": "Round History",
-      "NoActiveRollOff": "No active roll-off."
+      "NoActiveRollOff": "No active roll-off.",
+      "NoRoundsYet": "No rounds finished yet."
     },
     "PlayerPrompt": {
       "Hint": "Or type /roll {die} in chat, or use the Roll-Offs sidebar tab / window."

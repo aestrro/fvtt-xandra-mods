@@ -1,8 +1,10 @@
 <div class="xandra-roll-offs-chat xro-round-summary">
-  <h4>{{localize 'XANDRA_ROLL_OFFS.Labels.RoundSummary' round=round}}</h4>
+  <div class="xro-chat-header">
+    <span class="xro-chat-title">{{localize 'XANDRA_ROLL_OFFS.Labels.RoundSummary' round=round}}</span>
+  </div>
   <ul class="xro-roll-list">
     {{#each rolls}}
-    <li>
+    <li class="{{#if (eq @index 0)}}xro-high{{/if}}">
       <span class="xro-user">{{name}}</span>
       <span class="xro-value">{{value}}</span>
     </li>

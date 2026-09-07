@@ -30,6 +30,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       cancelRollOff: GMPanelApp.cancelRollOff,
       resetTallies: GMPanelApp.resetTallies,
       forceResolve: GMPanelApp.forceResolve,
+      rollForParticipant: GMPanelApp.rollForParticipant,
     },
     form: {
       handler: null,
@@ -89,6 +90,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
     let currentRoundLabel = '';
     let participantStatuses = [];
+    let pendingRollers = [];
     let leaderboard = [];
     let users = [];
 
@@ -108,6 +110,10 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
           score: tallies[userId] || 0,
         }))
         .sort((a, b) => b.score - a.score);
+
+      pendingRollers = participantStatuses
+        .filter((p) => !p.rolled)
+        .map((p) => ({ id: p.id, name: p.name }));
     } else {
       const includeGM = game.settings.get(MODULE_ID, SETTINGS.INCLUDE_GM_BY_DEFAULT);
       users = game.users.map((u) => {
@@ -122,6 +128,7 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
       isActive,
       currentRoundLabel,
       participantStatuses,
+      pendingRollers,
       leaderboard,
       dieChoices,
       users,
@@ -131,21 +138,30 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
 
   async _onRender(context, options) {
     await super._onRender(context, options);
-    const container = this.element?.querySelector('.xro-config-form');
-    if (!container) return;
+    const configForm = this.element?.querySelector('.xro-config-form');
+    if (configForm) {
+      const checkboxes = configForm.querySelectorAll('input[name="participants"]');
+      const updateSelection = () => {
+        this.#selectedParticipants = new Set(
+          Array.from(checkboxes)
+            .filter((cb) => cb.checked)
+            .map((cb) => cb.value)
+        );
+        console.log(`${MODULE_ID} | GM panel selection updated`, [...this.#selectedParticipants]);
+      };
 
-    const checkboxes = container.querySelectorAll('input[name="participants"]');
-    const updateSelection = () => {
-      this.#selectedParticipants = new Set(
-        Array.from(checkboxes)
-          .filter((cb) => cb.checked)
-          .map((cb) => cb.value)
-      );
-      console.log(`${MODULE_ID} | GM panel selection updated`, [...this.#selectedParticipants]);
-    };
+      for (const cb of checkboxes) {
+        cb.addEventListener('change', updateSelection);
+      }
+    }
 
-    for (const cb of checkboxes) {
-      cb.addEventListener('change', updateSelection);
+    const rollForSelect = this.element?.querySelector('[name="rollForParticipant"]');
+    if (rollForSelect) {
+      rollForSelect.addEventListener('change', (event) => {
+        const userId = event.target.value;
+        if (!userId) return;
+        GMPanelApp.rollForParticipant(event, rollForSelect);
+      });
     }
   }
 
@@ -199,5 +215,19 @@ export class GMPanelApp extends HandlebarsApplicationMixin(ApplicationV2) {
     if (!game.user.isGM) return;
     const socket = game.modules.get(MODULE_ID).socketHandler;
     await socket.forceResolve();
+  }
+
+  static async rollForParticipant(event, target) {
+    if (!game.user.isGM) return;
+    const userId = target?.value;
+    if (!userId) return;
+    const activeRollOff = getActiveRollOff();
+    if (!activeRollOff?.active) return;
+    if (!canUserRoll(activeRollOff, userId)) {
+      ui.notifications.warn('That participant cannot roll right now.');
+      return;
+    }
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    await socket.requestRoll(userId);
   }
 }

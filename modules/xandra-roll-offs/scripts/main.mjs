@@ -1,4 +1,3 @@
-import { GMPanelApp } from './apps/GMPanelApp.mjs';
 import { RollOffWindow } from './apps/RollOffWindow.mjs';
 import { registerSidebarTab } from './apps/RollOffSidebarTab.mjs';
 import { initSocketHandler } from './socket.mjs';
@@ -13,6 +12,15 @@ import { MODULE_ID, log } from './utils.mjs';
 Hooks.once('init', () => {
   // Register the sidebar tab class early so the Sidebar constructor picks it up.
   registerSidebarTab();
+
+  // Small helper for zebra-striping round groups in the roll-off window.
+  Handlebars.registerHelper('mod2', (value) => (Number(value) % 2) !== 0);
+
+  // Helper for joining arrays in templates (e.g. tie participant names).
+  Handlebars.registerHelper('join', (arr, separator) => {
+    if (!Array.isArray(arr)) return '';
+    return arr.join(separator ?? ', ');
+  });
 });
 
 Hooks.once('ready', async () => {
@@ -22,7 +30,6 @@ Hooks.once('ready', async () => {
 
   // Pre-load templates so AppV2 parts resolve
   const templates = [
-    'modules/xandra-roll-offs/templates/gm-panel.hbs',
     'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
     'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
     'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs',
@@ -34,36 +41,45 @@ Hooks.once('ready', async () => {
 
   initSocketHandler();
 
-  // Inject a Roll-Offs button into the chat controls (matches dice-tray pattern)
+  // Inject a Roll-Offs button into the chat controls (visible to GM always,
+  // and to players whenever a roll-off is active).
   const injectChatButton = () => {
-    if (!game.user.isGM) return;
     if (!game.settings.get(MODULE_ID, 'showChatButton')) return;
 
+    const activeRollOff = getActiveRollOff();
+    const isActive = activeRollOff?.active ?? false;
+    const shouldShow = game.user.isGM || isActive;
+
     const chatControls = document.querySelector('#chat-controls');
-    if (!chatControls || chatControls.querySelector('.xro-open-gm-panel')) return;
+    if (!chatControls) return;
 
-    const button = document.createElement('button');
-    button.type = 'button';
-    button.className = 'xro-open-gm-panel ui-control icon';
-    button.setAttribute('aria-label', 'Open Roll-Offs');
-    button.setAttribute('data-tooltip', 'Roll-Offs');
-    button.setAttribute('data-tooltip-direction', 'UP');
-    button.innerHTML = '<i class="fas fa-dice"></i>';
-    button.addEventListener('click', () => GMPanelApp.render());
+    let button = chatControls.querySelector('.xro-open-gm-panel');
+    if (!button) {
+      button = document.createElement('button');
+      button.type = 'button';
+      button.className = 'xro-open-gm-panel ui-control icon';
+      button.setAttribute('aria-label', 'Open Roll-Offs');
+      button.setAttribute('data-tooltip', 'Roll-Offs');
+      button.setAttribute('data-tooltip-direction', 'UP');
+      button.innerHTML = '<i class="fas fa-dice"></i>';
+      button.addEventListener('click', () => RollOffWindow.open());
 
-    const controlButtons = chatControls.querySelector('.control-buttons');
-    if (controlButtons) {
-      controlButtons.after(button);
-    } else {
-      chatControls.appendChild(button);
+      const controlButtons = chatControls.querySelector('.control-buttons');
+      if (controlButtons) {
+        controlButtons.after(button);
+      } else {
+        chatControls.appendChild(button);
+      }
     }
+
+    button.style.display = shouldShow ? '' : 'none';
   };
   Hooks.on('renderChatLog', injectChatButton);
   injectChatButton(); // Chat log may already be rendered
+  Hooks.on('xandraRollOffs.stateUpdated', injectChatButton);
 
   // Register a macro-friendly global function for opening the panel
   game.xandraRollOffs = {
-    openGMPanel: () => GMPanelApp.render(),
     openRollOffWindow: () => RollOffWindow.open(),
   };
 
@@ -71,9 +87,10 @@ Hooks.once('ready', async () => {
 
   // Open the roll-off window if one is already active, then keep it in sync
   // with future round starts/tiebreaks/ends.
-  if (getActiveRollOff()?.active) {
-    RollOffWindow.open();
-  }
+  const maybeOpen = () => {
+    if (getActiveRollOff()?.active) RollOffWindow.open();
+  };
+  maybeOpen();
 
   Hooks.on('xandraRollOffs.roundStarted', () => {
     RollOffWindow.open();
@@ -81,11 +98,21 @@ Hooks.once('ready', async () => {
   Hooks.on('xandraRollOffs.tiebreakStarted', () => {
     RollOffWindow.open();
   });
-  Hooks.on('xandraRollOffs.rollOffEnded', () => RollOffWindow.close());
+  Hooks.on('xandraRollOffs.rollOffEnded', () => {
+    // Keep the window open to show the final winner; the GM can use Close Roll-Off.
+    RollOffWindow.open();
+  });
   Hooks.on('xandraRollOffs.rollOffCancelled', () => RollOffWindow.close());
+
+  // Re-render the toolbar so the icon visibility matches the current state.
+  Hooks.on('xandraRollOffs.stateUpdated', () => ui.controls?.render?.());
 
   // Wire /roll interception for active participants
   Hooks.on('chatMessage', (chatLog, messageText, data) => onChatMessage(chatLog, messageText, data));
+
+  // Catch rolls that bypass the chatMessage hook (e.g., from system-specific
+  // command handling or other modules) by inspecting created chat messages.
+  Hooks.on('createChatMessage', (message, options, userId) => onCreateChatMessage(message, options, userId));
 });
 
 /* ================================================================ */
@@ -133,10 +160,63 @@ function matchesDiePattern(expression, dieType) {
 }
 
 function normalizeDie(formula) {
-  return formula
-    .replace(/\s+/g, '')
-    .toLowerCase()
-    .replace(/^(\d)d/, '$1d'); // leave leading digit alone
+  const clean = formula.toString().replace(/\s+/g, '').toLowerCase();
+  // Treat bare "d100" the same as "1d100" for matching purposes.
+  if (/^d\d+$/.test(clean)) return `1${clean}`;
+  return clean;
+}
+
+/* ================================================================ */
+/*  createChatMessage fallback                                       */
+/* ================================================================ */
+
+/**
+ * Catches chat messages that contain a matching roll from the current user
+ * while they are an active participant. This handles systems or modules that
+ * bypass the synchronous `chatMessage` hook, as well as the `/roll` macro
+ * command if it doesn't get intercepted earlier.
+ *
+ * The chat message is deleted and the roll-off is submitted by the GM via the
+ * existing socket request flow (GM-authoritative roll evaluation).
+ */
+async function onCreateChatMessage(message, options, userId) {
+  const activeRollOff = getActiveRollOff();
+  if (!activeRollOff?.active) return;
+
+  // Ignore our own audit roll cards so the GM doesn't re-roll just because they
+  // posted a per-roll chat card.
+  if (message.flags?.[MODULE_ID]?.auditRoll) return;
+
+  // Only act on messages created by the current user; ignore everyone else's
+  // rolls so we don't capture rolls from non-participants or duplicate them.
+  const authorId = message.author?.id ?? message.user;
+  if (authorId !== game.userId) return;
+
+  if (!canUserRoll(activeRollOff, game.userId)) return;
+
+  const rolls = message.rolls ?? [];
+  if (rolls.length === 0) return;
+
+  const roll = rolls[0];
+  if (!matchesDiePattern(roll.formula, activeRollOff.dieType)) return;
+
+  const socket = game.modules.get(MODULE_ID).socketHandler;
+  if (!socket) {
+    console.warn(`${MODULE_ID} | Socket handler not ready; createChatMessage fallback ignored`);
+    return;
+  }
+
+  try {
+    if (message.isOwner ?? message.canUser?.(game.user, 'delete')) {
+      await message.delete();
+    } else {
+      console.warn(`${MODULE_ID} | Cannot delete chat message ${message.id}; roll will still be submitted`);
+    }
+  } catch (err) {
+    console.warn(`${MODULE_ID} | Failed to delete captured chat message`, err);
+  }
+
+  await socket.requestRoll(game.userId);
 }
 
 export { matchesDiePattern };

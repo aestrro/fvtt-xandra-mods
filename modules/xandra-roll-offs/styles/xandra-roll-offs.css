@@ -1,8 +1,126 @@
 :root {
   --xro-gap: 0.5rem;
+  --xro-gap-sm: 0.3rem;
   --xro-radius: 6px;
-  --xro-border: 1px solid var(--color-border-light-2, #b7b7b7);
+  --xro-border: 1px solid var(--color-border-light-2, #3a3f45);
   --xro-panel-width: 360px;
+
+  --xro-bg-1: #1e2227;
+  --xro-bg-2: #16191d;
+  --xro-bg-3: #2a2e33;
+  --xro-success: #2ecc71;
+  --xro-warning: #f4b63e;
+  --xro-primary: #63a4ff;
+  --xro-primary-contrast: #0b0d10;
+  --xro-text: #e6e8ec;
+  --xro-text-secondary: #9aa0a8;
+  --xro-border-color: #3a3f45;
+  --xro-shadow: 0 2px 4px rgba(0, 0, 0, 0.25);
+}
+
+/* Foundry buttons are outlined by default; flatten them for this module */
+.xandra-roll-offs-window button,
+.xandra-roll-offs-app button,
+.xandra-roll-offs-player-prompt button,
+.xandra-roll-offs-sidebar button,
+.xro-chat-card .xro-roll-button {
+  appearance: none;
+  border: none;
+  border-radius: var(--xro-radius);
+  padding: 0.55rem 0.9rem;
+  font-weight: 600;
+  font-size: 0.95rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: filter 0.1s ease, transform 0.05s ease;
+  background: var(--xro-bg-3);
+  color: var(--xro-text);
+  box-shadow: var(--xro-shadow);
+}
+
+.xandra-roll-offs-window button:hover,
+.xandra-roll-offs-app button:hover,
+.xandra-roll-offs-player-prompt button:hover,
+.xandra-roll-offs-sidebar button:hover,
+.xro-chat-card .xro-roll-button:hover {
+  filter: brightness(1.12);
+}
+
+.xandra-roll-offs-window button:active,
+.xandra-roll-offs-app button:active,
+.xandra-roll-offs-player-prompt button:active,
+.xandra-roll-offs-sidebar button:active,
+.xro-chat-card .xro-roll-button:active {
+  transform: translateY(1px);
+  filter: brightness(0.92);
+}
+
+/* Primary roll button: solid, flat, unmistakable */
+button[data-action="roll-off-roll"] {
+  width: 100%;
+  background: var(--xro-success) !important;
+  color: var(--xro-primary-contrast) !important;
+  font-size: 1.1rem;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 4px rgba(46, 204, 113, 0.25);
+}
+
+button[data-action="roll-off-roll"]:hover {
+  filter: brightness(1.12);
+}
+
+button[data-action="advanceRound"].xro-next-round-btn {
+  width: 100%;
+  background: var(--xro-warning) !important;
+  color: var(--xro-primary-contrast) !important;
+  font-size: 1.1rem;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  box-shadow: 0 2px 4px rgba(244, 182, 62, 0.25);
+}
+
+button[data-action="advanceRound"].xro-next-round-btn:hover {
+  filter: brightness(1.12);
+}
+
+button.xro-waiting-btn {
+  width: 100%;
+  background: var(--xro-bg-3) !important;
+  color: var(--xro-text-secondary) !important;
+  font-size: 1.1rem;
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  cursor: not-allowed;
+}
+
+button[data-action="startRollOff"] {
+  background: var(--xro-primary);
+  color: var(--xro-primary-contrast);
+}
+
+button[data-action="cancelRollOff"] {
+  background: var(--xro-bg-3);
+  color: var(--xro-text);
+  border: 1px solid var(--xro-border-color);
+}
+
+/* Utility: keep small action buttons from screaming */
+button[data-action="resetTallies"],
+button[data-action="forceResolve"] {
+  background: var(--xro-bg-3);
+  border: 1px solid var(--xro-border-color);
+  color: var(--xro-text);
+  box-shadow: none;
+}
+
+button[data-action="resetTallies"]:hover,
+button[data-action="forceResolve"]:hover {
+  background: var(--xro-bg-1);
+  filter: none;
 }
 
 /* Dedicated Roll-Off Window */
@@ -17,107 +135,727 @@
   padding: 0;
   flex: 1;
   overflow: hidden;
+  background: var(--xro-bg-2);
 }
 
 .xro-window-body {
-  flex: 1;
+  height: 100%;
   display: flex;
   flex-direction: column;
   gap: var(--xro-gap);
   padding: var(--xro-gap);
-  overflow-y: auto;
+  overflow: hidden;
   min-height: 0;
 }
 
-.xro-history {
+.xro-not-participating {
   flex: 0 0 auto;
-  max-height: 45%;
   display: flex;
-  flex-direction: column;
-  min-height: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.75rem;
+  border-radius: var(--xro-radius);
+  background: rgba(244, 182, 62, 0.1);
+  border: 1px solid rgba(244, 182, 62, 0.35);
+  color: var(--xro-warning);
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-align: center;
 }
 
-.xro-history-list {
+.xro-not-participating i {
+  font-size: 0.9rem;
+}
+
+.xro-meta {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--xro-gap-sm);
+  padding: 0 var(--xro-gap-sm);
+}
+
+.xro-meta-title {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--xro-text);
+}
+
+.xro-meta-sub {
+  font-size: 0.8rem;
+  color: var(--xro-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.xro-scroll-stack {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-y: auto;
   display: flex;
   flex-direction: column;
-  gap: var(--xro-gap);
+  justify-content: flex-end;
+  gap: var(--xro-gap-sm);
+}
+
+/* Ensure the scroll stack itself fills the available height so short content
+   anchors to the bottom (like the chat log) rather than filling from the top. */
+.xro-scroll-stack::before {
+  content: '';
+  flex: 1 1 auto;
   min-height: 0;
 }
 
-.xro-history-card {
-  border: var(--xro-border);
-  border-radius: var(--xro-radius);
-  padding: var(--xro-gap);
-  background: var(--color-bg-window, #fff);
-}
-
-.xro-history-header {
+.xro-round-group {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.25rem;
+  flex-direction: column;
+  gap: var(--xro-gap-sm);
+  padding: var(--xro-gap) 0;
+  border-radius: var(--xro-radius);
 }
 
-.xro-history-round {
-  font-weight: 700;
+.xro-round-group--current {
+  background: rgba(99, 164, 255, 0.08);
+  border: 1px solid rgba(99, 164, 255, 0.25);
+  padding: var(--xro-gap) 0;
 }
 
-.xro-history-winner {
-  font-weight: 700;
-  color: var(--color-text-dark-success, #006400);
+.xro-round-group--current .xro-round-title {
+  opacity: 0.85;
 }
 
-.xro-history-rolls {
-  list-style: none;
+.xro-round-group:not(:first-child) {
+  margin-top: var(--xro-gap);
+}
+
+.xro-round-group--alt {
+  background: rgba(0, 0, 0, 0.25);
+}
+
+.xro-round-group .xro-round-title {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--xro-text);
+  opacity: 0.5;
   margin: 0;
   padding: 0;
 }
 
-.xro-history-rolls li {
+.xro-round-row,
+.xro-current-row {
   display: flex;
-  justify-content: space-between;
-  padding: 0.1rem 0;
-  border-bottom: 1px solid var(--color-border-light-1, #ddd);
+  flex-wrap: wrap;
+  align-items: stretch;
+  justify-content: center;
 }
 
-.xro-history-rolls li:last-child {
-  border-bottom: none;
+.xro-current-row {
+  margin-bottom: var(--xro-gap-sm);
 }
 
-.xro-roll-value {
-  font-weight: 600;
-}
-
-.xro-current-round {
-  flex: 0 0 auto;
-}
-
-.xro-leaderboard-section {
-  flex: 1 1 auto;
+.xro-roll-pill {
+  position: relative;
   display: flex;
   flex-direction: column;
-  min-height: 0;
-  overflow-y: auto;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 0.15rem;
+  width: 60px;
+  padding: 0.6rem 0.25rem 0.4rem 0.25rem;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-left: 1px solid var(--xro-border-color);
+  text-align: center;
+  border-radius: 0;
 }
 
-.xro-empty {
+.xro-roll-pill .xro-pill-roll-btn {
+  position: absolute;
+  inset: 0;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  background: rgba(99, 164, 255, 0.85) !important;
+  color: var(--xro-primary-contrast) !important;
+  border: none;
+  border-radius: inherit;
+  padding: 0;
+  font-size: 1.2rem;
+  cursor: pointer;
+  box-shadow: none;
+  z-index: 2;
+}
+
+.xro-roll-pill .xro-pill-roll-btn i {
+  pointer-events: none;
+}
+
+.xro-roll-pill:hover .xro-pill-roll-btn {
+  display: flex;
+}
+
+.xro-roll-pill--rolled .xro-pill-roll-btn {
+  display: none !important;
+}
+
+.xro-roll-pill .xro-roll-pill-value {
+  z-index: 1;
+}
+
+.xro-roll-pill .xro-avatar,
+.xro-roll-pill .xro-roll-pill-name {
+  z-index: 0;
+}
+
+.xro-roll-pill:first-child {
+  border-radius: var(--xro-radius) 0 0 var(--xro-radius);
+  border-left: none;
+}
+
+.xro-roll-pill:last-child {
+  border-radius: 0 var(--xro-radius) var(--xro-radius) 0;
+}
+
+.xro-roll-pill:only-child {
+  border-radius: var(--xro-radius);
+  border-left: none;
+}
+
+.xro-roll-pill--rolled {
+  background: rgba(46, 204, 113, 0.5);
+}
+
+.xro-roll-pill--winner {
+  background: rgba(46, 204, 113, 0.5);
+}
+
+.xro-roll-pill--winner .xro-roll-pill-name {
+  color: var(--xro-success);
+  font-weight: 700;
+}
+
+.xro-roll-pill--waiting .xro-roll-pill-value {
+  color: var(--xro-text-secondary);
+  font-style: italic;
+}
+
+.xro-avatar {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--xro-bg-3);
+  border: 1px solid var(--xro-border-color);
+  display: block;
+}
+
+.xro-roll-pill-info {
+  display: none;
+}
+
+.xro-roll-pill-name {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--xro-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+.xro-roll-pill-value {
+  position: relative;
+  top: -0.5rem;
+  margin-bottom: -0.4rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 9999px;
+  background: var(--xro-bg-1);
+  border: 1px solid var(--xro-border-color);
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--xro-text);
+  line-height: 1;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  z-index: 1;
+}
+
+.xro-roll-pill--rolled .xro-roll-pill-value,
+.xro-roll-pill--winner .xro-roll-pill-value {
+  background: var(--xro-success);
+  border-color: var(--xro-success);
+  color: var(--xro-primary-contrast);
+}
+
+.xro-empty-rounds {
+  text-align: center;
+  color: var(--xro-text-secondary);
+  padding: 2rem 1rem;
+  font-size: 0.9rem;
+}
+
+/* Win tracker below the rounds */
+.xro-tracker {
+  flex: 0 0 auto;
+  padding: 0;
+  background: var(--xro-bg-1);
+  border-radius: var(--xro-radius);
+  border: 1px solid var(--xro-border-color);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  margin-bottom: var(--xro-gap-sm);
+}
+
+.xro-tracker-toggle {
+  display: none;
+}
+
+.xro-tracker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.35rem 0.6rem;
+  background: var(--xro-bg-3);
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--xro-text-secondary);
+  border-bottom: 1px solid var(--xro-border-color);
+}
+
+.xro-tracker-header:hover {
+  background: var(--xro-bg-2);
+}
+
+.xro-tracker-header-icon {
+  transition: transform 0.15s ease;
+}
+
+.xro-tracker-toggle:checked ~ .xro-tracker-header .xro-tracker-header-icon {
+  transform: rotate(180deg);
+}
+
+.xro-tracker-toggle:not(:checked) ~ .xro-tracker-rows .xro-tracker-row:not(.xro-tracker-row--current) {
+  display: none;
+}
+
+.xro-tracker-toggle:checked ~ .xro-tracker-rows .xro-tracker-row:not(.xro-tracker-row--current) {
+  display: flex;
+}
+
+.xro-tracker-rows {
+  padding: var(--xro-gap-sm) var(--xro-gap);
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.xro-tracker-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xro-gap-sm);
+  padding: 0.15rem 0;
+}
+
+.xro-tracker-row--current .xro-tracker-name {
+  color: var(--xro-text);
+  font-weight: 700;
+}
+
+.xro-tracker-name {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--xro-text-secondary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 45%;
+}
+
+.xro-tracker-slots {
+  display: flex;
+  align-items: center;
+  gap: 0.2rem;
+}
+
+.xro-tracker-slot {
   display: flex;
   align-items: center;
   justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: transparent;
+}
+
+.xro-tracker-slot svg {
+  width: 14px;
+  height: 14px;
+  fill: none;
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.xro-tracker-won svg {
+  stroke: var(--xro-success);
+}
+
+.xro-tracker-empty svg {
+  stroke: var(--xro-text-secondary);
+}
+
+.xro-tracker-won {
+  background: transparent;
+  border-color: transparent;
+}
+
+.xro-tracker-empty {
+  background: transparent;
+  border-color: transparent;
+}
+
+.xro-footer {
+  flex: 0 0 auto;
+  padding: var(--xro-gap);
+  border-radius: var(--xro-radius);
+  background: var(--xro-bg-1);
+  border: 1px solid var(--xro-border-color);
+}
+
+.xro-roll-action {
+  margin-top: var(--xro-gap-sm);
+}
+
+/* GM-only control surface below the roll action */
+.xro-gm-controls {
+  margin-top: var(--xro-gap-sm);
+  padding-top: var(--xro-gap-sm);
+  border-top: 1px solid var(--xro-border-color);
+}
+
+.xro-roll-action--row {
+  display: flex;
+  gap: var(--xro-gap-sm);
+}
+
+.xro-roll-action--row button {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+button[data-action="closeRollOff"].xro-close-roll-off-btn {
+  background: var(--xro-warning) !important;
+  color: var(--xro-primary-contrast) !important;
+}
+
+.xro-round-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.1rem;
+  padding: 0.4rem 0 0.1rem;
   text-align: center;
-  color: var(--color-text-dark-secondary, #666);
+}
+
+.xro-round-result-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--xro-text-secondary);
+}
+
+.xro-round-result-name {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--xro-text);
+}
+
+.xro-round-result-winner {
+  color: var(--xro-success);
+}
+
+.xro-gm-select,
+.xro-gm-input {
+  appearance: none;
+  border: 1px solid var(--xro-border-color);
+  border-radius: var(--xro-radius);
+  padding: 0.35rem 0.5rem;
+  background: var(--xro-bg-2);
+  color: var(--xro-text);
+  font-size: 0.85rem;
+  line-height: 1;
+}
+
+.xro-gm-select {
+  flex: 1;
+  min-width: 0;
+}
+
+.xro-gm-input {
+  width: 60px;
+  text-align: center;
+  flex: 0 0 auto;
+}
+
+.xro-gm-btn {
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--xro-bg-3) !important;
+  border: 1px solid var(--xro-border-color) !important;
+  color: var(--xro-text) !important;
+  box-shadow: none !important;
+  font-size: 0.85rem;
+}
+
+.xro-gm-btn:hover {
+  background: var(--xro-bg-1) !important;
+  filter: none !important;
+}
+
+.xro-gm-start-form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap-sm);
+}
+
+.xro-gm-participants {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap-sm);
+  max-height: 140px;
+  overflow-y: auto;
+  padding: var(--xro-gap-sm);
+  border-radius: var(--xro-radius);
+  background: var(--xro-bg-2);
+  border: 1px solid var(--xro-border-color);
+}
+
+.xro-gm-user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.xro-gm-user-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  border-radius: var(--xro-radius);
+  background: var(--xro-bg-1);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background 0.1s ease, border-color 0.1s ease;
+  user-select: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.xro-gm-user-row:hover {
+  background: var(--xro-bg-3);
+  border-color: var(--xro-border-color);
+}
+
+.xro-gm-user-row--selected {
+  background: var(--xro-primary-dim);
+  border-color: var(--xro-primary);
+}
+
+.xro-gm-user-row--selected:hover {
+  background: var(--xro-primary-dim);
+  border-color: var(--xro-primary);
+  filter: brightness(1.1);
+}
+
+.xro-gm-user-avatar {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  background: var(--xro-bg-3);
+  border: 1px solid var(--xro-border-color);
+  display: block;
+  flex: 0 0 auto;
+}
+
+.xro-gm-user-name {
+  flex: 1 1 auto;
+  font-size: 0.85rem;
+  color: var(--xro-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.xro-gm-user-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex: 0 0 auto;
+  background: var(--xro-text-secondary);
+  opacity: 0.5;
+}
+
+.xro-gm-user-status--online {
+  background: var(--xro-success);
+  opacity: 1;
+  box-shadow: 0 0 0 2px rgba(46, 204, 113, 0.25);
+}
+
+.xro-gm-user-status--offline {
+  background: var(--xro-text-secondary);
+  opacity: 0.5;
+}
+
+.xro-gm-start-btn {
+  width: 100%;
+  background: var(--xro-primary) !important;
+  color: var(--xro-primary-contrast) !important;
+  padding: 0.55rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+/* Empty-state layout: notice at top, full-width list, footer at bottom */
+.xro-empty {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  text-align: center;
+  color: var(--xro-text-secondary);
+  font-size: 1.05rem;
+  padding: 0;
+  width: 100%;
+  height: 100%;
+  box-sizing: border-box;
+  gap: 0;
+}
+
+.xro-empty-notice {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-height: 200px;
+  padding: var(--xro-gap);
+  background: var(--xro-bg-1);
+  border-bottom: 1px solid var(--xro-border-color);
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.xro-empty-notice p {
+  margin: 0;
+  font-weight: 700;
+  color: var(--xro-text);
+  font-size: 1.1rem;
+}
+
+.xro-empty-content {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  height: 100%;
+  box-sizing: border-box;
+}
+
+.xro-empty .xro-gm-participants--full {
+  flex: 1 1 auto;
+  min-height: 0;
+  max-height: none;
+  overflow-y: auto;
+  padding: var(--xro-gap);
+  background: transparent;
+  border: none;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.xro-gm-footer {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap-sm);
+  padding: var(--xro-gap);
+  background: var(--xro-bg-1);
+  border-top: 1px solid var(--xro-border-color);
+  box-sizing: border-box;
+}
+
+.xro-gm-footer .xro-gm-row {
+  display: flex;
+  gap: var(--xro-gap-sm);
+}
+
+.xro-gm-footer .xro-gm-start-btn {
+  width: 100%;
+}
+
+.xro-empty-state {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap);
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  max-width: 100%;
+  padding: 0 var(--xro-gap);
+  box-sizing: border-box;
+}
+
+.xro-empty-state .xro-gm-start-form {
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.xro-winner-banner {
+  display: none;
+}
+
+.xro-section {
+  padding: var(--xro-gap);
+  border-radius: var(--xro-radius);
+  background: var(--xro-bg-1);
+  box-shadow: var(--xro-shadow);
+  border: none;
+}
+
+.xro-section h3 {
+  margin: 0 0 var(--xro-gap) 0;
+  font-size: 0.85rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--xro-text-secondary);
+  border: none;
 }
 
 .xro-subtitle {
   margin: 0 0 var(--xro-gap) 0;
-  font-size: 0.9em;
-  color: var(--color-text-dark-secondary, #666);
-}
-
-.xro-current-round-label {
-  font-weight: 700;
-  margin: 0 0 0.25rem 0;
+  font-size: 0.85em;
+  color: var(--xro-text-secondary);
 }
 
 /* GM Panel */
@@ -128,60 +866,90 @@
 
 .xandra-roll-offs-app .window-content {
   padding: var(--xro-gap);
+  background: var(--xro-bg-2);
 }
 
-.xro-section {
-  margin-bottom: var(--xro-gap);
-  padding: var(--xro-gap);
-  border: var(--xro-border);
-  border-radius: var(--xro-radius);
-  background: var(--color-bg-option, rgba(0, 0, 0, 0.05));
+.xro-gm-actions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--xro-gap-sm);
 }
 
-.xro-section h3 {
-  margin: 0 0 var(--xro-gap) 0;
-  font-size: 1.1em;
-  border-bottom: var(--xro-border);
+.xro-gm-actions .xro-gm-select,
+.xro-gm-actions .xro-gm-btn {
+  width: 100%;
+  flex: none;
 }
 
-.xro-form-row {
+.xro-gm-actions .xro-gm-btn-row {
+  display: flex;
+  gap: var(--xro-gap-sm);
+  justify-content: flex-end;
+}
+
+.xro-gm-actions .xro-gm-btn-row .xro-gm-btn {
+  flex: 1 1 auto;
+  width: auto;
+}
+
+.xro-gm-row {
   display: flex;
   align-items: center;
   gap: var(--xro-gap);
   margin-bottom: var(--xro-gap);
 }
 
+.xro-form-row:last-child {
+  margin-bottom: 0;
+}
+
 .xro-form-row label {
   flex: 0 0 110px;
   font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--xro-text-secondary);
 }
 
 .xro-form-row input,
 .xro-form-row select {
   flex: 1;
   min-width: 0;
+  border: 1px solid var(--xro-border-color);
+  border-radius: var(--xro-radius);
+  padding: 0.4rem 0.5rem;
+  background: var(--xro-bg-1);
+  color: var(--xro-text);
+}
+
+.xro-form-row input::placeholder,
+.xro-form-row select::placeholder {
+  color: var(--xro-text-secondary);
 }
 
 .xro-participant-list {
+  flex: 1;
   max-height: 160px;
   overflow-y: auto;
-  border: var(--xro-border);
   border-radius: var(--xro-radius);
-  padding: var(--xro-gap);
-  background: var(--color-bg-window, #fff);
+  padding: var(--xro-gap-sm) var(--xro-gap);
+  background: var(--xro-bg-1);
+  border: 1px solid var(--xro-border-color);
 }
 
 .xro-participant-list label {
   display: flex;
   align-items: center;
-  gap: 0.3rem;
-  margin-bottom: 0.2rem;
+  gap: 0.4rem;
+  margin-bottom: 0.3rem;
+  font-weight: 500;
+  cursor: pointer;
 }
 
 .xro-actions {
   display: flex;
   gap: var(--xro-gap);
   flex-wrap: wrap;
+  margin-top: var(--xro-gap);
 }
 
 .xro-actions button {
@@ -198,8 +966,10 @@
 .xro-status-list li {
   display: flex;
   justify-content: space-between;
-  padding: 0.2rem 0;
-  border-bottom: 1px solid var(--color-border-light-1, #ddd);
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--xro-border-color);
+  font-size: 0.95rem;
 }
 
 .xro-status-list li:last-child {
@@ -207,12 +977,13 @@
 }
 
 .xro-status-list .rolled {
-  color: var(--color-text-dark-success, #006400);
-  font-weight: 600;
+  color: var(--xro-success);
+  font-weight: 700;
 }
 
 .xro-status-list .waiting {
-  color: var(--color-text-dark-secondary, #666);
+  color: var(--xro-text-secondary);
+  font-style: italic;
 }
 
 .xro-leaderboard {
@@ -224,25 +995,151 @@
 .xro-leaderboard li {
   display: flex;
   justify-content: space-between;
-  padding: 0.2rem 0;
-  border-bottom: 1px solid var(--color-border-light-1, #ddd);
+  align-items: center;
+  padding: 0.35rem 0;
+  border-bottom: 1px solid var(--xro-border-color);
+  font-size: 0.95rem;
+}
+
+.xro-leaderboard li:last-child {
+  border-bottom: none;
 }
 
 .xro-leaderboard .score {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--xro-primary);
+}
+
+.xandra-roll-offs-chat {
+  --xro-chat-gap: 0.3rem;
+  --xro-chat-radius: 6px;
+  font-family: var(--font-primary);
+  color: var(--xro-text);
+  background: var(--xro-bg-1);
+  border: 1px solid var(--xro-border-color);
+  border-radius: var(--xro-chat-radius);
+  padding: var(--xro-chat-gap);
+  box-shadow: var(--xro-shadow);
+  max-width: 320px;
+}
+
+.xandra-roll-offs-chat .xro-chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xro-chat-gap);
+  padding: 0.2rem 0.35rem;
+  margin-bottom: var(--xro-chat-gap);
+  border-bottom: 1px solid var(--xro-border-color);
+}
+
+.xandra-roll-offs-chat .xro-chat-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--xro-text-secondary);
+}
+
+.xandra-roll-offs-chat .xro-roll-list,
+.xandra-roll-offs-chat .xro-round-list,
+.xandra-roll-offs-chat .xro-score-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.xandra-roll-offs-chat .xro-roll-list li,
+.xandra-roll-offs-chat .xro-round-list li,
+.xandra-roll-offs-chat .xro-score-list li {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--xro-chat-gap);
+  padding: 0.2rem 0.35rem;
+  border-radius: calc(var(--xro-chat-radius) - 2px);
+  font-size: 0.85rem;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.xandra-roll-offs-chat .xro-roll-list li:nth-child(even),
+.xandra-roll-offs-chat .xro-round-list li:nth-child(even),
+.xandra-roll-offs-chat .xro-score-list li:nth-child(even) {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.xandra-roll-offs-chat .xro-roll-list .xro-high,
+.xandra-roll-offs-chat .xro-score-list .xro-first {
+  background: rgba(46, 204, 113, 0.15) !important;
+  border: 1px solid rgba(46, 204, 113, 0.35);
+}
+
+.xandra-roll-offs-chat .xro-user,
+.xandra-roll-offs-chat .xro-round-label,
+.xandra-roll-offs-chat .xro-score-name {
   font-weight: 600;
+  color: var(--xro-text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 70%;
+}
+
+.xandra-roll-offs-chat .xro-value,
+.xandra-roll-offs-chat .xro-round-winner,
+.xandra-roll-offs-chat .xro-score-value {
+  font-weight: 700;
+  color: var(--xro-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.xandra-roll-offs-chat .xro-winner,
+.xandra-roll-offs-chat .xro-tie,
+.xandra-roll-offs-chat .xro-final-winner {
+  margin: var(--xro-chat-gap) 0 0;
+  padding: 0.35rem;
+  border-radius: calc(var(--xro-chat-radius) - 2px);
+  text-align: center;
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.xandra-roll-offs-chat .xro-winner {
+  background: rgba(46, 204, 113, 0.12);
+  color: var(--xro-success);
+  border: 1px solid rgba(46, 204, 113, 0.3);
+}
+
+.xandra-roll-offs-chat .xro-tie {
+  background: rgba(244, 182, 62, 0.12);
+  color: var(--xro-warning);
+  border: 1px solid rgba(244, 182, 62, 0.3);
+}
+
+.xandra-roll-offs-chat .xro-final-winner {
+  background: rgba(99, 164, 255, 0.12);
+  color: var(--xro-primary);
+  border: 1px solid rgba(99, 164, 255, 0.3);
+  font-size: 1rem;
 }
 
 /* Chat Cards */
 .xro-chat-card {
-  border: var(--xro-border);
   border-radius: var(--xro-radius);
   padding: var(--xro-gap);
   margin: 0.2rem 0;
-  background: var(--color-bg-window, #fff);
+  background: var(--xro-bg-1);
+  box-shadow: var(--xro-shadow);
+  border: none;
 }
 
 .xro-chat-card .xro-roll-button {
   margin-top: var(--xro-gap);
+  width: 100%;
 }
 
 .xro-chat-card .xro-summary-row {
@@ -253,11 +1150,11 @@
 
 .xro-chat-card .xro-winner {
   font-weight: 700;
-  color: var(--color-text-dark-success, #006400);
+  color: var(--xro-success);
 }
 
 .xro-chat-card .xro-tie {
-  color: var(--color-text-dark-warning, #8a6d00);
+  color: var(--xro-warning);
 }
 
 .xro-chat-card .xro-ended {
@@ -296,7 +1193,11 @@
 
 .xandra-roll-offs-sidebar .xro-empty {
   text-align: center;
-  color: var(--color-text-dark-secondary, #666);
+  color: var(--xro-text-secondary);
+}
+
+.xandra-roll-offs-sidebar .xro-section + .xro-section {
+  margin-top: var(--xro-gap);
 }
 
 button[data-action] {
@@ -305,5 +1206,5 @@ button[data-action] {
 
 /* Sidebar tab icon active state */
 #sidebar-tabs .item[data-tab="roll-offs"].active {
-  color: var(--color-text-hyperlink, #ff0000);
+  color: var(--xro-primary);
 }

@@ -13,6 +13,17 @@
       </li>
       {{/each}}
     </ul>
+    {{#if pendingRollers.length}}
+    <div class="xro-form-row xro-roll-for-row">
+      <label>Roll for</label>
+      <select name="rollForParticipant" data-action="rollForParticipant">
+        <option value="">Select participant</option>
+        {{#each pendingRollers}}
+        <option value="{{id}}">{{name}}</option>
+        {{/each}}
+      </select>
+    </div>
+    {{/if}}
     <div class="xro-actions">
       <button type="button" data-action="forceResolve">{{localize 'XANDRA_ROLL_OFFS.Actions.ForceResolve'}}</button>
       <button type="button" data-action="cancelRollOff">{{localize 'XANDRA_ROLL_OFFS.Actions.Cancel'}}</button>

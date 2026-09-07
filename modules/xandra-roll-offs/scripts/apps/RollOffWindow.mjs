@@ -1,18 +1,27 @@
 import { getActiveRollOff, getWinTallies, SETTINGS } from '../settings.mjs';
-import { canUserRoll, findActiveRound } from '../state.mjs';
-import { MODULE_ID } from '../utils.mjs';
+import { canUserRoll, findActiveRound, isRoundComplete, resolveRound } from '../state.mjs';
+import { MODULE_ID, getUserActor } from '../utils.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
+
+function getUserName(userId) {
+  const user = game.users.get(userId);
+  if (user?.isGM) return user.name;
+  const actor = getUserActor(userId);
+  return actor?.name ?? user?.name ?? userId;
+}
 
 /**
  * Dedicated roll-off theatre window for all participants.
  *
- * Shows current round status, a scrollable history of resolved rounds, and a live
- * leaderboard. Opens automatically when a roll-off starts and closes when it ends.
+ * Shows current round status, a scrollable history of resolved rounds, a live
+ * win tracker, and a minimal GM control surface for starting / managing roll-offs.
  */
 export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   static #instance = null;
   static #hookId = null;
+
+  #selectedParticipants = null;
 
   static DEFAULT_OPTIONS = {
     id: 'xandra-roll-offs-window',
@@ -27,7 +36,12 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       height: 560,
     },
     actions: {
-      submitRoll: RollOffWindow.submitRoll,
+      startRollOff: RollOffWindow.startRollOff,
+      cancelRollOff: RollOffWindow.cancelRollOff,
+      closeRollOff: RollOffWindow.closeRollOff,
+      forceResolve: RollOffWindow.forceResolve,
+      advanceRound: RollOffWindow.advanceRound,
+      rollForParticipant: RollOffWindow.rollForParticipant,
     },
   };
 
@@ -56,9 +70,18 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     }
   }
 
+  /**
+   * Whether the roll-off window is currently rendered.
+   * @returns {boolean}
+   */
+  static get activeWindow() {
+    return this.#instance?.rendered ?? false;
+  }
+
   static onStateChanged() {
-    const active = getActiveRollOff()?.active ?? false;
-    if (active) {
+    const activeRollOff = getActiveRollOff();
+    const exists = activeRollOff && Object.keys(activeRollOff).length > 0;
+    if (exists) {
       this.open();
     } else {
       this.close();
@@ -67,6 +90,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 
   constructor(options = {}) {
     super(options);
+    this.#selectedParticipants = null;
     if (!this.constructor.#hookId) {
       this.constructor.#hookId = Hooks.on('xandraRollOffs.stateUpdated', () => {
         this.constructor.onStateChanged();
@@ -84,54 +108,155 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     const tallies = getWinTallies();
     const isActive = activeRollOff?.active ?? false;
     const activeRound = isActive ? findActiveRound(activeRollOff.roundStack) : undefined;
+    const hasData = activeRollOff && Object.keys(activeRollOff).length > 0;
 
     let participantStatuses = [];
-    let leaderboard = [];
     let roundHistory = [];
     let canCurrentUserRoll = false;
     let winsNeeded = 0;
-    let dieType = '';
+    let winner = null;
+    let pendingRollers = [];
+    let tracker = [];
+    let roundComplete = false;
+    let roundResult = null;
+    let isParticipant = false;
 
-    if (isActive && activeRound) {
-      participantStatuses = (activeRound.participants ?? []).map((userId) => ({
-        id: userId,
-        name: game.users.get(userId)?.name ?? userId,
-        rolled: !!activeRound.rolls[userId],
-        value: activeRound.rolls[userId]?.total ?? null,
-      }));
-      canCurrentUserRoll = canUserRoll(activeRollOff, game.userId);
+    if (hasData) {
       winsNeeded = activeRollOff.winsNeeded;
-      dieType = activeRollOff.dieType;
+      const currentRound = activeRound;
+      isParticipant = activeRollOff.participants?.includes(game.userId) ?? false;
 
-      leaderboard = (activeRollOff?.participants ?? [])
-        .map((userId) => ({
-          name: game.users.get(userId)?.name ?? userId,
-          score: tallies[userId] || 0,
-        }))
-        .sort((a, b) => b.score - a.score);
+      roundComplete = isActive && currentRound ? isRoundComplete(activeRollOff) : false;
+      if (roundComplete) {
+        const result = resolveRound(currentRound.rolls);
+        if (result.type === 'winner') {
+          const id = result.userId;
+          roundResult = {
+            type: 'winner',
+            userId: id,
+            name: getUserName(id),
+          };
+        } else {
+          roundResult = {
+            type: 'tie',
+            userIds: result.userIds,
+            names: result.userIds.map((id) => getUserName(id)),
+          };
+        }
+      }
+
+      tracker = (activeRollOff.participants ?? []).map((userId) => {
+        const name = getUserName(userId);
+        const historyWins = activeRollOff.history?.filter((h) => h.winner === userId).length ?? 0;
+        const provisionalWin = roundResult?.type === 'winner' && roundResult?.userId === userId ? 1 : 0;
+        const wins = historyWins + provisionalWin;
+        const slots = [];
+        for (let i = 0; i < winsNeeded; i++) {
+          slots.push({ won: i < wins });
+        }
+        return { userId, name, slots, wins, isCurrentUser: userId === game.userId };
+      });
 
       roundHistory = (activeRollOff.history ?? []).map((entry) => ({
         round: entry.round,
         label: game.i18n.format('XANDRA_ROLL_OFFS.Labels.Round', { round: entry.round }),
-        winnerName: game.users.get(entry.winner)?.name ?? entry.winner,
+        winnerName: getUserName(entry.winner),
         winnerValue: entry.finalRolls[entry.winner]?.total ?? null,
-        rolls: Object.entries(entry.finalRolls).map(([userId, roll]) => ({
-          name: game.users.get(userId)?.name ?? userId,
-          value: roll.total,
-        })),
+        rolls: Object.entries(entry.finalRolls)
+          .map(([userId, roll]) => {
+            return {
+              name: getUserName(userId),
+              value: roll.total,
+              userId,
+              avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? '',
+              isWinner: userId === entry.winner,
+            };
+          })
+          .sort((a, b) => b.value - a.value),
       }));
+
+      if (isActive && currentRound) {
+        participantStatuses = (currentRound.participants ?? [])
+          .map((userId) => {
+            return {
+              id: userId,
+              name: getUserName(userId),
+              rolled: !!currentRound.rolls[userId],
+              value: currentRound.rolls[userId]?.total ?? null,
+              avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? '',
+            };
+          })
+          .sort((a, b) => {
+            if (a.value === null && b.value === null) return 0;
+            if (a.value === null) return 1;
+            if (b.value === null) return -1;
+            return b.value - a.value;
+          });
+        canCurrentUserRoll = canUserRoll(activeRollOff, game.userId);
+
+        pendingRollers = participantStatuses
+          .filter((p) => !p.rolled)
+          .map((p) => ({ id: p.id, name: p.name }));
+      } else if (!isActive && roundHistory.length > 0) {
+        const lastRound = activeRollOff.history.at(-1);
+        if (lastRound) {
+          winner = {
+            id: lastRound.winner,
+            name: getUserName(lastRound.winner),
+            score: tallies[lastRound.winner] || 0,
+          };
+        }
+      }
     }
 
+    const defaultDieType = game.settings.get(MODULE_ID, SETTINGS.DEFAULT_DIE_TYPE);
+    const defaultWinsNeeded = game.settings.get(MODULE_ID, SETTINGS.DEFAULT_WINS_NEEDED);
+    const includeGM = game.settings.get(MODULE_ID, SETTINGS.INCLUDE_GM_BY_DEFAULT);
+    const users = game.users.map((u) => {
+      const isChecked = this.#selectedParticipants !== null
+        ? this.#selectedParticipants.has(u.id)
+        : includeGM || !u.isGM;
+      return {
+        id: u.id,
+        name: getUserName(u.id),
+        isGM: u.isGM,
+        checked: isChecked,
+        connected: u.active,
+        avatar: getUserActor(u.id)?.img ?? u.avatar ?? '',
+      };
+    });
+
+    const dieChoices = [
+      { value: '1d4', label: 'd4' },
+      { value: '1d6', label: 'd6' },
+      { value: '1d8', label: 'd8' },
+      { value: '1d10', label: 'd10' },
+      { value: '1d12', label: 'd12' },
+      { value: '1d20', label: 'd20' },
+      { value: '1d100', label: 'd100' },
+    ].map((choice) => ({
+      ...choice,
+      selected: choice.value === defaultDieType ? 'selected' : '',
+    }));
+
     return {
+      hasData,
       isActive,
       roundLabel: activeRound?.label ?? '',
       winsNeeded,
-      dieType,
       participantStatuses,
-      leaderboard,
       roundHistory,
       canCurrentUserRoll,
       isGM: game.user.isGM,
+      isParticipant,
+      roundComplete,
+      roundResult,
+      winner,
+      tracker,
+      pendingRollers,
+      dieChoices,
+      defaultWinsNeeded,
+      users,
     };
   }
 
@@ -140,6 +265,37 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     const html = this.element;
     if (!html) return;
     html.querySelector('[data-action="roll-off-roll"]')?.addEventListener('click', () => this._onRoll());
+    html.querySelector('[data-action="roll-off-close"]')?.addEventListener('click', () => this.close());
+
+    html.querySelectorAll('[data-action="rollForParticipant"]').forEach((btn) => {
+      btn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        console.log(`${MODULE_ID} | GM roll-for-tile clicked`, btn.dataset.userId);
+        RollOffWindow.rollForParticipant(event, btn);
+      });
+    });
+
+    const rows = html.querySelectorAll('.xro-gm-user-row');
+    const updateSelection = () => {
+      this.#selectedParticipants = new Set(
+        Array.from(rows)
+          .filter((row) => row.dataset.selected === 'true')
+          .map((row) => row.dataset.userId)
+      );
+    };
+    for (const row of rows) {
+      row.addEventListener('click', () => {
+        const selected = row.dataset.selected === 'true';
+        row.dataset.selected = selected ? 'false' : 'true';
+        row.classList.toggle('xro-gm-user-row--selected', !selected);
+        updateSelection();
+      });
+    }
+
+    const stack = html.querySelector('.xro-scroll-stack');
+    if (stack) {
+      stack.scrollTop = stack.scrollHeight;
+    }
   }
 
   async _onRoll() {
@@ -147,7 +303,76 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     await socket.requestRoll(game.userId);
   }
 
-  static async submitRoll(event, target) {
-    await RollOffWindow.#instance?._onRoll();
+  static async startRollOff(event, target) {
+    event.preventDefault();
+    if (!game.user.isGM) {
+      ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.OnlyGmStarts'));
+      return;
+    }
+    const instance = RollOffWindow.#instance;
+    const container = target?.closest('.xro-gm-footer');
+    if (!container) return;
+
+    const dieType = container.querySelector('select[name="dieType"]')?.value;
+    const winsNeeded = Number(container.querySelector('input[name="winsNeeded"]')?.value);
+    const stored = instance?.#selectedParticipants;
+    const participants = stored !== null && stored.size > 0
+      ? [...stored]
+      : Array.from(instance?.element?.querySelectorAll('.xro-gm-user-row[data-selected="true"]') ?? []).map((row) => row.dataset.userId);
+
+    if (participants.length < 2) {
+      ui.notifications.warn(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.NeedTwoParticipants'));
+      return;
+    }
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    await socket.startRollOff({ dieType, winsNeeded, participants });
+  }
+
+  static async cancelRollOff(event, target) {
+    if (!game.user.isGM) return;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    await socket.cancelRollOff();
+  }
+
+  static async closeRollOff(event, target) {
+    if (!game.user.isGM) return;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    await socket.closeRollOff();
+  }
+
+  static async forceResolve(event, target) {
+    if (!game.user.isGM) return;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    await socket.forceResolve();
+  }
+
+  static async advanceRound(event, target) {
+    if (!game.user.isGM) return;
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    await socket.advanceRound();
+  }
+
+  static async rollForParticipant(event, target) {
+    console.log(`${MODULE_ID} | rollForParticipant invoked`, target?.dataset?.userId, target?.outerHTML?.slice(0, 200));
+    if (!game.user.isGM) return;
+    const btn = target?.closest?.('[data-action="rollForParticipant"]') ?? target;
+    const userId = btn?.dataset?.userId;
+    if (!userId) {
+      console.warn(`${MODULE_ID} | rollForParticipant: no userId`);
+      return;
+    }
+    const activeRollOff = getActiveRollOff();
+    if (!activeRollOff?.active) {
+      console.warn(`${MODULE_ID} | rollForParticipant: no active roll-off`);
+      return;
+    }
+    if (!canUserRoll(activeRollOff, userId)) {
+      ui.notifications.warn('That participant cannot roll right now.');
+      console.warn(`${MODULE_ID} | rollForParticipant: user ${userId} cannot roll`);
+      return;
+    }
+    const socket = game.modules.get(MODULE_ID).socketHandler;
+    console.log(`${MODULE_ID} | rollForParticipant: requesting roll for ${userId}`);
+    await socket.requestRoll(userId);
   }
 }

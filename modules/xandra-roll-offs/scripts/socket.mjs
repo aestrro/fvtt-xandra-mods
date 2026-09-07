@@ -51,9 +51,19 @@ export class RollOffSocketHandler {
    * @param {string} userId
    */
   async requestRoll(userId) {
-    if (game.user.isGM && userId === game.userId) {
+    console.log(`${MODULE_ID} | requestRoll called for ${userId}, isGM=${game.user.isGM}, me=${game.userId}`);
+    if (!game.user.isGM && userId !== game.userId) {
+      console.warn(`${MODULE_ID} | requestRoll blocked: players can only roll for themselves`);
+      ui.notifications?.warn?.('You can only roll for yourself in a roll-off.');
+      return;
+    }
+
+    if (game.user.isGM) {
+      // GM evaluates the roll locally; socket.emit does not echo back to the sender.
+      console.log(`${MODULE_ID} | requestRoll: GM handling roll for ${userId} locally`);
       await this._onSubmitRoll({ type: 'submitRoll', userId });
     } else {
+      console.log(`${MODULE_ID} | requestRoll: emitting submitRoll for ${userId}`);
       this._emit('submitRoll', { userId, roundLabel: this._getActiveRoundLabel() });
     }
   }
@@ -85,6 +95,29 @@ export class RollOffSocketHandler {
   }
 
   /**
+   * Close the active roll-off and clear its state. GM only.
+   */
+  async closeRollOff() {
+    if (!game.user.isGM) return;
+    await setActiveRollOff({});
+    await setWinTallies({});
+    this._emit('rollOffCancelled', {});
+    this._emit('stateUpdated', {});
+  }
+
+  /**
+   * Advance to the next round or tiebreak after the GM resolves the current round.
+   * GM only.
+   */
+  async advanceRound() {
+    if (!game.user.isGM) return;
+    const activeRollOff = getActiveRollOff();
+    if (!activeRollOff?.active) return;
+    if (!State.isRoundComplete(activeRollOff)) return;
+    await this._resolveRound(activeRollOff);
+  }
+
+  /**
    * Force-resolve the active round by dropping pending rollers and resolving.
    * GM only.
    */
@@ -113,7 +146,11 @@ export class RollOffSocketHandler {
   /* ================================================================ */
 
   async _onSubmitRoll(data) {
-    if (!game.user.isGM) return;
+    console.log(`${MODULE_ID} | _onSubmitRoll received`, data);
+    if (!game.user.isGM) {
+      console.warn(`${MODULE_ID} | _onSubmitRoll ignored: not GM`);
+      return;
+    }
 
     const activeRollOff = getActiveRollOff();
     if (!activeRollOff?.active) {
@@ -131,7 +168,9 @@ export class RollOffSocketHandler {
     const dieType = activeRollOff.dieType;
 
     try {
+      console.log(`${MODULE_ID} | _onSubmitRoll: evaluating ${dieType} for ${userId}`);
       const roll = await new Roll(dieType).evaluate({ allowInteractive: false });
+      console.log(`${MODULE_ID} | _onSubmitRoll: roll result ${roll.total} for ${userId}`);
       State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id });
       await setActiveRollOff(activeRollOff);
 
@@ -140,9 +179,6 @@ export class RollOffSocketHandler {
       }
       this._emit('stateUpdated', activeRollOff);
 
-      if (State.isRoundComplete(activeRollOff)) {
-        await this._resolveRound(activeRollOff);
-      }
     } catch (err) {
       console.error(`${MODULE_ID} | Roll evaluation failed for user ${userId}`, err);
       ui.notifications?.error?.(`Roll-off roll failed: ${err.message}`);
@@ -194,7 +230,6 @@ export class RollOffSocketHandler {
 
       if ((tallies[result.winnerId] || 0) >= activeRollOff.winsNeeded) {
         activeRollOff.active = false;
-        activeRollOff.roundStack = [];
         await setActiveRollOff(activeRollOff);
         await Chat.postRollOffSummary(activeRollOff.history, getWinTallies(), game.users.get(result.winnerId));
         this._emit('stateUpdated', activeRollOff);
@@ -233,6 +268,7 @@ export class RollOffSocketHandler {
     await roll.toMessage({
       speaker,
       flavor,
+      flags: { [MODULE_ID]: { auditRoll: true } },
     }, { create: true });
   }
 

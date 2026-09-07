@@ -1,3 +1,4 @@
+import { RollOffWindow } from './RollOffWindow.mjs';
 import { getActiveRollOff, getWinTallies, SETTINGS } from '../settings.mjs';
 import { findActiveRound } from '../state.mjs';
 import { MODULE_ID } from '../utils.mjs';
@@ -55,66 +56,80 @@ export class RollOffSidebarTab extends AbstractSidebarTab {
   }
 
   _onOpenWindow() {
-    game.xandraRollOffs?.openRollOffWindow?.();
+    RollOffWindow.open();
   }
 }
 
 /**
- * Register the Roll-Offs sidebar tab between "chat" and "combat".
+ * Inject a Roll-Offs toggle button into the sidebar tab navigation. The button
+ * prevents the native tab-switching behavior and instead toggles the dedicated
+ * Roll-Off window for all users, regardless of whether a roll-off is active.
  */
 export function registerSidebarTab() {
-  const Sidebar = foundry.applications.sidebar.Sidebar;
-  Sidebar.TABS = foundry.utils.mergeObject(Sidebar.TABS, {
-    'roll-offs': RollOffSidebarTab,
-  });
-
   const inject = () => {
+    // Settings are registered in `ready`; the sidebar may render before then.
+    if (!game.settings.has?.(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) return;
     if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) return;
     injectSidebarTabNav();
-    registerTabInstance();
   };
 
+  // Foundry v14 sometimes renders the sidebar before settings are registered, and
+  // the setting default is only guaranteed after the client setting store is ready.
   Hooks.on('renderSidebar', inject);
+  Hooks.on('setup', inject);
+  Hooks.on('ready', () => {
+    inject();
+    // Re-inject after a tick in case the sidebar renders late.
+    setTimeout(inject, 50);
+  });
 
   if (ui.sidebar?.rendered) inject();
-
-  Hooks.on('xandraRollOffs.stateUpdated', () => {
-    const tab = ui.sidebar?.tabs?.['roll-offs'];
-    if (tab?.rendered) tab.render();
-  });
-}
-
-function registerTabInstance() {
-  if (!ui.sidebar?.tabs) return;
-  if (!ui.sidebar.tabs['roll-offs']) {
-    const tab = new RollOffSidebarTab();
-    ui.sidebar.tabs['roll-offs'] = tab;
-    console.log(`${MODULE_ID} | Roll-Offs sidebar tab instance attached`);
-  }
 }
 
 function injectSidebarTabNav() {
   const tabBar = document.querySelector('#sidebar-tabs');
-  if (!tabBar || tabBar.querySelector('.item[data-tab="roll-offs"]')) return;
+  if (!tabBar) return;
 
-  const chatItem = tabBar.querySelector('.item[data-tab="chat"]');
-  const combatItem = tabBar.querySelector('.item[data-tab="combat"]');
-  const insertBefore = combatItem ?? null;
+  const menu = tabBar.querySelector('menu.flexcol');
+  if (!menu) return;
 
-  const item = document.createElement('a');
-  item.className = 'item';
-  item.dataset.tab = 'roll-offs';
-  item.dataset.tooltip = 'Roll-Offs';
-  item.dataset.tooltipDirection = 'UP';
-  item.setAttribute('aria-label', 'Roll-Offs');
-  item.innerHTML = '<i class="fas fa-dice"></i>';
-  item.addEventListener('click', () => ui.sidebar.changeTab('roll-offs', { triggerCallback: true }));
+  const existingId = 'xro-sidebar-tab-btn';
+  // Only inject once.
+  if (menu.querySelector(`#${existingId}`)) return;
+
+  // Remove any stray <a> fallback that may have been injected previously.
+  tabBar.querySelector('a[data-tab="roll-offs"]')?.remove();
+
+  const item = document.createElement('li');
+  item.innerHTML = `
+    <button type="button"
+            id="xro-sidebar-tab-btn"
+            class="ui-control plain icon fas fa-dice"
+            aria-label="Xandra Roll-Offs"
+            data-tooltip="Roll-Offs"></button>
+    <div class="notification-pip"></div>
+  `;
+
+  const button = item.querySelector('button');
+  button.addEventListener('click', (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    if (RollOffWindow.activeWindow) {
+      RollOffWindow.close();
+    } else {
+      RollOffWindow.open();
+    }
+  });
+
+  // Insert before the collapse/expand item (last li) or before settings.
+  const collapseItem = menu.querySelector('button[data-action="toggleState"]')?.closest('li');
+  const settingsItem = menu.querySelector('button[data-tab="settings"]')?.closest('li');
+  const insertBefore = settingsItem ?? collapseItem;
 
   if (insertBefore) {
-    tabBar.insertBefore(item, insertBefore);
-  } else if (chatItem) {
-    chatItem.after(item);
+    menu.insertBefore(item, insertBefore);
   } else {
-    tabBar.appendChild(item);
+    menu.appendChild(item);
   }
+  console.log(`${MODULE_ID} | Roll-Offs sidebar tab nav injected`);
 }
