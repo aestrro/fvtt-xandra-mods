@@ -72,12 +72,15 @@ export async function postRollOffStarted(round, winsNeeded, participants, dieTyp
 export async function postRoundStarted(round, participants, dieType) {
   if (!round) return;
 
-  const participantNames = participants.map((id) => game.users.get(id)?.name ?? id).join(', ');
-  const content = game.i18n.format('XANDRA_ROLL_OFFS.Chat.RoundStartedBody', {
-    round: round.label,
-    participants: participantNames,
-    die: dieType,
-  });
+  const isTiebreak = Boolean(round.parent);
+  const title = isTiebreak
+    ? `Tie-Break #${round.label.match(/Tie-Break #?(\d+)/i)?.[1] ?? 1} Started`
+    : `${round.label} Started`;
+  const content = `<div class="xro-chat-round-started">
+    <div class="xro-chat-round-started-title"><i class="fas ${isTiebreak ? 'fa-bolt' : 'fa-dice'}"></i><strong>${title}</strong></div>
+    <div class="xro-chat-round-started-meta">${dieType} · ${isTiebreak ? 'Tied participants roll again' : 'First to the required wins'}</div>
+    <div class="xro-chat-round-started-participants">${participantNames}</div>
+  </div>`;
 
   const speaker = getSpeakerForUser(game.users.activeGM ?? game.user);
 
@@ -119,15 +122,20 @@ export async function postRoundSummary(
   const tiedNames = isTiebreakNext
     ? tiedUserIds.map((id) => game.users.get(id)?.name ?? id).join(", ")
     : "";
+  const isWinner = Boolean(!isTiebreakNext && winnerUser);
+  const resultText = isWinner
+    ? game.i18n.format("XANDRA_ROLL_OFFS.Chat.RoundWinner", { name: winnerName })
+    : `${game.i18n.localize("XANDRA_ROLL_OFFS.Chat.RoundTie")} ${tiedNames}`;
 
   const content = await foundry.applications.handlebars.renderTemplate(
     "modules/xandra-roll-offs/templates/chat-round-summary.hbs",
     {
       round: round.label,
       rolls,
-      winner: !isTiebreakNext && winnerUser,
+      isWinner,
       winnerName,
       tiedNames,
+      resultText,
     }
   );
 

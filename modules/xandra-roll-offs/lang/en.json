@@ -7,7 +7,7 @@
       "Cancel": "Cancel Roll-Off",
       "CloseRollOff": "Close Roll-Off",
       "ResetTallies": "Reset Tallies",
-      "ForceResolve": "Force Resolve",
+      "ForceResolve": "Roll for Missing Participants",
       "OpenRollOff": "Open Roll-Off",
       "Close": "Close",
       "NextRound": "Next Round"
@@ -29,10 +29,13 @@
       "RollOffComplete": "Roll-Off Complete",
       "Winner": "Winner",
       "Wins": "Wins",
-      "Tie": "Tie between {names}",
+      "Tie": "Tie between",
       "RoundSummary": "{round} Summary",
       "RollOffSummary": "Roll-Off Summary",
       "RoundHistory": "Round History",
+      "SessionHistory": "Session History",
+      "BackToRollOff": "Back to Roll-Off",
+      "NoSessionHistory": "No completed sessions yet.",
       "NoActiveRollOff": "No active roll-off.",
       "NoRoundsYet": "No rounds finished yet."
     },
@@ -73,7 +76,7 @@
       "RoundStarted": "Round Started",
       "RoundStartedBody": "{round}. Participants: {participants}. Roll by using the Roll-Off window, sidebar tab, or typing /roll {die}.",
       "RoundWinner": "Winner: {name}",
-      "RoundTie": "Tie — tiebreak incoming among {names}",
+      "RoundTie": "Tie — tiebreak incoming among",
       "RollOffWinner": "Roll-Off Winner: {name}"
     },
     "Errors": {

@@ -10,9 +10,9 @@
     </li>
     {{/each}}
   </ul>
-  {{#if winner}}
-  <p class="xro-winner">{{localize 'XANDRA_ROLL_OFFS.Chat.RoundWinner' name=winnerName}}</p>
+  {{#if isWinner}}
+  <p class="xro-winner">{{resultText}}</p>
   {{else}}
-  <p class="xro-tie">{{localize 'XANDRA_ROLL_OFFS.Chat.RoundTie' names=tiedNames}}</p>
+  <p class="xro-tie">{{resultText}}</p>
   {{/if}}
 </div>

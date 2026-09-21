@@ -1,6 +1,35 @@
 <div class="xandra-roll-offs-window">
   {{#if hasData}}
   <div class="xro-window-body">
+    {{#if showHistory}}
+    <div class="xro-session-history">
+      {{#if sessionHistory.length}}
+      {{#each sessionHistory}}
+      <article class="xro-session-history-item">
+        <header class="xro-session-history-header">
+          <div class="xro-session-history-result">
+            <span class="xro-session-history-kicker">Roll-Off Complete</span>
+            <strong>{{winnerName}}</strong>
+          </div>
+          <time datetime="{{endedAt}}">{{endedLabel}}</time>
+        </header>
+        <div class="xro-session-history-meta">{{dieType}} · First to {{winsNeeded}} · {{participants.length}} participants</div>
+        <div class="xro-session-history-rounds">
+          {{#each history}}
+          <div class="xro-session-history-round {{#if isTie}}xro-session-history-round--tie{{/if}}">
+            <span class="xro-session-history-round-label">{{#if isTie}}Tie #{{@index}}{{else}}Round {{round}}{{/if}}</span>
+            <span class="xro-session-history-round-winner">{{winnerName}}</span>
+            <span class="xro-session-history-round-value">{{winnerValue}}</span>
+          </div>
+          {{/each}}
+        </div>
+      </article>
+      {{/each}}
+      {{else}}
+      <div class="xro-empty-rounds">{{localize 'XANDRA_ROLL_OFFS.Labels.NoSessionHistory'}}</div>
+      {{/if}}
+    </div>
+    {{else}}
     {{#unless isParticipant}}
     <div class="xro-not-participating">
       <i class="fas fa-eye"></i>
@@ -9,63 +38,88 @@
     {{/unless}}
     {{!-- Scrollable rounds list --}}
     <div class="xro-scroll-stack">
-      {{#if roundHistory.length}}
-      {{#each roundHistory}}
-      <div class="xro-round-group {{#if (mod2 @index)}}xro-round-group--alt{{/if}}">
+      <div class="xro-scroll-stack-content">
+        {{#if roundHistory.length}}
+        {{#each roundHistory}}
+        <div class="xro-round-group {{#if (mod2 @index)}}xro-round-group--alt{{/if}}">
         <div class="xro-round-title">{{label}}</div>
-        <div class="xro-round-row">
-          {{#each rolls}}
-          <div class="xro-roll-pill {{#if isWinner}}xro-roll-pill--winner{{/if}}">
-            <img class="xro-avatar" src="{{avatar}}" alt="{{name}}" />
-            <span class="xro-roll-pill-value">{{value}}</span>
-            <span class="xro-roll-pill-name" title="{{name}}">{{name}}</span>
+        <div class="xro-round-scroller">
+          <button type="button" class="xro-row-nav xro-row-nav--left" data-row-scroll="left" aria-label="Scroll round left" title="Scroll left">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="xro-round-row">
+            {{#each rolls}}
+            <div class="xro-roll-pill {{#if isWinner}}xro-roll-pill--winner{{/if}}">
+              <img class="xro-avatar" src="{{avatar}}" alt="{{name}}" />
+              <span class="xro-roll-pill-value">{{value}}</span>
+              <span class="xro-roll-pill-name" title="{{name}}">{{name}}</span>
+            </div>
+            {{/each}}
           </div>
-          {{/each}}
+          <button type="button" class="xro-row-nav xro-row-nav--right" data-row-scroll="right" aria-label="Scroll round right" title="Scroll right">
+            <i class="fas fa-chevron-right"></i>
+          </button>
+        </div>
+        </div>
+        {{/each}}
+        {{/if}}
+        {{#if isActive}}
+        <div class="xro-round-group xro-round-group--current">
+          <div class="xro-round-title">{{roundLabel}} · Current</div>
+        <div class="xro-round-scroller">
+          <button type="button" class="xro-row-nav xro-row-nav--left" data-row-scroll="left" aria-label="Scroll current round left" title="Scroll left">
+            <i class="fas fa-chevron-left"></i>
+          </button>
+          <div class="xro-round-row">
+            {{#each participantStatuses}}
+            <div class="xro-roll-pill {{#if rolled}}xro-roll-pill--rolled{{else}}xro-roll-pill--waiting{{/if}}"
+                 data-user-id="{{id}}">
+              <img class="xro-avatar" src="{{avatar}}" alt="{{name}}" />
+              <span class="xro-roll-pill-value">{{#if rolled}}{{value}}{{else}}-{{/if}}</span>
+              <span class="xro-roll-pill-name" title="{{name}}">{{name}}</span>
+              {{#if ../isGM}}
+              {{#unless rolled}}
+              <button type="button" class="xro-pill-roll-btn" data-action="rollForParticipant" data-user-id="{{id}}" title="Roll for {{name}}">
+                <i class="fas fa-dice"></i>
+              </button>
+              {{/unless}}
+              {{/if}}
+            </div>
+            {{/each}}
+          </div>
+          <button type="button" class="xro-row-nav xro-row-nav--right" data-row-scroll="right" aria-label="Scroll current round right" title="Scroll right">
+            <i class="fas fa-chevron-right"></i>
+          </button>
         </div>
       </div>
-      {{/each}}
       {{/if}}
-      {{#if isActive}}
-      <div class="xro-round-group xro-round-group--current">
-        <div class="xro-round-title">{{roundLabel}} (current)</div>
-        <div class="xro-round-row">
-          {{#each participantStatuses}}
-          <div class="xro-roll-pill {{#if rolled}}xro-roll-pill--rolled{{else}}xro-roll-pill--waiting{{/if}}"
-               data-user-id="{{id}}">
-            <img class="xro-avatar" src="{{avatar}}" alt="{{name}}" />
-            <span class="xro-roll-pill-value">{{#if rolled}}{{value}}{{else}}-{{/if}}</span>
-            <span class="xro-roll-pill-name" title="{{name}}">{{name}}</span>
-            {{#if ../isGM}}
-            {{#unless rolled}}
-            <button type="button" class="xro-pill-roll-btn" data-action="rollForParticipant" data-user-id="{{id}}" title="Roll for {{name}}">
-              <i class="fas fa-dice"></i>
-            </button>
-            {{/unless}}
-            {{/if}}
-          </div>
-          {{/each}}
-        </div>
-        {{#if roundComplete}}
-        {{#if roundResult}}
-        <div class="xro-round-result">
-          {{#if (eq roundResult.type 'winner')}}
-          <span class="xro-round-result-label">{{localize 'XANDRA_ROLL_OFFS.Labels.Winner'}}</span>
-          <span class="xro-round-result-name xro-round-result-winner">{{roundResult.name}}</span>
-          {{else}}
-          <span class="xro-round-result-label">{{localize 'XANDRA_ROLL_OFFS.Labels.Tie'}}</span>
-          <span class="xro-round-result-name">{{join roundResult.names ', '}}</span>
-          {{/if}}
-        </div>
-        {{/if}}
-        {{/if}}
+        {{#unless isActive}}
+        {{#unless roundHistory.length}}
+        <div class="xro-empty-rounds">{{localize 'XANDRA_ROLL_OFFS.Labels.NoRoundsYet'}}</div>
+        {{/unless}}
+        {{/unless}}
       </div>
-      {{/if}}
-      {{#unless isActive}}
-      {{#unless roundHistory.length}}
-      <div class="xro-empty-rounds">{{localize 'XANDRA_ROLL_OFFS.Labels.NoRoundsYet'}}</div>
-      {{/unless}}
-      {{/unless}}
     </div>
+
+    {{#if roundComplete}}
+    {{#if roundResult}}
+    <div class="xro-round-result-panel {{#if (eq roundResult.type 'winner')}}xro-round-result-panel--winner{{else}}xro-round-result-panel--tie{{/if}}">
+      <div class="xro-round-result-panel-label">
+        {{#if (eq roundResult.type 'winner')}}
+        <i class="fas fa-trophy"></i> {{localize 'XANDRA_ROLL_OFFS.Labels.Winner'}}
+        {{else}}
+        <i class="fas fa-bolt"></i> {{localize 'XANDRA_ROLL_OFFS.Labels.Tie'}}
+        {{/if}}
+      </div>
+      <div class="xro-round-result-panel-name">
+        {{#if (eq roundResult.type 'winner')}}{{roundResult.name}}{{else}}{{roundResult.tieNames}}{{/if}}
+      </div>
+      {{#if isGM}}
+      <div class="xro-round-result-panel-hint">{{localize 'XANDRA_ROLL_OFFS.Labels.WaitingForGM'}}</div>
+      {{/if}}
+    </div>
+    {{/if}}
+    {{/if}}
 
     {{!-- Win tracker below the rounds --}}
     {{#if tracker.length}}
@@ -146,7 +200,7 @@
       <div class="xro-gm-controls">
         <div class="xro-gm-actions">
           <div class="xro-gm-btn-row">
-            <button type="button" data-action="forceResolve" class="xro-gm-btn" title="Force Resolve">
+            <button type="button" data-action="forceResolve" class="xro-gm-btn" title="Roll for Missing Participants">
               <i class="fas fa-bolt"></i>
             </button>
             <button type="button" data-action="cancelRollOff" class="xro-gm-btn" title="Cancel Roll-Off">
@@ -158,6 +212,7 @@
       {{/if}}
       {{/if}}
     </div>
+    {{/if}}
   </div>
   {{else}}
   <div class="xro-window-body xro-empty">
@@ -166,12 +221,24 @@
     </div>
     {{#if isGM}}
     <div class="xro-empty-content">
-      <div class="xro-gm-participants xro-gm-participants--full">
+      <div class="xro-gm-participants xro-gm-participants--full" style="">
+        <div class="xro-gm-section-heading">
+          <div>
+            <span class="xro-gm-section-kicker">Contestants</span>
+            <strong>Choose participants</strong>
+          </div>
+          <span class="xro-gm-selection-count" data-selection-count>0 selected</span>
+        </div>
+        <div class="xro-gm-selection-actions">
+          <button type="button" data-selection-action="all">Select all</button>
+          <button type="button" data-selection-action="clear">Clear</button>
+        </div>
         <div class="xro-gm-user-list">
           {{#each users}}
           <div class="xro-gm-user-row {{#if checked}}xro-gm-user-row--selected{{/if}}"
                data-user-id="{{id}}"
                data-selected="{{#if checked}}true{{else}}false{{/if}}"
+               aria-pressed="{{#if checked}}true{{else}}false{{/if}}"
                role="button"
                tabindex="0">
             <img class="xro-gm-user-avatar" src="{{#if avatar}}{{avatar}}{{else}}icons/svg/mystery-man.svg{{/if}}" alt="{{name}}" />
@@ -183,13 +250,23 @@
         </div>
       </div>
       <div class="xro-gm-footer">
-        <div class="xro-gm-row">
+        <div class="xro-gm-setup-summary">
+          <span class="xro-gm-setup-summary-label">Ready to start</span>
+          <span class="xro-gm-setup-summary-value" data-setup-summary>{{defaultDieType}} · First to {{defaultWinsNeeded}}</span>
+        </div>
+        <div class="xro-gm-row xro-gm-rules-row">
+          <label class="xro-gm-field">
+            <span class="xro-gm-field-label"><i class="fas fa-dice-d20"></i> Die</span>
           <select name="dieType" class="xro-gm-select">
             {{#each dieChoices}}
             <option value="{{value}}" {{selected}}>{{label}}</option>
             {{/each}}
           </select>
+          </label>
+          <label class="xro-gm-field">
+            <span class="xro-gm-field-label"><i class="fas fa-trophy"></i> Wins</span>
           <input type="number" name="winsNeeded" min="1" value="{{defaultWinsNeeded}}" class="xro-gm-input" title="Wins needed" />
+          </label>
         </div>
         <button type="button" data-action="startRollOff" class="xro-gm-start-btn">
           {{localize 'XANDRA_ROLL_OFFS.Actions.Start'}}

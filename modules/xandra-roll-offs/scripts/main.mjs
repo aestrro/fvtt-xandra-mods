@@ -21,6 +21,10 @@ Hooks.once('init', () => {
     if (!Array.isArray(arr)) return '';
     return arr.join(separator ?? ', ');
   });
+
+  // Explicit comparison helper used by templates. Keep comparisons in the
+  // template layer limited to primitive display values.
+  Handlebars.registerHelper('eq', (left, right) => left === right);
 });
 
 Hooks.once('ready', async () => {

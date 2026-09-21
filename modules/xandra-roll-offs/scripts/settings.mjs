@@ -6,6 +6,7 @@ const MODULE_ID = 'xandra-roll-offs';
 
 const SETTINGS = {
   ACTIVE_ROLL_OFF: 'activeRollOff',
+  ROLL_OFF_HISTORY: 'rollOffHistory',
   WIN_TALLIES: 'winTallies',
   SHOW_CHAT_BUTTON: 'showChatButton',
   POST_PER_ROLL_CARD: 'postPerRollCard',
@@ -29,7 +30,17 @@ export function registerSettings() {
     default: {}
   });
 
-  // Persistent win tallies across roll-off sessions (world-scope, hidden from config UI)
+  // Completed roll-off sessions (world-scope, hidden from config UI)
+  game.settings.register(MODULE_ID, SETTINGS.ROLL_OFF_HISTORY, {
+    name: 'Roll-Off History',
+    hint: 'Completed roll-off sessions, retaining the latest 25.',
+    scope: 'world',
+    config: false,
+    type: Array,
+    default: [],
+  });
+
+  // Persistent win tallies
   game.settings.register(MODULE_ID, SETTINGS.WIN_TALLIES, {
     name: 'Win Tallies',
     hint: 'Persistent count of rounds won per user.',
@@ -142,6 +153,14 @@ export function getWinTallies() {
  */
 export async function setActiveRollOff(value) {
   await game.settings.set(MODULE_ID, SETTINGS.ACTIVE_ROLL_OFF, value);
+}
+
+export function getRollOffHistory() {
+  return game.settings.get(MODULE_ID, SETTINGS.ROLL_OFF_HISTORY);
+}
+
+export async function setRollOffHistory(value) {
+  await game.settings.set(MODULE_ID, SETTINGS.ROLL_OFF_HISTORY, value);
 }
 
 /**

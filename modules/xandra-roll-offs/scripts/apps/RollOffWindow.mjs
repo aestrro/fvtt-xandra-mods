@@ -1,4 +1,4 @@
-import { getActiveRollOff, getWinTallies, SETTINGS } from '../settings.mjs';
+import { getActiveRollOff, getWinTallies, getRollOffHistory, SETTINGS } from '../settings.mjs';
 import { canUserRoll, findActiveRound, isRoundComplete, resolveRound } from '../state.mjs';
 import { MODULE_ID, getUserActor } from '../utils.mjs';
 
@@ -22,6 +22,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   static #hookId = null;
 
   #selectedParticipants = null;
+  #showHistory = false;
 
   static DEFAULT_OPTIONS = {
     id: 'xandra-roll-offs-window',
@@ -30,6 +31,14 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     window: {
       title: 'Roll-Off',
       resizable: true,
+      controls: [
+        {
+          icon: 'fas fa-clock-rotate-left',
+          label: 'History',
+          action: 'toggleHistory',
+          tooltip: 'View session history',
+        },
+      ],
     },
     position: {
       width: 420,
@@ -42,6 +51,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       forceResolve: RollOffWindow.forceResolve,
       advanceRound: RollOffWindow.advanceRound,
       rollForParticipant: RollOffWindow.rollForParticipant,
+      toggleHistory: RollOffWindow.toggleHistory,
     },
   };
 
@@ -106,6 +116,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   async _prepareContext() {
     const activeRollOff = getActiveRollOff();
     const tallies = getWinTallies();
+    const sessionHistory = getRollOffHistory();
     const isActive = activeRollOff?.active ?? false;
     const activeRound = isActive ? findActiveRound(activeRollOff.roundStack) : undefined;
     const hasData = activeRollOff && Object.keys(activeRollOff).length > 0;
@@ -141,6 +152,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
             type: 'tie',
             userIds: result.userIds,
             names: result.userIds.map((id) => getUserName(id)),
+            tieNames: result.userIds.map((id) => getUserName(id)).join(', '),
           };
         }
       }
@@ -174,6 +186,28 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
           })
           .sort((a, b) => b.value - a.value),
       }));
+
+      for (const entry of activeRollOff.history ?? []) {
+        for (const [tieIndex, tieRound] of (entry.tieRounds ?? []).entries()) {
+          roundHistory.push({
+            round: `tie-${entry.round}-${tieIndex + 1}`,
+            label: `Tie #${tieIndex + 1}`,
+            tieRound: true,
+            winnerName: getUserName(tieRound.winner),
+            winnerValue: tieRound.finalRolls?.[tieRound.winner]?.total ?? null,
+            rolls: Object.entries(tieRound.finalRolls ?? {})
+              .map(([userId, roll]) => ({
+                name: getUserName(userId),
+                value: roll.total,
+                userId,
+                avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? '',
+                isWinner: userId === tieRound.winner,
+              }))
+              .sort((a, b) => b.value - a.value),
+          });
+        }
+      }
+
 
       if (isActive && currentRound) {
         participantStatuses = (currentRound.participants ?? [])
@@ -241,6 +275,19 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
 
     return {
       hasData,
+      showHistory: this.#showHistory,
+      sessionHistory: sessionHistory.map((session) => ({
+        ...session,
+        startedLabel: new Date(session.startedAt).toLocaleString(),
+        endedLabel: new Date(session.endedAt).toLocaleString(),
+        history: (session.history ?? []).map((round) => ({
+          ...round,
+          winnerName: getUserName(round.winner),
+          winnerValue: round.finalRolls?.[round.winner]?.total ?? null,
+          isTie: String(round.round).startsWith('tie-') || round.tieRound === true,
+        })),
+        winnerName: getUserName(session.winner),
+      })).reverse(),
       isActive,
       roundLabel: activeRound?.label ?? '',
       winsNeeded,
@@ -264,8 +311,32 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     super._onRender(context, options);
     const html = this.element;
     if (!html) return;
+
     html.querySelector('[data-action="roll-off-roll"]')?.addEventListener('click', () => this._onRoll());
     html.querySelector('[data-action="roll-off-close"]')?.addEventListener('click', () => this.close());
+    html.querySelector('select[name="dieType"]')?.addEventListener('change', () => this._updateStartState());
+    html.querySelector('input[name="winsNeeded"]')?.addEventListener('input', () => this._updateStartState());
+
+    html.querySelectorAll('.xro-round-scroller').forEach((scroller) => {
+      const row = scroller.querySelector('.xro-round-row');
+      if (!row) return;
+
+      const updateArrows = () => {
+        const maxScroll = row.scrollWidth - row.clientWidth;
+        scroller.classList.toggle('xro-round-scroller--scrollable', maxScroll > 1);
+        scroller.querySelector('[data-row-scroll="left"]')?.toggleAttribute('disabled', row.scrollLeft <= 1);
+        scroller.querySelector('[data-row-scroll="right"]')?.toggleAttribute('disabled', row.scrollLeft >= maxScroll - 1);
+      };
+
+      scroller.querySelector('[data-row-scroll="left"]')?.addEventListener('click', () => {
+        row.scrollBy({ left: -Math.max(row.clientWidth * 0.72, 120), behavior: 'smooth' });
+      });
+      scroller.querySelector('[data-row-scroll="right"]')?.addEventListener('click', () => {
+        row.scrollBy({ left: Math.max(row.clientWidth * 0.72, 120), behavior: 'smooth' });
+      });
+      row.addEventListener('scroll', updateArrows, { passive: true });
+      updateArrows();
+    });
 
     html.querySelectorAll('[data-action="rollForParticipant"]').forEach((btn) => {
       btn.addEventListener('click', (event) => {
@@ -284,18 +355,54 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       );
     };
     for (const row of rows) {
-      row.addEventListener('click', () => {
+      const toggleParticipant = () => {
         const selected = row.dataset.selected === 'true';
         row.dataset.selected = selected ? 'false' : 'true';
+        row.setAttribute('aria-pressed', selected ? 'false' : 'true');
         row.classList.toggle('xro-gm-user-row--selected', !selected);
         updateSelection();
+        this._updateStartState();
+      };
+      row.addEventListener('click', toggleParticipant);
+      row.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault();
+          toggleParticipant();
+        }
       });
     }
+    html.querySelectorAll('[data-selection-action]').forEach((button) => {
+      button.addEventListener('click', () => {
+        const selectAll = button.dataset.selectionAction === 'all';
+        rows.forEach((row) => {
+          row.dataset.selected = String(selectAll);
+          row.setAttribute('aria-pressed', String(selectAll));
+          row.classList.toggle('xro-gm-user-row--selected', selectAll);
+        });
+        updateSelection();
+        this._updateStartState();
+      });
+    });
+    this._updateStartState();
 
     const stack = html.querySelector('.xro-scroll-stack');
     if (stack) {
       stack.scrollTop = stack.scrollHeight;
     }
+  }
+
+  _updateStartState() {
+    const start = this.element?.querySelector('[data-action="startRollOff"]');
+    if (!start) return;
+    const selected = this.element.querySelectorAll('.xro-gm-user-row[data-selected="true"]').length;
+    const count = this.element.querySelector('[data-selection-count]');
+    if (count) count.textContent = `${selected} selected`;
+    const die = this.element.querySelector('select[name="dieType"]')?.value ?? '';
+    const wins = this.element.querySelector('input[name="winsNeeded"]')?.value ?? '';
+    const summary = this.element.querySelector('[data-setup-summary]');
+    if (summary) summary.textContent = `${die} · First to ${wins}`;
+    start.disabled = selected < 2;
+    start.title = selected < 2 ? 'Select at least two participants' : 'Start Roll-Off';
   }
 
   async _onRoll() {
@@ -310,7 +417,9 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     const instance = RollOffWindow.#instance;
-    const container = target?.closest('.xro-gm-footer');
+    const container = target?.closest('.xro-gm-footer')
+      ?? event?.currentTarget?.closest?.('.xro-gm-footer')
+      ?? RollOffWindow.#instance?.element?.querySelector('.xro-gm-footer');
     if (!container) return;
 
     const dieType = container.querySelector('select[name="dieType"]')?.value;
@@ -325,6 +434,11 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       return;
     }
     const socket = game.modules.get(MODULE_ID).socketHandler;
+    if (!socket) {
+      console.error(`${MODULE_ID} | startRollOff: socket handler unavailable`);
+      ui.notifications.error('Roll-Off controls are still initializing. Try again in a moment.');
+      return;
+    }
     await socket.startRollOff({ dieType, winsNeeded, participants });
   }
 
@@ -374,5 +488,12 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
     const socket = game.modules.get(MODULE_ID).socketHandler;
     console.log(`${MODULE_ID} | rollForParticipant: requesting roll for ${userId}`);
     await socket.requestRoll(userId);
+  }
+
+  static toggleHistory(event) {
+    const instance = RollOffWindow.#instance;
+    if (!instance) return;
+    instance.#showHistory = !instance.#showHistory;
+    instance.render({ force: true });
   }
 }

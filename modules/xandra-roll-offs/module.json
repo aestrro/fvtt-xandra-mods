@@ -2,7 +2,7 @@
   "id": "xandra-roll-offs",
   "title": "Xandra Roll-Offs",
   "description": "GM-run, multi-round roll-off contests with automatic tiebreak resolution and persistent win tallies.",
-  "version": "0.1.8",
+  "version": "0.1.9",
   "authors": [
     {
       "name": "aestrro",

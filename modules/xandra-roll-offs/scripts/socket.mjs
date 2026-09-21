@@ -1,9 +1,23 @@
-import { getActiveRollOff, setActiveRollOff, getWinTallies, setWinTallies, SETTINGS } from './settings.mjs';
+import { getActiveRollOff, setActiveRollOff, getWinTallies, setWinTallies, getRollOffHistory, setRollOffHistory, SETTINGS } from './settings.mjs';
 import * as State from './state.mjs';
 import * as Chat from './chat.mjs';
 
 const MODULE_ID = 'xandra-roll-offs';
 const SOCKET_NAMESPACE = 'module.xandra-roll-offs';
+const MAX_SESSION_HISTORY = 25;
+
+function createSessionSnapshot(activeRollOff, endedAt) {
+  return {
+    id: activeRollOff.sessionId,
+    startedAt: activeRollOff.startedAt,
+    endedAt,
+    dieType: activeRollOff.dieType,
+    winsNeeded: activeRollOff.winsNeeded,
+    participants: [...activeRollOff.participants],
+    history: structuredClone(activeRollOff.history ?? []),
+    winner: activeRollOff.history?.at(-1)?.winner ?? null,
+  };
+}
 
 /**
  * Socket handler for the module. Installed once during `init`.
@@ -118,8 +132,9 @@ export class RollOffSocketHandler {
   }
 
   /**
-   * Force-resolve the active round by dropping pending rollers and resolving.
-   * GM only.
+   * Force-resolve the active round by rolling for every pending participant.
+   * GM only. The GM remains authoritative; pending users are not silently
+   * removed from the contest.
    */
   async forceResolve() {
     if (!game.user.isGM) return;
@@ -132,7 +147,21 @@ export class RollOffSocketHandler {
     const pending = State.getPendingRollers(activeRollOff);
     if (pending.length === 0) return;
 
-    activeRound.participants = activeRound.participants.filter((id) => !pending.includes(id));
+    for (const userId of pending) {
+      try {
+        const roll = await new Roll(activeRollOff.dieType).evaluate({ allowInteractive: false });
+        State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id });
+
+        if (game.settings.get(MODULE_ID, SETTINGS.POST_PER_ROLL_CARD)) {
+          await this._postAuditRoll(userId, roll, activeRound.label);
+        }
+      } catch (err) {
+        console.error(`${MODULE_ID} | Force-resolve roll failed for user ${userId}`, err);
+        ui.notifications?.error?.(`Force-resolve roll failed: ${err.message}`);
+        return;
+      }
+    }
+
     await setActiveRollOff(activeRollOff);
     this._emit('stateUpdated', activeRollOff);
 
@@ -199,6 +228,8 @@ export class RollOffSocketHandler {
       winsNeeded: data.winsNeeded,
       participants: data.participants,
     });
+    activeRollOff.sessionId = crypto.randomUUID();
+    activeRollOff.startedAt = new Date().toISOString();
 
     await setActiveRollOff(activeRollOff);
     await setWinTallies({}); // per-roll-off tallies
@@ -226,10 +257,13 @@ export class RollOffSocketHandler {
       const tallies = getWinTallies();
       tallies[result.winnerId] = (tallies[result.winnerId] || 0) + 1;
       await setWinTallies(tallies);
-      await Chat.postRoundSummary(result.round, game.users.get(result.winnerId), false, []);
-
       if ((tallies[result.winnerId] || 0) >= activeRollOff.winsNeeded) {
         activeRollOff.active = false;
+        const sessions = [
+          ...getRollOffHistory(),
+          createSessionSnapshot(activeRollOff, new Date().toISOString()),
+        ].slice(-MAX_SESSION_HISTORY);
+        await setRollOffHistory(sessions);
         await setActiveRollOff(activeRollOff);
         await Chat.postRollOffSummary(activeRollOff.history, getWinTallies(), game.users.get(result.winnerId));
         this._emit('stateUpdated', activeRollOff);
@@ -247,7 +281,6 @@ export class RollOffSocketHandler {
     } else if (result.type === 'tiebreak') {
       const topRound = State.findActiveRound(activeRollOff.roundStack);
       const tiedUserIds = topRound.participants;
-      await Chat.postRoundSummary(topRound.parent, null, true, tiedUserIds);
       await Chat.postRoundStarted(topRound, tiedUserIds, activeRollOff.dieType);
       this._emit('tiebreakStarted', topRound);
       this._emit('stateUpdated', activeRollOff);

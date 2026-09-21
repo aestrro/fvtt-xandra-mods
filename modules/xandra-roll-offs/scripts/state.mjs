@@ -227,6 +227,10 @@ export function submitRoll(activeRollOff, userId, rollResult) {
   }
 
   activeRound.rolls[userId] = { total: rollResult.total };
+  const tieRecord = activeRollOff.tieHistory?.at(-1);
+  if (activeRound.parent && tieRecord) {
+    tieRecord.finalRolls[userId] = { total: rollResult.total };
+  }
   return true;
 }
 
@@ -265,11 +269,24 @@ export function canUserRoll(activeRollOff, userId) {
  * @param {string} winnerId - The winning user ID.
  */
 function appendToHistory(activeRollOff, round, winnerId) {
+  const tieRounds = activeRollOff.roundStack
+    .filter((entry) => entry.parent && findRootRound(activeRollOff.roundStack, entry) === round)
+    .map((entry) => ({
+      winner: winnerId,
+      finalRolls: structuredClone ? structuredClone(entry.rolls) : { ...entry.rolls },
+    }));
+
   activeRollOff.history.push({
     round: activeRollOff.currentRoundIndex + 1,
     winner: winnerId,
     finalRolls: structuredClone ? structuredClone(round.rolls) : { ...round.rolls },
+    tieRounds: tieRounds.length ? tieRounds : (activeRollOff.tieHistory ?? []).map((tie) => ({
+      winner: Object.entries(tie.finalRolls).sort(([, a], [, b]) => b.total - a.total)[0]?.[0] ?? null,
+      finalRolls: structuredClone ? structuredClone(tie.finalRolls) : { ...tie.finalRolls },
+      tieRound: true,
+    })),
   });
+  activeRollOff.tieHistory = [];
 }
 
 /**
@@ -339,12 +356,21 @@ export function onAllRolledIn(activeRollOff) {
   if (result.type === "winner") {
     top.resolved = true;
     const root = findRootRound(activeRollOff.roundStack, top) ?? top;
-    appendToHistory(activeRollOff, root, result.userId);
+    const historyRoot = root === top ? root : { ...root, rolls: root.rolls };
+    if (root !== top) {
+      historyRoot.round = activeRollOff.currentRoundIndex + 1;
+    }
+    appendToHistory(activeRollOff, historyRoot, result.userId);
     advanceToNextRoundOrEnd(activeRollOff);
     return { type: "winner", round: root, winnerId: result.userId };
   }
 
   const tiebreak = createTiebreakRound(top, result.userIds, activeRollOff.dieType);
+  activeRollOff.tieHistory ??= [];
+  activeRollOff.tieHistory.push({
+    round: activeRollOff.currentRoundIndex + 1,
+    finalRolls: {},
+  });
   activeRollOff.roundStack.push(tiebreak);
   return { type: "tiebreak", tiebreak };
 }

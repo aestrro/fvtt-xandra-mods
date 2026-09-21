@@ -124,6 +124,20 @@ describe('onAllRolledIn', () => {
     assert.equal(ro.roundStack.length, 2);
   });
 
+  it('persists resolved tiebreak rolls in history', () => {
+    const ro = startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2'] });
+    submitRoll(ro, 'u1', { total: 15 });
+    submitRoll(ro, 'u2', { total: 15 });
+    onAllRolledIn(ro);
+    submitRoll(ro, 'u1', { total: 18 });
+    submitRoll(ro, 'u2', { total: 12 });
+    onAllRolledIn(ro);
+
+    assert.equal(ro.history.length, 1);
+    assert.equal(ro.history[0].tieRounds.length, 1);
+    assert.equal(ro.history[0].tieRounds[0].finalRolls.u1.total, 18);
+  });
+
   it('keeps the roll-off active after a single round win', () => {
     const ro = startRollOff({ dieType: '1d20', winsNeeded: 3, participants: ['u1', 'u2'] });
     submitRoll(ro, 'u1', { total: 20 });
@@ -135,6 +149,14 @@ describe('onAllRolledIn', () => {
 });
 
 describe('round helpers', () => {
+  it('supports session metadata assigned by the authority layer', () => {
+    const ro = startRollOff({ dieType: '1d20', winsNeeded: 1, participants: ['u1', 'u2'] });
+    ro.sessionId = 'session-1';
+    ro.startedAt = '2026-09-19T12:00:00.000Z';
+    assert.equal(ro.sessionId, 'session-1');
+    assert.equal(ro.startedAt, '2026-09-19T12:00:00.000Z');
+  });
+
   it('reports pending rollers', () => {
     const ro = startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2', 'u3'] });
     submitRoll(ro, 'u1', { total: 10 });
@@ -147,6 +169,14 @@ describe('round helpers', () => {
     assert.equal(isRoundComplete(ro), false);
     submitRoll(ro, 'u2', { total: 12 });
     assert.equal(isRoundComplete(ro), true);
+  });
+
+  it('keeps pending participants in the active round until they are resolved', () => {
+    const ro = startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2', 'u3'] });
+    submitRoll(ro, 'u1', { total: 10 });
+
+    assert.deepEqual(getPendingRollers(ro), ['u2', 'u3']);
+    assert.deepEqual(findActiveRound(ro.roundStack).participants, ['u1', 'u2', 'u3']);
   });
 });
 
