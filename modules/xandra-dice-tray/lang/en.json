@@ -1,35 +1,29 @@
 {
-  "DICE_TRAY": {
-    "Title": "Dice Tray",
-    "Calculator": {
-      "Title": "Dice Calculator",
-      "Placeholder": "Enter dice formula...",
+  "XANDRA_DICE_TRAY": {
+    "Tray": {
+      "Label": "Dice Tray",
+      "DiceGroup": "Dice selection",
+      "RollControls": "Roll controls",
+      "FormulaControls": "Formula controls",
+      "SelectDice": "Select dice",
+      "RepeatLast": "Repeat last roll",
+      "AddDie": "Add {die}",
+      "RemoveDie": "Remove {die}",
       "Roll": "Roll",
-      "Clear": "Clear",
-      "Backspace": "Backspace",
-      "History": "History"
-    },
-    "Buttons": {
+      "RollAdvantage": "Roll w/ Advantage",
+      "RollDisadvantage": "Roll w/ Disadvantage",
       "Advantage": "Advantage",
       "Disadvantage": "Disadvantage",
-      "KeepHighest": "Keep Highest",
-      "KeepLowest": "Keep Lowest"
+      "Clear": "Clear selection"
     },
     "Settings": {
       "ShowTray": {
         "Name": "Show Dice Tray",
-        "Hint": "Display the dice tray below the chat interface"
-      },
-      "EnableCalculator": {
-        "Name": "Enable Calculator",
-        "Hint": "Show the dice calculator button in chat controls"
-      },
-      "AutoRoll": {
-        "Name": "Auto-Roll",
-        "Hint": "Automatically roll when a valid formula is entered (via tray or calculator)"
+        "Hint": "Display the dice tray below the chat interface."
       }
     },
     "Notifications": {
+      "NoDice": "No dice selected",
       "InvalidFormula": "Invalid roll formula: {formula}"
     }
   }

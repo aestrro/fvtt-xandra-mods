@@ -25,28 +25,28 @@ jobs:
       - name: Install dependencies
         run: pnpm install
 
-      - name: Build modules that need it
+      - name: Build packages and modules that need it
         run: |
-          for dir in modules/*/; do
+          for dir in packages/*/ modules/*/; do
             if [ -f "$dir/package.json" ]; then
               HAS_BUILD=$(node -e "const pkg=require('./$dir/package.json'); console.log(pkg.scripts && pkg.scripts.build ? '1' : '0')")
               if [ "$HAS_BUILD" = "1" ]; then
-                MOD=$(basename "$dir")
-                echo "Building $MOD..."
-                pnpm --filter "$MOD" build || true
+                PKG_NAME=$(node -e "console.log(require('./$dir/package.json').name)")
+                echo "Building $PKG_NAME..."
+                pnpm --filter "$PKG_NAME" build
               fi
             fi
           done
 
-      - name: Run module tests
+      - name: Run package and module tests
         run: |
-          for dir in modules/*/; do
+          for dir in packages/*/ modules/*/; do
             if [ -f "$dir/package.json" ]; then
               HAS_TEST=$(node -e "const pkg=require('./$dir/package.json'); console.log(pkg.scripts && pkg.scripts.test ? '1' : '0')")
               if [ "$HAS_TEST" = "1" ]; then
-                MOD=$(basename "$dir")
-                echo "Testing $MOD..."
-                pnpm --filter "$MOD" test
+                PKG_NAME=$(node -e "console.log(require('./$dir/package.json').name)")
+                echo "Testing $PKG_NAME..."
+                pnpm --filter "$PKG_NAME" test
               fi
             fi
           done

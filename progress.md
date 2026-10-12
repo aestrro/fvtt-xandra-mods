@@ -252,12 +252,113 @@
 | Diff whitespace | `git diff --check` passed |
 | Docker bind-mount parity | All second-tranche runtime files matched host/container hashes |
 
+## React Mounting Assessment — 2026-10-11
+
+- Verified that Foundry v14 `ApplicationV2` supports a custom rendering backend through `_renderHTML` and `_replaceHTML`, with cleanup available through `_preClose`/`_onClose`.
+- Confirmed that React is not a documented Foundry-provided framework dependency and would need to be bundled with the module.
+- Determined that mounting React is technically valid, but a roll-off rewrite is not justified solely by the current UI size or remaining accessibility work.
+- No production source changes were made.
+
+## React Dice Tray Consultation — 2026-10-11
+
+- Inspected the complete legacy dice-tray implementation, manifest, package metadata, styles, calculator template, workspace configuration, and release/CI workflows.
+- Confirmed a separate React sibling is safer than converting the released module in place.
+- Recommended a build-time shared React/Foundry adapter package, with the inline tray as the first parity slice and the calculator as a second ApplicationV2 slice.
+- Kept this as a separate proposed initiative rather than changing the active roll-off acceptance plan.
+- No production source changes were made.
+- User selected a separately installable `xandra-dice-tray-x`, with the legacy module manually disabled when testing the new variant.
+- User selected a build-time shared adapter package bundled into consumers.
+- User selected inline-tray parity as the first implementation slice, with the calculator deferred to phase two.
+- User refined the React module conventions: default exports, barrel exports, feature/domain component grouping, dedicated constants and utils directories, DRY/SRP, and small components.
+- User clarified that there should be no generic `domains/` directory: utilities and constants should be subdivided into folders by concern, and components should primarily be component folders with local barrels.
+- Assessed Zustand and React Router compatibility for the proposed React stack; recommended Zustand for shared multi-root tray state and deferring React Router until a real multi-view window exists.
+- User rejected the over-nested revision because it no longer felt structurally like a React app; the next proposal returns to a flat conventional React application layout.
+- User clarified the folder-entry convention: component folders should implement and default-export from `index.tsx`, avoiding redundant `ComponentName/ComponentName.tsx` paths.
+- User explicitly locked the folder-entry convention for Dice Tray X and the shared React adapter.
+- User explicitly prefers React function components; no React class components will be introduced.
+
+## Xandra Dice Tray X — Phase 1 Implementation — 2026-10-12
+
+- Added `packages/xandra-foundry-react/` with a reusable React root registry and an `ApplicationV2` lifecycle adapter factory.
+- Added `modules/xandra-dice-tray-x/` as an independent React 19 + Zustand 5 Foundry module; the legacy dice tray was not modified.
+- Implemented the inline tray with function components, component-folder `index.tsx` entries, default exports, parent barrels, concern-grouped utilities, scoped CSS, and localized labels.
+- Preserved legacy queue mutation, right-click decrement, clear, dnd5e advantage/disadvantage, formula construction, Foundry speaker, and core roll-mode behavior.
+- Added expanded/collapsed chat roots driven by one vanilla Zustand store and a registry that remounts cleanly after Foundry replaces anchors.
+- Added build-time packaging that emits a standalone Foundry module with rewritten manifest paths.
+- Hardened CI so shared packages and modules both build/test and build failures are fatal.
+- Installed the packaged module into the local Foundry data directory and verified host/container asset hashes match.
+
+| Verification | Result |
+|--------------|--------|
+| Shared adapter tests | 4 passed |
+| Dice Tray X tests | 11 passed |
+| Existing roll-off tests | 44 passed |
+| TypeScript | Shared adapter and Dice Tray X passed `tsc --noEmit` |
+| Builds | Shared adapter, Dice Tray X, and panel resizer passed |
+| Dice Tray X bundle | 228.11 KB, 71.85 KB gzip |
+| Manifest asset validation | All module assets exist |
+| Diff whitespace | `git diff --check` passed |
+| Foundry data parity | Manifest, JavaScript, and CSS SHA-256 hashes matched host/container |
+
+- User completed restart/activation and confirmed the React tray works well in the live Foundry client.
+- Converted the seven dice selectors into a semantic and visual button group with a localized accessible label, joined borders, outer-only radii, and preserved hover/focus/count states.
+- Dice Tray X remained green after the refinement: 11 tests passed, TypeScript passed, production build passed, `git diff --check` passed, and updated JavaScript/CSS hashes matched in the Foundry container.
+
+## Dice Tray X UI/UX Design Pass — 2026-10-12
+
+- Captured and reviewed the live tray inside the actual Foundry game canvas at collapsed-chat width.
+- Confirmed the current geometry and behavior are solid, while hierarchy, icon legibility, contrast, selected-state feedback, and Clear-action discoverability need a deliberate visual system.
+- Defined a recommended compact command-deck direction that preserves all existing behavior and avoids adding a header or formula-preview row.
+- Implemented the compact command-deck design while preserving all existing controls and behavior.
+- Added scoped theme tokens and a contained elevated tray surface with stronger hierarchy.
+- Added persistent die labels beneath larger faces, using `00` plus `d%` for the percentile control.
+- Moved count badges inside each die segment and strengthened selected, hover, active, and keyboard-focus feedback.
+- Promoted Roll to the primary action, retained green/red roll-mode states, and converted Clear into a compact icon-supported reset action.
+- Rebuilt and deployed the module to local Foundry data; the served CSS hash matches the source build.
+
+| Design-pass verification | Result |
+|--------------------------|--------|
+| Dice Tray X tests | 11 passed |
+| TypeScript | Passed `tsc --noEmit` |
+| Production build | Passed; 228.45 KB JS and 5.02 KB CSS |
+| Diff whitespace | `git diff --check` passed |
+| Foundry-served CSS | SHA-256 matched the built CSS |
+
+- Refined the live design after review: adjacent die segments now remove the following button's left border so each seam is exactly one pixel rather than two overlapping borders.
+- Reduced die-group outer radii from 7px to 4px, primary/mode button radii from 7px to 5px, and reset-button radius from 5px to 4px.
+- Rebuilt and redeployed the CSS; 11 tests passed and the Foundry-served stylesheet hash matches the build.
+- User accepted the border/radius refinement and requested the next interaction-design decision.
+- Recommended joining DIS / Roll / ADV into one segmented visual group and using the third row for a numeric modifier control plus Clear; no implementation changes were made pending confirmation.
+- User selected a formula preview, Repeat Last, and Clear for the third row. Confirmed they fit as a flexible preview plus two compact icon controls; implementation remains pending final scope confirmation.
+- User approved the exact three-row design and it is now implemented.
+- Grouped DIS / Roll / ADV into a single-seam segmented row while preserving Roll as the primary center action.
+- Added a live, ellipsized formula preview with a full Foundry tooltip and “Select dice” empty state.
+- Added Repeat Last, enabled only after a successful roll; repeating does not mutate the current queue, while Clear resets the current queue/mode and retains roll history.
+- Added regression coverage for shared last-formula state, repeat behavior, failed-roll preservation, semantic groups, and formula preview.
+- Verification: 13 tests passed, TypeScript passed, production build passed, `git diff --check` passed, and host/container/served asset hashes matched.
+- Removed the leaked Foundry orange focus treatment from all tray controls and replaced external focus outlines with scoped inset blue keyboard-focus rings.
+- Replaced selected/active outer border colors with complete inset state rings so blue, green, and red indicators remain visible at every segmented seam without clipping.
+- Rebuilt and redeployed the stylesheet; 13 tests passed, the production build passed, and the Foundry-served CSS hash matches the build.
+- Vertically centered the formula/empty-state text using a flex-aligned preview container, increased its size from `0.66rem` to `0.72rem`, and retained reliable ellipsis through a dedicated inner text span.
+- Rebuilt and redeployed the updated JavaScript and CSS; 13 tests passed, TypeScript passed, and host/container hashes matched.
+- User approved the React implementation as the production successor and asked how to ship it under the original module rather than the `-x` experiment.
+- Verified the latest production tag is `xandra-dice-tray@v0.1.34`. Recommended promoting the React source into the existing `modules/xandra-dice-tray/` identity and releasing it as `v0.2.0`, then removing the experimental folder.
+- User selected Option A: promote the React tray immediately as `xandra-dice-tray@v0.2.0`, explicitly deferring/removing calculator functionality.
+- Promoted the accepted React implementation into `modules/xandra-dice-tray/` and removed the legacy imperative script, calculator template/styles, mock scripts, and experimental `xandra-dice-tray-x` source.
+- Renamed the runtime and localization identities to `xandra-dice-tray` / `XANDRA_DICE_TRAY`, synchronized `module.json` and `package.json` at `0.2.0`, and updated manifest/download paths for `xandra-dice-tray@v0.2.0`.
+- Preserved the existing `showTray` module setting key; documented removal of the calculator, `enableCalculator`, and `autoRoll` in the production README.
+- Refreshed the pnpm workspace lockfile and verified there are no stale `-x` references in production source or the lockfile.
+- Verification: shared adapter 4 tests passed; production dice tray 13 tests passed; roll-offs 44 tests passed; both TypeScript projects passed; all builds and manifest validation passed; `git diff --check` passed.
+- Removed the local Foundry `xandra-dice-tray-x` data directory and verified production manifest/JavaScript/CSS hashes match between host and container.
+- Created and inspected a 76,237-byte production package at `C:/Users/aestr/AppData/Local/hermes/cache/scratch/xandra-dice-tray-v0.2.0.zip`.
+- No commit, tag, push, or GitHub release was created.
+
 ## 5-Question Reboot Check
 
 | Question | Answer |
 |----------|--------|
-| Where am I? | Phase 8 — Live Foundry Acceptance |
-| Where am I going? | Hard-refresh Foundry and exercise the repaired start, settings, cancel, force-resolve, recursive-tie, and session-history flows |
-| What's the goal? | A compact roll-off workflow whose authoritative state remains correct even when optional UI or chat effects fail |
-| What have I learned? | Authoritative state must be persisted and broadcast before optional chat effects, and injected controls need one synchronization path |
-| What have I done? | Completed two correctness-hardening tranches, removed duplicate UI, and passed 44 unit and asset tests |
+| Where am I? | Roll-Offs Phase 8 and Dice Tray X live acceptance |
+| Where am I going? | Authenticate into Foundry and exercise both modules' remaining live flows |
+| What's the goal? | Verified Foundry-native modules with authoritative logic, resilient lifecycle handling, and no duplicate UI |
+| What have I learned? | A generic React mount registry plus module-owned observers keeps shared infrastructure reusable without encoding screen-specific selectors |
+| What have I done? | Completed Dice Tray X Phase 1 with 15 new tests, retained 44 passing roll-off tests, and installed the package into local Foundry data |

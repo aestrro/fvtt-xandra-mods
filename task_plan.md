@@ -85,6 +85,24 @@ Phase 8 — Live Foundry Acceptance
 - [x] Add regression coverage and implement approved fixes
 - **Status:** complete
 
+### Parallel Initiative: Xandra Dice Tray X
+
+- [x] Audit inline behavior in the legacy dice tray
+- [x] Lock the React application structure and export conventions
+- [x] Add the shared `@xandra/foundry-react` workspace package
+- [x] Implement React 19 function components and a shared Zustand store
+- [x] Implement leak-free expanded/collapsed chat mounting
+- [x] Add pure, component, Foundry-adapter, and lifecycle tests
+- [x] Produce and install the packaged module in the local Foundry data directory
+- [x] Enable Dice Tray X, disable the legacy tray, and complete live client acceptance
+- [x] Present the dice selectors as one semantic and visual button group
+- [x] Implement the compact command-deck UI/UX design pass
+- [x] Group DIS / Roll / ADV and add formula preview, Repeat Last, and Clear
+- [x] Complete live visual acceptance of the redesigned tray
+- [x] Decide whether production promotion waits for React calculator parity — ship now without calculator
+- [x] Promote Dice Tray X into the `xandra-dice-tray` identity and remove the experiment
+- **Status:** complete — production source is ready for commit and release approval
+
 ## Locked Decision
 
 World-persisted history, latest 25 sessions, visible to participants, with a separate history toggle/view and timestamps in session and round displays.
