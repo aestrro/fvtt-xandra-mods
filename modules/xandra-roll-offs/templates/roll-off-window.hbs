@@ -1,7 +1,6 @@
 <div class="xandra-roll-offs-window">
-  {{#if hasData}}
+  {{#if showHistory}}
   <div class="xro-window-body">
-    {{#if showHistory}}
     <div class="xro-session-history">
       {{#if sessionHistory.length}}
       {{#each sessionHistory}}
@@ -17,7 +16,7 @@
         <div class="xro-session-history-rounds">
           {{#each history}}
           <div class="xro-session-history-round {{#if isTie}}xro-session-history-round--tie{{/if}}">
-            <span class="xro-session-history-round-label">{{#if isTie}}Tie #{{@index}}{{else}}Round {{round}}{{/if}}</span>
+            <span class="xro-session-history-round-label">{{label}}</span>
             <span class="xro-session-history-round-winner">{{winnerName}}</span>
             <span class="xro-session-history-round-value">{{winnerValue}}</span>
           </div>
@@ -29,7 +28,9 @@
       <div class="xro-empty-rounds">{{localize 'XANDRA_ROLL_OFFS.Labels.NoSessionHistory'}}</div>
       {{/if}}
     </div>
-    {{else}}
+  </div>
+  {{else if hasData}}
+  <div class="xro-window-body">
     {{#unless isParticipant}}
     <div class="xro-not-participating">
       <i class="fas fa-eye"></i>
@@ -212,7 +213,6 @@
       {{/if}}
       {{/if}}
     </div>
-    {{/if}}
   </div>
   {{else}}
   <div class="xro-window-body xro-empty">

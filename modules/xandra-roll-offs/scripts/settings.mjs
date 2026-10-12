@@ -58,10 +58,7 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: true,
-    onChange: value => {
-      const btn = document.querySelector('#chat-controls .xro-open-gm-panel');
-      if (btn) btn.style.display = value ? '' : 'none';
-    }
+    onChange: value => Hooks.callAll('xandraRollOffs.chatButtonSettingChanged', value),
   });
 
   // Visible world setting: post individual roll cards
@@ -121,10 +118,7 @@ export function registerSettings() {
     config: true,
     type: Boolean,
     default: true,
-    onChange: value => {
-      const tab = document.querySelector('#sidebar-tabs .item[data-tab="roll-offs"]');
-      if (tab) tab.style.display = value ? '' : 'none';
-    }
+    onChange: value => Hooks.callAll('xandraRollOffs.sidebarSettingChanged', value),
   });
 
   console.log(`${MODULE_ID} | Settings registered`);

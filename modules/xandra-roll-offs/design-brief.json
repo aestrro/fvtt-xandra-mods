@@ -1,0 +1,46 @@
+{
+  "design_brief": "Xandra Roll-Offs is a Foundry VTT module for GM-run multi-round roll-off contests. The current UI has a condensed sleek dark aesthetic with scoped CSS custom properties. This review covers four interconnected surfaces: (1) GM setup flow (dual entry points: GMPanelApp separate window + RollOffWindow empty state), (2) session history access via ApplicationV2 title-bar control, (3) title-bar control ordering against native Foundry window controls, and (4) round-row horizontal navigation with floating chevrons. Core tension: two inconsistent GM setup flows (wizard-like panel vs compact single-screen), fragile title-bar insertion relying on CSS order hacks, and round-row scroll affordances that hide until overflow occurs. The session history panel (latest 25 world-persisted sessions) is well-structured but discoverability depends entirely on the problematic title-bar toggle.",
+  "model_used": "nemotron-3-ultra-550b-a55b:free",
+  "priorities": [
+    {
+      "priority": "P0",
+      "problem": "Two divergent GM setup flows exist: GMPanelApp (separate resizable window, checkbox list, wizard-like) and RollOffWindow empty state (integrated, clickable rows with aria-pressed, compact single-screen). They share no components, have different selection models (checkbox vs toggle), different visual density, and different die/wins input layouts. GMs encounter whichever opens first, creating inconsistent mental models.",
+      "recommendation": "Consolidate to a single compact single-screen layout inside RollOffWindow. Deprecate GMPanelApp or make it a thin wrapper that renders the same setup component. The compact layout (RollOffWindow lines 217-266) is superior: it shows participant avatars, online status, inline die/wins in a tight grid, a live setup summary, and requires no separate window management. Remove the checkbox-based flow entirely."
+    },
+    {
+      "priority": "P0",
+      "problem": "Title-bar history toggle positioning is fragile. The control is declared in ApplicationV2 window.controls but CSS (lines 187-224) uses order:-1 and targets .window-controls/.window-header-controls to inject it before the native close button. Progress.md documents 7+ iterations of positioning fixes. Foundry's native control order (title → menu → close) differs from the module's assumption, causing the history button to appear in wrong positions across Foundry versions or window states.",
+      "recommendation": "Stop fighting native window controls with CSS order hacks. Two viable paths: (A) Use ApplicationV2's built-in control rendering and accept native ordering (history appears after title, before menu/close) — simplest, zero maintenance. (B) Move history access out of the title bar entirely: add a persistent 'History' tab/button in the window body header (alongside round tracker) or as a sidebar-tab-style affordance. Option B improves discoverability and eliminates the fragile DOM insertion."
+    },
+    {
+      "priority": "P1",
+      "problem": "Round-row horizontal scroll chevrons (xro-row-nav) are hidden by default (visibility:hidden via :disabled) and only appear when xro-round-scroller--scrollable class is added via JS scrollWidth check. This creates a discoverability cliff: users with ≤4 participants never see scroll affordances, then suddenly get chevrons at 5+ without warning. Chevron hit targets are 24×42px — below 44×44px minimum. Chevrons sit inside the scroll container but use absolute positioning, which can clip on narrow windows.",
+      "recommendation": "Make scroll affordances always-visible but dimmed when not scrollable (opacity:0.3 vs visibility:hidden). Increase chevron hit target to 32×44px minimum. Move chevrons outside the scrollable row into the xro-round-scroller wrapper as persistent side gutters (flex items), not absolute-positioned overlays. Add subtle gradient fade masks on row edges as a secondary scroll hint (CSS mask-image). Ensure keyboard navigation: arrow keys scroll the focused row when a pill has focus."
+    },
+    {
+      "priority": "P1",
+      "problem": "Session history (latest 25 sessions) is only accessible via the title-bar toggle. No breadcrumb, no keyboard shortcut, no empty-state hint. When history is empty, the toggle shows 'No completed sessions yet' but the toggle itself is the only way to know history exists. Participants (non-GM) have no access to history at all — the toggle only renders for GM (window.controls are GM-only in practice).",
+      "recommendation": "Add a persistent 'Session History' entry point in the window body: a collapsible section header above the round stack (replacing the current toggle-only access). Show session count badge (e.g., 'History (3)'). For non-GM participants, render a read-only history view when they open the window. Add keyboard shortcut (H) to toggle history panel. Keep title-bar toggle as secondary access for power users."
+    },
+    {
+      "priority": "P1",
+      "problem": "GM setup in RollOffWindow empty state uses clickable rows with role=button, tabindex=0, aria-pressed for selection. However: (a) No visible focus indicator beyond the generic outline (2px primary), which is low-contrast on dark bg. (b) No 'Select All / Clear' affordance for large player lists. (c) Die/wins inputs are in a grid (xro-gm-rules-row) but lack associated <label> for the select/input — the icon+text label is not programmatically linked. (d) Start button disabled state shows tooltip but no inline explanation.",
+      "recommendation": "Add visible focus ring (3px, offset 2px, primary color). Add 'Select All' / 'None' button pair in the user list header. Wrap die/wins inputs in proper <label> with for=id or implicit wrapping. Add inline helper text under Start button when disabled: 'Select at least 2 participants'. Ensure color contrast on selected row (current: rgba(115,183,255,0.12) bg + 0.4 border — verify 4.5:1 against text)."
+    },
+    {
+      "priority": "P2",
+      "problem": "Responsive behavior is untested/undefined. The RollOffWindow has fixed min-width (420px) but the round-row pills are fixed 82px flex-basis. At 420px with 6 participants (492px content), horizontal scroll activates. The sidebar tab (320px max-width) truncates names aggressively. No breakpoint strategy for ultra-wide or narrow (mobile/Foundry compact) viewports. The xro-scroll-stack height uses calc(100% - 9rem) which assumes fixed footer/tracker heights.",
+      "recommendation": "Define three breakpoints: compact (<480px), standard (480-720px), wide (>720px). At compact: reduce pill width to 68px, stack die/wins inputs vertically, collapse tracker to summary chip, hide round titles. At wide: allow 2-column layout for history/rounds side-by-side. Replace calc(100% - 9rem) with flex-grow layout where footer/tracker are flex:0 0 auto and scroll-stack is flex:1 1 auto. Test in Foundry's compact mode (sidebar collapsed)."
+    },
+    {
+      "priority": "P2",
+      "problem": "Visual hierarchy in the active roll-off window is flat. Current round, round history, tracker, and footer all have similar card-like styling (surface bg, border, shadow). No clear primary/secondary/tertiary distinction. The 'Current' round group has only a primary-colored title as differentiator. Winner announcement panel (xro-round-result-panel) uses success/warning backgrounds but sits inline with rounds, not elevated.",
+      "recommendation": "Elevate the current round: give it a subtle primary border-left (3px) and primary-tinted background (already present but subtle). Demote historical rounds: remove alternating bg (xro-round-group--alt), use single surface tone. Promote winner panel: move it above the round stack as a toast-like banner, or give it a distinct card with elevation (shadow-lg). Make tracker collapsible by default (chevrondown) — it's secondary info."
+    },
+    {
+      "priority": "P2",
+      "problem": "Empty states lack actionable guidance. RollOffWindow empty state (no active roll-off, non-GM) shows only 'You are not in this roll-off' with an eye icon — no way to notify GM, no link to sidebar tab, no explanation of what a roll-off is. GMPanelApp active state shows current round but no 'Open full window' affordance (sidebar has it, panel doesn't).",
+      "recommendation": "Non-GM empty state: add 'Ask GM to start a Roll-Off' button that pings GM (socket) or opens chat with /roll-off hint. Add 'Open Sidebar Tab' button linking to the roll-offs tab. GMPanelApp active state: add 'Open Theatre Window' button (mirroring sidebar). Ensure every dead end has a forward action."
+    }
+  ]
+}

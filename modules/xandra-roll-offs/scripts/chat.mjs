@@ -73,8 +73,9 @@ export async function postRoundStarted(round, participants, dieType) {
   if (!round) return;
 
   const isTiebreak = Boolean(round.parent);
+  const participantNames = participants.map((id) => game.users.get(id)?.name ?? id).join(', ');
   const title = isTiebreak
-    ? `Tie-Break #${round.label.match(/Tie-Break #?(\d+)/i)?.[1] ?? 1} Started`
+    ? `Tie-Break #${round.tiebreakIndex ?? 1} Started`
     : `${round.label} Started`;
   const content = `<div class="xro-chat-round-started">
     <div class="xro-chat-round-started-title"><i class="fas ${isTiebreak ? 'fa-bolt' : 'fa-dice'}"></i><strong>${title}</strong></div>

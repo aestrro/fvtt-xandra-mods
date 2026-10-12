@@ -8,6 +8,7 @@ import {
   onAllRolledIn,
   advanceToNextRoundOrEnd,
   findActiveRound,
+  flattenRoundHistory,
   getPendingRollers,
   isRoundComplete,
 } from '../scripts/state.mjs';
@@ -41,8 +42,9 @@ describe('startRollOff', () => {
 describe('submitRoll', () => {
   it('records a valid roll and returns true', () => {
     const ro = startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2'] });
-    assert.equal(submitRoll(ro, 'u1', { total: 15 }), true);
+    assert.equal(submitRoll(ro, 'u1', { total: 15, rollId: 'roll-1' }), true);
     assert.equal(ro.roundStack[0].rolls.u1.total, 15);
+    assert.equal(ro.roundStack[0].rolls.u1.rollId, 'roll-1');
   });
 
   it('rejects a duplicate roll', () => {
@@ -120,8 +122,24 @@ describe('onAllRolledIn', () => {
     const result = onAllRolledIn(ro);
     assert.equal(result.type, 'tiebreak');
     assert.deepEqual(result.tiebreak.participants, ['u1', 'u2']);
-    assert.equal(result.tiebreak.label, 'Round 1 - Tiebreak');
+    assert.equal(result.tiebreak.label, 'Round 1 - Tiebreak #1');
+    assert.equal(result.tiebreak.tiebreakIndex, 1);
     assert.equal(ro.roundStack.length, 2);
+  });
+
+  it('numbers recursive tiebreak rounds sequentially', () => {
+    const ro = startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2'] });
+    submitRoll(ro, 'u1', { total: 15 });
+    submitRoll(ro, 'u2', { total: 15 });
+    onAllRolledIn(ro);
+    submitRoll(ro, 'u1', { total: 12 });
+    submitRoll(ro, 'u2', { total: 12 });
+
+    const result = onAllRolledIn(ro);
+
+    assert.equal(result.type, 'tiebreak');
+    assert.equal(result.tiebreak.label, 'Round 1 - Tiebreak #2');
+    assert.equal(result.tiebreak.tiebreakIndex, 2);
   });
 
   it('persists resolved tiebreak rolls in history', () => {
@@ -149,6 +167,34 @@ describe('onAllRolledIn', () => {
 });
 
 describe('round helpers', () => {
+  it('flattens completed rounds and nested tiebreaks in display order', () => {
+    const rows = flattenRoundHistory([
+      {
+        round: 1,
+        winner: 'u1',
+        finalRolls: { u1: { total: 15 }, u2: { total: 15 } },
+        tieRounds: [
+          {
+            winner: 'u1',
+            finalRolls: { u1: { total: 18 }, u2: { total: 12 } },
+          },
+        ],
+      },
+      {
+        round: 2,
+        winner: 'u2',
+        finalRolls: { u1: { total: 4 }, u2: { total: 19 } },
+      },
+    ]);
+
+    assert.deepEqual(rows.map((row) => ({ round: row.round, tieRound: row.tieRound, tieIndex: row.tieIndex })), [
+      { round: 1, tieRound: false, tieIndex: null },
+      { round: 'tie-1-1', tieRound: true, tieIndex: 1 },
+      { round: 2, tieRound: false, tieIndex: null },
+    ]);
+    assert.equal(rows[1].finalRolls.u1.total, 18);
+  });
+
   it('supports session metadata assigned by the authority layer', () => {
     const ro = startRollOff({ dieType: '1d20', winsNeeded: 1, participants: ['u1', 'u2'] });
     ro.sessionId = 'session-1';

@@ -1,5 +1,5 @@
 import { getActiveRollOff, getWinTallies, getRollOffHistory, SETTINGS } from '../settings.mjs';
-import { canUserRoll, findActiveRound, isRoundComplete, resolveRound } from '../state.mjs';
+import { canUserRoll, findActiveRound, flattenRoundHistory, isRoundComplete, resolveRound } from '../state.mjs';
 import { MODULE_ID, getUserActor } from '../utils.mjs';
 
 const { ApplicationV2, HandlebarsApplicationMixin } = foundry.applications.api;
@@ -9,6 +9,27 @@ function getUserName(userId) {
   if (user?.isGM) return user.name;
   const actor = getUserActor(userId);
   return actor?.name ?? user?.name ?? userId;
+}
+
+function prepareRoundHistory(history) {
+  return flattenRoundHistory(history).map((entry) => ({
+    ...entry,
+    label: entry.tieRound
+      ? `Tie #${entry.tieIndex}`
+      : game.i18n.format('XANDRA_ROLL_OFFS.Labels.Round', { round: entry.round }),
+    isTie: entry.tieRound,
+    winnerName: getUserName(entry.winner),
+    winnerValue: entry.finalRolls?.[entry.winner]?.total ?? null,
+    rolls: Object.entries(entry.finalRolls ?? {})
+      .map(([userId, roll]) => ({
+        name: getUserName(userId),
+        value: roll.total,
+        userId,
+        avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? '',
+        isWinner: userId === entry.winner,
+      }))
+      .sort((a, b) => b.value - a.value),
+  }));
 }
 
 /**
@@ -91,10 +112,10 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
   static onStateChanged() {
     const activeRollOff = getActiveRollOff();
     const exists = activeRollOff && Object.keys(activeRollOff).length > 0;
-    if (exists) {
-      this.open();
-    } else {
+    if (!exists) {
       this.close();
+    } else if (this.#instance?.rendered) {
+      this.#instance.render({ force: true });
     }
   }
 
@@ -169,44 +190,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
         return { userId, name, slots, wins, isCurrentUser: userId === game.userId };
       });
 
-      roundHistory = (activeRollOff.history ?? []).map((entry) => ({
-        round: entry.round,
-        label: game.i18n.format('XANDRA_ROLL_OFFS.Labels.Round', { round: entry.round }),
-        winnerName: getUserName(entry.winner),
-        winnerValue: entry.finalRolls[entry.winner]?.total ?? null,
-        rolls: Object.entries(entry.finalRolls)
-          .map(([userId, roll]) => {
-            return {
-              name: getUserName(userId),
-              value: roll.total,
-              userId,
-              avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? '',
-              isWinner: userId === entry.winner,
-            };
-          })
-          .sort((a, b) => b.value - a.value),
-      }));
-
-      for (const entry of activeRollOff.history ?? []) {
-        for (const [tieIndex, tieRound] of (entry.tieRounds ?? []).entries()) {
-          roundHistory.push({
-            round: `tie-${entry.round}-${tieIndex + 1}`,
-            label: `Tie #${tieIndex + 1}`,
-            tieRound: true,
-            winnerName: getUserName(tieRound.winner),
-            winnerValue: tieRound.finalRolls?.[tieRound.winner]?.total ?? null,
-            rolls: Object.entries(tieRound.finalRolls ?? {})
-              .map(([userId, roll]) => ({
-                name: getUserName(userId),
-                value: roll.total,
-                userId,
-                avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? '',
-                isWinner: userId === tieRound.winner,
-              }))
-              .sort((a, b) => b.value - a.value),
-          });
-        }
-      }
+      roundHistory = prepareRoundHistory(activeRollOff.history);
 
 
       if (isActive && currentRound) {
@@ -280,12 +264,7 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
         ...session,
         startedLabel: new Date(session.startedAt).toLocaleString(),
         endedLabel: new Date(session.endedAt).toLocaleString(),
-        history: (session.history ?? []).map((round) => ({
-          ...round,
-          winnerName: getUserName(round.winner),
-          winnerValue: round.finalRolls?.[round.winner]?.total ?? null,
-          isTie: String(round.round).startsWith('tie-') || round.tieRound === true,
-        })),
+        history: prepareRoundHistory(session.history),
         winnerName: getUserName(session.winner),
       })).reverse(),
       isActive,
@@ -336,14 +315,6 @@ export class RollOffWindow extends HandlebarsApplicationMixin(ApplicationV2) {
       });
       row.addEventListener('scroll', updateArrows, { passive: true });
       updateArrows();
-    });
-
-    html.querySelectorAll('[data-action="rollForParticipant"]').forEach((btn) => {
-      btn.addEventListener('click', (event) => {
-        event.stopPropagation();
-        console.log(`${MODULE_ID} | GM roll-for-tile clicked`, btn.dataset.userId);
-        RollOffWindow.rollForParticipant(event, btn);
-      });
     });
 
     const rows = html.querySelectorAll('.xro-gm-user-row');

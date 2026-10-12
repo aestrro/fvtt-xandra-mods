@@ -8,6 +8,11 @@ export function localize(key, data = {}) {
   return game.i18n.format(key, data);
 }
 
+export function parseRollCommand(messageText) {
+  const match = messageText.trim().match(/^\/(?:roll|r)\s+(\S.*)$/i);
+  return match?.[1]?.trim() || null;
+}
+
 export function getUserName(userId) {
   const user = game.users.get(userId);
   return user?.name ?? userId;

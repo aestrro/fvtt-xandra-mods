@@ -1,9 +1,12 @@
 import { RollOffWindow } from './apps/RollOffWindow.mjs';
 import { registerSidebarTab } from './apps/RollOffSidebarTab.mjs';
 import { initSocketHandler } from './socket.mjs';
-import { registerSettings, getActiveRollOff } from './settings.mjs';
+import { registerSettings, getActiveRollOff, SETTINGS } from './settings.mjs';
 import { canUserRoll } from './state.mjs';
-import { MODULE_ID, log } from './utils.mjs';
+import { MODULE_ID, log, parseRollCommand } from './utils.mjs';
+
+const ROLL_CAPTURE_TTL_MS = 2000;
+let pendingRollCapture = null;
 
 /* ================================================================ */
 /*  Bootstrap                                                        */
@@ -36,7 +39,6 @@ Hooks.once('ready', async () => {
   const templates = [
     'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
     'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
-    'modules/xandra-roll-offs/templates/sidebar-roll-offs.hbs',
     'modules/xandra-roll-offs/templates/roll-off-window.hbs',
   ];
   const loadTemplatesFn = foundry.applications.handlebars?.loadTemplates ?? loadTemplates;
@@ -48,16 +50,19 @@ Hooks.once('ready', async () => {
   // Inject a Roll-Offs button into the chat controls (visible to GM always,
   // and to players whenever a roll-off is active).
   const injectChatButton = () => {
-    if (!game.settings.get(MODULE_ID, 'showChatButton')) return;
+    const chatControls = document.querySelector('#chat-controls');
+    if (!chatControls) return;
+
+    let button = chatControls.querySelector('.xro-open-gm-panel');
+    if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_CHAT_BUTTON)) {
+      button?.remove();
+      return;
+    }
 
     const activeRollOff = getActiveRollOff();
     const isActive = activeRollOff?.active ?? false;
     const shouldShow = game.user.isGM || isActive;
 
-    const chatControls = document.querySelector('#chat-controls');
-    if (!chatControls) return;
-
-    let button = chatControls.querySelector('.xro-open-gm-panel');
     if (!button) {
       button = document.createElement('button');
       button.type = 'button';
@@ -81,6 +86,7 @@ Hooks.once('ready', async () => {
   Hooks.on('renderChatLog', injectChatButton);
   injectChatButton(); // Chat log may already be rendered
   Hooks.on('xandraRollOffs.stateUpdated', injectChatButton);
+  Hooks.on('xandraRollOffs.chatButtonSettingChanged', injectChatButton);
 
   // Register a macro-friendly global function for opening the panel
   game.xandraRollOffs = {
@@ -124,18 +130,12 @@ Hooks.once('ready', async () => {
 /* ================================================================ */
 
 function onChatMessage(chatLog, messageText, data) {
-  const text = messageText.trim().toLowerCase();
-  if (!text.startsWith('/roll') && !text.startsWith('/r')) return;
+  const expression = parseRollCommand(messageText);
+  if (!expression) return;
 
   const activeRollOff = getActiveRollOff();
   if (!activeRollOff?.active) return;
   if (!canUserRoll(activeRollOff, game.userId)) return;
-
-  // Extract the die expression after the command
-  const match = text.match(/^(?:\/roll|\/r)\s*(\S.*)$/);
-  if (!match) return;
-
-  const expression = match[1].trim();
   if (!matchesDiePattern(expression, activeRollOff.dieType)) {
     ui.notifications.warn(game.i18n.format('XANDRA_ROLL_OFFS.Errors.DiePatternMismatch', { pattern: activeRollOff.dieType }));
     return;
@@ -148,9 +148,21 @@ function onChatMessage(chatLog, messageText, data) {
   }
 
   // Fire the roll-off request without awaiting so the hook can return false
-  // synchronously and suppress the default chat message.
-  socket.requestRoll(game.userId).catch((err) => {
-    console.error(`${MODULE_ID} | requestRoll failed`, err);
+  // synchronously and suppress the default chat message. Keep a short-lived
+  // marker only to clean up a duplicate message if a system ignores suppression.
+  const request = socket.requestRoll(game.userId);
+  const capture = {
+    userId: game.userId,
+    formula: normalizeDie(expression),
+    expiresAt: Date.now() + ROLL_CAPTURE_TTL_MS,
+    request,
+  };
+  pendingRollCapture = capture;
+  setTimeout(() => {
+    if (pendingRollCapture === capture) pendingRollCapture = null;
+  }, ROLL_CAPTURE_TTL_MS);
+  request.catch((err) => {
+    console.error(`${MODULE_ID} | requestRoll failed for ${game.userId} (${expression})`, err);
   });
 
   // Suppress the default chat message
@@ -175,18 +187,11 @@ function normalizeDie(formula) {
 /* ================================================================ */
 
 /**
- * Catches chat messages that contain a matching roll from the current user
- * while they are an active participant. This handles systems or modules that
- * bypass the synchronous `chatMessage` hook, as well as the `/roll` macro
- * command if it doesn't get intercepted earlier.
- *
- * The chat message is deleted and the roll-off is submitted by the GM via the
- * existing socket request flow (GM-authoritative roll evaluation).
+ * Cleans up a duplicate chat message when a system ignores the synchronous
+ * `chatMessage` cancellation. Messages without a matching pending command are
+ * left untouched, so unrelated macro and system rolls are never captured.
  */
 async function onCreateChatMessage(message, options, userId) {
-  const activeRollOff = getActiveRollOff();
-  if (!activeRollOff?.active) return;
-
   // Ignore our own audit roll cards so the GM doesn't re-roll just because they
   // posted a per-roll chat card.
   if (message.flags?.[MODULE_ID]?.auditRoll) return;
@@ -196,31 +201,30 @@ async function onCreateChatMessage(message, options, userId) {
   const authorId = message.author?.id ?? message.user;
   if (authorId !== game.userId) return;
 
-  if (!canUserRoll(activeRollOff, game.userId)) return;
-
   const rolls = message.rolls ?? [];
   if (rolls.length === 0) return;
 
   const roll = rolls[0];
-  if (!matchesDiePattern(roll.formula, activeRollOff.dieType)) return;
+  const capture = pendingRollCapture;
+  if (!capture || capture.expiresAt < Date.now()) return;
+  if (capture.userId !== game.userId || capture.formula !== normalizeDie(roll.formula)) return;
+  pendingRollCapture = null;
 
-  const socket = game.modules.get(MODULE_ID).socketHandler;
-  if (!socket) {
-    console.warn(`${MODULE_ID} | Socket handler not ready; createChatMessage fallback ignored`);
-    return;
-  }
+  const accepted = await capture.request;
+  // Raw player socket requests do not have an acknowledgement. Preserve the
+  // original message rather than deleting it without proof the roll was saved.
+  if (!game.user.isGM || accepted !== true) return;
 
   try {
     if (message.isOwner ?? message.canUser?.(game.user, 'delete')) {
       await message.delete();
     } else {
-      console.warn(`${MODULE_ID} | Cannot delete chat message ${message.id}; roll will still be submitted`);
+      console.warn(`${MODULE_ID} | Cannot delete duplicate roll message ${message.id}`);
     }
   } catch (err) {
     console.warn(`${MODULE_ID} | Failed to delete captured chat message`, err);
   }
 
-  await socket.requestRoll(game.userId);
 }
 
 export { matchesDiePattern };

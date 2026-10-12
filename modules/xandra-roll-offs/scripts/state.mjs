@@ -226,10 +226,12 @@ export function submitRoll(activeRollOff, userId, rollResult) {
     return false;
   }
 
-  activeRound.rolls[userId] = { total: rollResult.total };
+  const storedRoll = { total: rollResult.total };
+  if (rollResult.rollId !== undefined) storedRoll.rollId = rollResult.rollId;
+  activeRound.rolls[userId] = storedRoll;
   const tieRecord = activeRollOff.tieHistory?.at(-1);
   if (activeRound.parent && tieRecord) {
-    tieRecord.finalRolls[userId] = { total: rollResult.total };
+    tieRecord.finalRolls[userId] = { ...storedRoll };
   }
   return true;
 }
@@ -315,11 +317,14 @@ function pushNewRound(activeRollOff) {
  * @param {Round} parentRound - The round that produced the tie.
  * @param {string[]} tiedUserIds - The users who tied for the highest roll.
  * @param {string} dieType - The roll formula to use for the tiebreak.
+ * @param {string} label - Human-readable tiebreak label.
+ * @param {number} tiebreakIndex - 1-based tiebreak number for the top-level round.
  * @returns {Round} A new tiebreak round object.
  */
-function createTiebreakRound(parentRound, tiedUserIds, dieType) {
+function createTiebreakRound(parentRound, tiedUserIds, dieType, label, tiebreakIndex) {
   return {
-    label: `${parentRound.label} - Tiebreak`,
+    label,
+    tiebreakIndex,
     participants: [...tiedUserIds],
     dieType,
     rolls: {},
@@ -365,10 +370,19 @@ export function onAllRolledIn(activeRollOff) {
     return { type: "winner", round: root, winnerId: result.userId };
   }
 
-  const tiebreak = createTiebreakRound(top, result.userIds, activeRollOff.dieType);
   activeRollOff.tieHistory ??= [];
+  const tiebreakIndex = activeRollOff.tieHistory.length + 1;
+  const root = findRootRound(activeRollOff.roundStack, top) ?? top;
+  const tiebreak = createTiebreakRound(
+    top,
+    result.userIds,
+    activeRollOff.dieType,
+    `${root.label} - Tiebreak #${tiebreakIndex}`,
+    tiebreakIndex
+  );
   activeRollOff.tieHistory.push({
     round: activeRollOff.currentRoundIndex + 1,
+    tiebreakIndex,
     finalRolls: {},
   });
   activeRollOff.roundStack.push(tiebreak);
@@ -385,6 +399,37 @@ export function getPendingRollers(activeRollOff) {
   const activeRound = findActiveRound(activeRollOff?.roundStack);
   if (!activeRound) return [];
   return activeRound.participants.filter((userId) => !activeRound.rolls[userId]);
+}
+
+/**
+ * Flattens completed top-level rounds and their nested tiebreaks into display
+ * order without mutating the persisted history.
+ *
+ * @param {HistoryEntry[]} history - Completed top-level rounds.
+ * @returns {Array<HistoryEntry & {tieRound: boolean, tieIndex: number|null}>}
+ */
+export function flattenRoundHistory(history) {
+  const rows = [];
+
+  for (const entry of history ?? []) {
+    rows.push({
+      ...entry,
+      tieRound: false,
+      tieIndex: null,
+    });
+
+    for (const [index, tieRound] of (entry.tieRounds ?? []).entries()) {
+      rows.push({
+        ...tieRound,
+        round: `tie-${entry.round}-${index + 1}`,
+        parentRound: entry.round,
+        tieRound: true,
+        tieIndex: index + 1,
+      });
+    }
+  }
+
+  return rows;
 }
 
 /**
