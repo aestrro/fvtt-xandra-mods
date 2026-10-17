@@ -1,4 +1,3 @@
-import { RollOffWindow } from './apps/RollOffWindow.mjs';
 import { registerSidebarTab } from './apps/RollOffSidebarTab.mjs';
 import { initSocketHandler } from './socket.mjs';
 import { registerSettings, getActiveRollOff, SETTINGS } from './settings.mjs';
@@ -7,26 +6,19 @@ import { MODULE_ID, log, parseRollCommand } from './utils.mjs';
 
 const ROLL_CAPTURE_TTL_MS = 2000;
 let pendingRollCapture = null;
+let RollOffWindow;
+
+export function registerRollOffHooks(windowClass) {
+  RollOffWindow = windowClass;
+}
 
 /* ================================================================ */
 /*  Bootstrap                                                        */
 /* ================================================================ */
 
 Hooks.once('init', () => {
-  // Register the sidebar tab class early so the Sidebar constructor picks it up.
-  registerSidebarTab();
-
-  // Small helper for zebra-striping round groups in the roll-off window.
-  Handlebars.registerHelper('mod2', (value) => (Number(value) % 2) !== 0);
-
-  // Helper for joining arrays in templates (e.g. tie participant names).
-  Handlebars.registerHelper('join', (arr, separator) => {
-    if (!Array.isArray(arr)) return '';
-    return arr.join(separator ?? ', ');
-  });
-
-  // Explicit comparison helper used by templates. Keep comparisons in the
-  // template layer limited to primitive display values.
+  registerSidebarTab(RollOffWindow);
+  // Chat-card templates compare only primitive display values.
   Handlebars.registerHelper('eq', (left, right) => left === right);
 });
 
@@ -39,7 +31,6 @@ Hooks.once('ready', async () => {
   const templates = [
     'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
     'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
-    'modules/xandra-roll-offs/templates/roll-off-window.hbs',
   ];
   const loadTemplatesFn = foundry.applications.handlebars?.loadTemplates ?? loadTemplates;
   await loadTemplatesFn(templates);

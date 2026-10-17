@@ -1,33 +1,65 @@
-:root {
-  --xro-bg-0: #0f1216;
-  --xro-bg-1: #171b21;
-  --xro-bg-2: #1e242c;
-  --xro-bg-3: #28313b;
-  --xro-surface: rgba(255, 255, 255, 0.045);
-  --xro-surface-strong: rgba(255, 255, 255, 0.075);
-  --xro-surface-raised: rgba(255, 255, 255, 0.06);
-  --xro-line: rgba(255, 255, 255, 0.1);
-  --xro-line-strong: rgba(255, 255, 255, 0.16);
-  --xro-text: #f1f4f7;
-  --xro-text-secondary: #9ca7b4;
-  --xro-muted: #6f7b89;
-  --xro-primary: #73b7ff;
-  --xro-primary-strong: #4c9bea;
-  --xro-primary-soft: rgba(115, 183, 255, 0.14);
-  --xro-primary-contrast: #07111d;
-  --xro-success: #52d991;
-  --xro-success-soft: rgba(82, 217, 145, 0.14);
+.application.xandra-roll-offs-window,
+.xandra-roll-offs-chat {
+  --xro-bg-0: #161925;
+  --xro-bg-1: #202433;
+  --xro-bg-2: #292e40;
+  --xro-bg-3: #11131d;
+  --xro-surface: #202433;
+  --xro-surface-strong: #292e40;
+  --xro-surface-raised: #252a3a;
+  --xro-line: #34394c;
+  --xro-line-strong: #4a5168;
+  --xro-text: #f4f6fc;
+  --xro-text-secondary: #b2b9c9;
+  --xro-muted: #949bae;
+  --xro-primary: #6ea8fe;
+  --xro-primary-strong: #8bbaff;
+  --xro-primary-contrast: #09111f;
+  --xro-success: #56d98b;
   --xro-warning: #f1bd58;
-  --xro-warning-soft: rgba(241, 189, 88, 0.14);
-  --xro-danger: #f07878;
-  --xro-radius-sm: 5px;
-  --xro-radius: 9px;
-  --xro-radius-lg: 12px;
-  --xro-gap-xs: 0.2rem;
-  --xro-gap-sm: 0.35rem;
-  --xro-gap: 0.6rem;
-  --xro-shadow: 0 8px 24px rgba(0, 0, 0, 0.22);
-  --xro-shadow-soft: 0 3px 12px rgba(0, 0, 0, 0.18);
+  --xro-danger: #ff7c86;
+  --xro-primary-soft: color-mix(in srgb, var(--xro-primary) 15%, var(--xro-bg-1));
+  --xro-success-soft: color-mix(in srgb, var(--xro-success) 16%, var(--xro-bg-1));
+  --xro-warning-soft: color-mix(in srgb, var(--xro-warning) 16%, var(--xro-bg-1));
+  --xro-pill-bg: var(--xro-bg-3);
+  --xro-radius-sm: 4px;
+  --xro-radius: 7px;
+  --xro-radius-lg: 10px;
+  --xro-radius-xl: 12px;
+  --xro-gap-xs: 3px;
+  --xro-gap-sm: 6px;
+  --xro-gap: 8px;
+  --xro-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+  --xro-shadow-soft: 0 2px 7px rgba(0, 0, 0, 0.2);
+  color-scheme: dark;
+}
+
+body.theme-light .application.xandra-roll-offs-window:not(.theme-dark),
+.application.xandra-roll-offs-window.theme-light,
+body.theme-light .xandra-roll-offs-chat,
+.themed.theme-light .xandra-roll-offs-chat {
+  --xro-bg-0: #f4f6fa;
+  --xro-bg-1: #fff;
+  --xro-bg-2: #edf1f7;
+  --xro-bg-3: #e5ebf4;
+  --xro-surface: #fff;
+  --xro-surface-strong: #edf1f7;
+  --xro-surface-raised: #f5f7fb;
+  --xro-line: #c9d2df;
+  --xro-line-strong: #9baac0;
+  --xro-text: #1f2937;
+  --xro-text-secondary: #49586b;
+  --xro-muted: #59697d;
+  --xro-primary: #255eaf;
+  --xro-primary-strong: #174e9b;
+  --xro-primary-contrast: #fff;
+  --xro-success: #146b42;
+  --xro-warning: #895400;
+  --xro-danger: #a52e3c;
+  --xro-pill-bg: #f5f7fb;
+  --xro-shadow: 0 5px 14px rgba(25, 40, 66, 0.12);
+  --xro-shadow-soft: 0 2px 7px rgba(25, 40, 66, 0.1);
+  color-scheme: light;
 }
 
 /* -------------------------------------------------------------------------- */
@@ -40,18 +72,13 @@
   font-family: var(--font-primary, sans-serif);
 }
 
-.xandra-roll-offs-window {
+.xandra-roll-offs-window,
+.xro-app-content {
   height: 100%;
   display: flex;
   flex-direction: column;
   overflow: hidden;
-  background:
-    radial-gradient(
-      circle at 100% 0%,
-      rgba(115, 183, 255, 0.08),
-      transparent 38%
-    ),
-    var(--xro-bg-0);
+  background: var(--xro-bg-0);
 }
 
 .xandra-roll-offs-window .window-content {
@@ -62,90 +89,130 @@
   background: transparent;
 }
 
-.xandra-roll-offs-window button,
-.xro-chat-card .xro-roll-button {
+.xandra-roll-offs-window .xandra-react-application-root {
+  --xro-shell-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+}
+
+.application.xandra-roll-offs-window .window-content {
+  padding: 8px;
+  border: 1px solid var(--xro-line);
+  border-top-color: var(--xro-line-strong);
+  border-radius: var(--xro-radius-xl);
+  background: var(--xro-bg-0);
+  box-shadow: var(--xro-shell-shadow), inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+body.theme-light .application.xandra-roll-offs-window .window-content,
+.application.xandra-roll-offs-window.theme-light .window-content {
+  --xro-shell-shadow: 0 5px 14px rgba(25, 40, 66, 0.12);
+  box-shadow: var(--xro-shell-shadow), inset 0 1px rgba(255, 255, 255, 0.72);
+}
+
+.xandra-roll-offs-window :where(.xandra-react-application-root button) {
   appearance: none;
   min-height: 30px;
-  border: 1px solid transparent;
+  border: 1px solid var(--xro-line);
   border-radius: var(--xro-radius-sm);
-  padding: 0.45rem 0.7rem;
-  background: var(--xro-bg-3);
+  padding: 5px 8px;
+  background: var(--xro-bg-1);
   color: var(--xro-text);
-  box-shadow: var(--xro-shadow-soft);
-  font-size: 0.78rem;
+  box-shadow: none;
+  font-size: 0.75rem;
   font-weight: 700;
-  line-height: 1;
+  line-height: 1.2;
   cursor: pointer;
-  transition:
-    background 120ms ease,
-    border-color 120ms ease,
-    color 120ms ease,
-    transform 80ms ease,
-    filter 120ms ease;
+  transition: background 140ms ease, border-color 140ms ease, color 140ms ease;
 }
 
-.xandra-roll-offs-window button:hover,
-.xro-chat-card .xro-roll-button:hover {
+.xandra-roll-offs-window :where(.xandra-react-application-root button:hover:not(:disabled)) {
   background: var(--xro-surface-strong);
   border-color: var(--xro-line-strong);
-  filter: brightness(1.08);
 }
 
-.xandra-roll-offs-window button:active,
-.xro-chat-card .xro-roll-button:active {
-  transform: translateY(1px);
+.xandra-roll-offs-window :where(.xandra-react-application-root button:active:not(:disabled)) {
+  background: var(--xro-bg-3);
 }
 
-.xandra-roll-offs-window button:focus-visible {
-  outline: 2px solid var(--xro-primary);
-  outline-offset: 2px;
-}
-
-button[data-action="roll-off-roll"],
-button[data-action="advanceRound"].xro-next-round-btn {
-  width: 100%;
-  min-height: 42px;
-  border: 0;
-  border-radius: var(--xro-radius);
-  color: var(--xro-primary-contrast) !important;
-  font-size: 0.82rem;
-  font-weight: 800;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  box-shadow: 0 6px 18px rgba(82, 217, 145, 0.2);
-}
-
-button[data-action="roll-off-roll"] {
-  background: linear-gradient(135deg, var(--xro-success), #37bf7a) !important;
-}
-
-button[data-action="advanceRound"].xro-next-round-btn {
-  background: linear-gradient(135deg, var(--xro-warning), #d99b2f) !important;
-  box-shadow: 0 6px 18px rgba(241, 189, 88, 0.18);
-}
-
-button.xro-waiting-btn {
-  width: 100%;
-  min-height: 42px;
-  border-color: var(--xro-line) !important;
-  background: var(--xro-surface) !important;
-  color: var(--xro-muted) !important;
+.xandra-roll-offs-window :where(.xandra-react-application-root button:disabled) {
   cursor: not-allowed;
+  opacity: 0.55;
   box-shadow: none;
 }
 
-button[data-action="startRollOff"] {
+.xandra-roll-offs-window :where(.xandra-react-application-root button:focus) {
+  outline: none;
+}
+
+.xandra-roll-offs-window :where(.xandra-react-application-root button:focus-visible) {
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--xro-primary);
+}
+
+.xandra-roll-offs-window .xro-roll-btn,
+.xandra-roll-offs-window .xro-next-round-btn {
   width: 100%;
-  background: var(--xro-primary) !important;
-  color: var(--xro-primary-contrast) !important;
+  min-height: 38px;
+  border-radius: var(--xro-radius-sm);
+  color: var(--xro-primary-contrast);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.045em;
+  text-transform: uppercase;
 }
 
-button[data-action="closeRollOff"] {
-  background: var(--xro-warning) !important;
-  color: var(--xro-primary-contrast) !important;
+.xandra-roll-offs-window .xro-roll-btn {
+  background: var(--xro-primary);
+  box-shadow: inset 0 0 0 1px var(--xro-primary-strong), var(--xro-shadow-soft);
 }
 
-button[data-action="cancelRollOff"] {
+.xandra-roll-offs-window .xro-next-round-btn {
+  background: var(--xro-warning);
+  box-shadow: inset 0 0 0 1px var(--xro-warning), var(--xro-shadow-soft);
+}
+
+.xandra-roll-offs-window .xro-roll-btn:hover:not(:disabled) {
+  background: var(--xro-primary-strong);
+}
+
+.xandra-roll-offs-window .xro-next-round-btn:hover:not(:disabled) {
+  background: color-mix(in srgb, var(--xro-warning) 88%, var(--xro-text));
+}
+
+.xandra-roll-offs-window .xro-roll-btn:focus-visible,
+.xandra-roll-offs-window .xro-next-round-btn:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--xro-primary-contrast);
+}
+
+.xandra-roll-offs-window .xro-waiting-btn {
+  width: 100%;
+  min-height: 38px;
+  background: var(--xro-bg-2);
+  color: var(--xro-muted);
+  box-shadow: none;
+}
+
+.xandra-roll-offs-window .xro-gm-start-btn {
+  width: 100%;
+  min-height: 38px;
+  background: var(--xro-primary);
+  color: var(--xro-primary-contrast);
+  box-shadow: inset 0 0 0 1px var(--xro-primary-strong), var(--xro-shadow-soft);
+}
+
+.xandra-roll-offs-window .xro-gm-start-btn:hover:not(:disabled) {
+  background: var(--xro-primary-strong);
+}
+
+.xandra-roll-offs-window .xro-close-roll-off-btn {
+  background: var(--xro-warning);
+  color: var(--xro-primary-contrast);
+}
+
+.xandra-roll-offs-window .xro-cancel-btn {
   color: var(--xro-danger);
 }
 
@@ -225,6 +292,136 @@ button[data-action="cancelRollOff"] {
   overflow: hidden;
 }
 
+.xro-surface-heading,
+.xro-setup-banner,
+.xro-live-banner {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: 56px;
+  gap: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--xro-line);
+  border-top-color: var(--xro-line-strong);
+  border-radius: var(--xro-radius);
+  background: linear-gradient(180deg, var(--xro-surface-strong), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), var(--xro-shadow-soft);
+}
+
+.xro-setup-banner,
+.xro-live-banner {
+  flex: 0 0 auto;
+  margin: 0 var(--xro-gap) var(--xro-gap);
+}
+
+.xro-surface-heading-mark,
+.xro-setup-banner-icon,
+.xro-live-state-mark,
+.xro-history-empty-mark {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  flex: 0 0 auto;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-bg-3);
+  color: var(--xro-primary);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 2px 7px rgba(0, 0, 0, 0.16);
+}
+
+.xro-surface-heading-copy,
+.xro-setup-banner-copy,
+.xro-live-banner-copy {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.xro-surface-kicker {
+  color: var(--xro-primary);
+  font-size: 0.58rem;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.xro-surface-heading-copy strong,
+.xro-setup-banner-copy strong,
+.xro-live-banner-copy strong {
+  overflow: hidden;
+  color: var(--xro-text);
+  font-size: 0.84rem;
+  font-weight: 800;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xro-count-mark,
+.xro-setup-ready-mark,
+.xro-live-banner-meta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 3px 7px;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-bg-3);
+  color: var(--xro-text-secondary);
+  font-size: 0.62rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.xro-setup-ready-mark {
+  gap: 5px;
+  color: var(--xro-success);
+}
+
+.xro-setup-ready-mark i,
+.xro-round-live-mark i {
+  font-size: 0.44rem;
+}
+
+.xro-live-state-mark.is-active {
+  color: var(--xro-primary);
+  box-shadow: inset 0 0 0 1px var(--xro-primary), 0 0 10px color-mix(in srgb, var(--xro-primary) 22%, transparent);
+}
+
+.xro-live-state-mark.is-complete {
+  color: var(--xro-success);
+  box-shadow: inset 0 0 0 1px var(--xro-success);
+}
+
+.xro-live-banner-meta {
+  gap: 6px;
+  padding: 4px 7px;
+}
+
+.xro-live-banner-meta > span:not(.xro-live-meta-divider) {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.xro-live-banner-meta i {
+  color: var(--xro-primary);
+  font-size: 0.58rem;
+}
+
+.xro-live-meta-divider {
+  width: 1px;
+  height: 12px;
+  background: var(--xro-line-strong);
+}
+
 .xro-session-history {
   flex: 1 1 auto;
   min-height: 0;
@@ -235,11 +432,34 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-session-history-item {
-  padding: 0.75rem;
+  display: flex;
+  gap: 10px;
+  padding: 9px;
   border: 1px solid var(--xro-line);
+  border-top-color: var(--xro-line-strong);
   border-radius: var(--xro-radius);
-  background: var(--xro-surface);
-  box-shadow: var(--xro-shadow);
+  background: linear-gradient(180deg, var(--xro-surface), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), var(--xro-shadow-soft);
+}
+
+.xro-history-index {
+  display: grid;
+  place-items: center;
+  width: 27px;
+  flex: 0 0 27px;
+  align-self: stretch;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-bg-3);
+  color: var(--xro-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.64rem;
+  font-weight: 800;
+}
+
+.xro-history-main {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .xro-session-history-header {
@@ -253,6 +473,11 @@ button[data-action="cancelRollOff"] {
   display: flex;
   flex-direction: column;
   gap: 0.12rem;
+}
+
+.xro-session-history-kicker i {
+  margin-right: 4px;
+  color: var(--xro-success);
 }
 
 .xro-session-history-kicker {
@@ -289,8 +514,41 @@ button[data-action="cancelRollOff"] {
   align-items: center;
   gap: 0.5rem;
   padding: 0.28rem 0.4rem;
-  border-radius: 0.25rem;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
   background: var(--xro-surface-raised);
+}
+
+.xro-meta-separator {
+  width: 3px;
+  height: 3px;
+  border-radius: 50%;
+  background: var(--xro-muted);
+}
+
+.xro-history-empty {
+  display: flex;
+  flex: 1 1 auto;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  color: var(--xro-muted);
+  font-size: 0.7rem;
+  text-align: center;
+}
+
+.xro-history-empty strong {
+  color: var(--xro-text);
+  font-size: 0.8rem;
+}
+
+.xro-history-empty-mark {
+  width: 40px;
+  height: 40px;
+  margin-bottom: 4px;
+  font-size: 1rem;
 }
 
 .xro-session-history-round-label {
@@ -361,7 +619,7 @@ button[data-action="cancelRollOff"] {
   justify-content: center;
   gap: var(--xro-gap-sm);
   padding: 0.45rem 0.65rem;
-  border: 1px solid rgba(241, 189, 88, 0.28);
+  border: 1px solid color-mix(in srgb, var(--xro-warning) 35%, var(--xro-line));
   border-radius: var(--xro-radius);
   border-bottom-left-radius: 0;
   border-bottom-right-radius: 0;
@@ -378,9 +636,9 @@ button[data-action="cancelRollOff"] {
   gap: 0;
   overflow-x: hidden;
   overflow-y: auto;
-  scrollbar-color: var(--xro-bg-3) transparent;
+  scrollbar-color: var(--xro-line-strong) transparent;
   scrollbar-width: thin;
-  border: 1px solid rgba(255, 255, 255, 0.11);
+  border: 1px solid var(--xro-line);
   border-radius: var(--xro-radius) var(--xro-radius) 0 0;
   background: var(--xro-surface);
 }
@@ -392,25 +650,29 @@ button[data-action="cancelRollOff"] {
 .xro-round-group {
   display: flex;
   flex-direction: column;
-  gap: 0.25rem;
-  padding: 0.55rem 0.5rem;
-  border: 0;
-  border-radius: 0;
-  background: var(--xro-surface);
-  overflow: visible;
+  gap: 5px;
+  margin: 3px 4px;
+  padding: 7px 6px;
+  border: 1px solid var(--xro-line);
+  border-top-color: var(--xro-line-strong);
+  border-radius: var(--xro-radius);
+  background: linear-gradient(180deg, var(--xro-surface-raised), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 2px 7px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
 }
 
 .xro-round-group--alt {
-  background: var(--xro-bg-1);
+  background: linear-gradient(180deg, var(--xro-surface-strong), var(--xro-surface));
 }
 
 .xro-round-group--current {
-  background: rgba(115, 183, 255, 0.085);
-  box-shadow: none;
+  border-color: color-mix(in srgb, var(--xro-primary) 62%, var(--xro-line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--xro-primary) 14%, var(--xro-surface)), var(--xro-bg-1));
+  box-shadow: inset 0 1px color-mix(in srgb, var(--xro-primary) 42%, transparent), 0 3px 10px rgba(0, 0, 0, 0.14);
 }
 
 .xro-round-group:not(:first-child) {
-  margin-top: 0;
+  margin-top: 4px;
 }
 
 .xro-scroll-stack-content {
@@ -423,20 +685,51 @@ button[data-action="cancelRollOff"] {
 .xro-round-title {
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: flex-start;
   gap: 0.45rem;
-  margin: 0 0 0.2rem;
+  margin: 0 0 1px;
   padding: 0 0.35rem;
-  color: var(--xro-text-secondary);
-  font-size: 0.72rem;
+  color: var(--xro-text);
+  font-size: 0.68rem;
   font-weight: 800;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.045em;
   text-transform: uppercase;
+}
+
+.xro-round-marker {
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-bg-3);
+  color: var(--xro-primary);
+  font-size: 0.62rem;
 }
 
 .xro-round-group--current .xro-round-title {
   color: var(--xro-primary);
   font-size: 0.76rem;
+}
+
+.xro-round-group--current .xro-round-marker {
+  border-color: var(--xro-primary);
+  background: var(--xro-primary-soft);
+}
+
+.xro-round-live-mark {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin-left: auto;
+  padding: 3px 5px;
+  border: 1px solid color-mix(in srgb, var(--xro-success) 45%, var(--xro-line));
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-success-soft);
+  color: var(--xro-success);
+  font-size: 0.52rem;
+  letter-spacing: 0.06em;
 }
 
 .xro-round-row {
@@ -523,24 +816,26 @@ button[data-action="cancelRollOff"] {
 .xro-roll-pill {
   position: relative;
   display: flex;
-  flex: 0 0 82px;
+  flex: 0 0 78px;
   flex-direction: column;
   align-items: center;
-  gap: 0.1rem;
-  min-height: 75px;
-  padding: 0.45rem 0.25rem 0.35rem;
-  border-left: 1px solid var(--xro-line);
-  background: rgba(0, 0, 0, 0.24);
+  gap: 3px;
+  min-height: 73px;
+  margin: 0 2px;
+  padding: 5px 4px 4px;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
+  background: linear-gradient(180deg, var(--xro-surface-strong), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), 0 2px 6px rgba(0, 0, 0, 0.1);
   text-align: center;
 }
 
 .xro-roll-pill:first-child {
-  border-left: 0;
-  border-radius: var(--xro-radius-sm) 0 0 var(--xro-radius-sm);
+  border-radius: var(--xro-radius-sm);
 }
 
 .xro-roll-pill:last-child {
-  border-radius: 0 var(--xro-radius-sm) var(--xro-radius-sm) 0;
+  border-radius: var(--xro-radius-sm);
 }
 
 .xro-roll-pill:only-child {
@@ -549,7 +844,9 @@ button[data-action="cancelRollOff"] {
 
 .xro-roll-pill--rolled,
 .xro-roll-pill--winner {
-  background: var(--xro-success-soft);
+  border-color: color-mix(in srgb, var(--xro-success) 48%, var(--xro-line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--xro-success) 19%, var(--xro-surface-raised)), var(--xro-success-soft));
+  box-shadow: inset 0 1px color-mix(in srgb, var(--xro-success) 35%, transparent), 0 2px 7px rgba(0, 0, 0, 0.12);
 }
 
 .xro-roll-pill--winner .xro-roll-pill-name {
@@ -560,14 +857,15 @@ button[data-action="cancelRollOff"] {
   display: block;
   width: 31px;
   height: 31px;
-  border: 2px solid var(--xro-line-strong);
-  border-radius: 50%;
+  border: 1px solid var(--xro-line-strong);
+  border-radius: var(--xro-radius-sm);
   object-fit: cover;
   background: var(--xro-bg-3);
 }
 
 .xro-roll-pill--winner .xro-avatar {
   border-color: var(--xro-success);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--xro-success) 45%, transparent);
 }
 
 .xro-roll-pill-value {
@@ -575,9 +873,9 @@ button[data-action="cancelRollOff"] {
   z-index: 1;
   top: -0.45rem;
   margin-bottom: -0.38rem;
-  padding: 0.16rem 0.42rem;
+  padding: 0.18rem 0.4rem;
   border: 1px solid var(--xro-line-strong);
-  border-radius: 999px;
+  border-radius: var(--xro-radius-sm);
   background: var(--xro-bg-2);
   color: var(--xro-text);
   font-size: 0.72rem;
@@ -589,6 +887,12 @@ button[data-action="cancelRollOff"] {
 .xro-roll-pill--rolled .xro-roll-pill-value,
 .xro-roll-pill--winner .xro-roll-pill-value {
   border-color: var(--xro-success);
+  background: color-mix(in srgb, var(--xro-success) 20%, var(--xro-bg-1));
+  color: var(--xro-success);
+  box-shadow: inset 0 0 0 1px var(--xro-success);
+}
+
+.xro-roll-pill--winner .xro-roll-pill-value {
   background: var(--xro-success);
   color: var(--xro-primary-contrast);
 }
@@ -610,25 +914,40 @@ button[data-action="cancelRollOff"] {
 
 .xro-pill-roll-btn {
   position: absolute;
-  inset: 0;
+  top: 3px;
+  right: 3px;
   z-index: 3;
-  display: none !important;
+  display: flex !important;
   align-items: center;
   justify-content: center;
-  border: 0 !important;
-  border-radius: inherit !important;
-  background: rgba(115, 183, 255, 0.9) !important;
-  color: var(--xro-primary-contrast) !important;
+  width: 23px;
+  height: 23px;
+  min-height: 23px !important;
+  padding: 0 !important;
+  border: 1px solid var(--xro-line) !important;
+  border-radius: var(--xro-radius-sm) !important;
+  background: var(--xro-bg-2) !important;
+  color: var(--xro-primary) !important;
   box-shadow: none !important;
-  font-size: 1.1rem !important;
+  font-size: 0.75rem !important;
 }
 
-.xro-roll-pill:hover .xro-pill-roll-btn {
-  display: flex !important;
+.xro-pill-roll-btn:hover,
+.xro-pill-roll-btn:focus-visible {
+  background: var(--xro-primary) !important;
+  color: var(--xro-primary-contrast) !important;
 }
 
-.xro-roll-pill--rolled .xro-pill-roll-btn {
-  display: none !important;
+.xro-pill-roll-btn:disabled,
+.xro-pill-roll-btn:disabled:hover {
+  background: var(--xro-bg-2) !important;
+  color: var(--xro-muted) !important;
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.xro-pill-roll-btn:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--xro-primary-contrast) !important;
 }
 
 .xro-round-result {
@@ -659,20 +978,24 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-round-result-panel {
+  position: relative;
+  display: flex;
   flex: 0 0 auto;
-  margin: 0;
-  padding: 0.65rem 0.75rem;
+  align-items: center;
+  gap: 10px;
+  margin: 0 4px;
+  padding: 9px 10px;
   border: 1px solid var(--xro-line);
-  border-radius: 0;
-  background: var(--xro-surface);
-  text-align: center;
+  border-top-color: var(--xro-line-strong);
+  border-radius: var(--xro-radius);
+  background: linear-gradient(180deg, var(--xro-surface-strong), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), var(--xro-shadow-soft);
+  text-align: left;
 }
 
 .xro-round-result-panel + .xro-tracker {
-  margin-top: 0;
-  border-top: 0;
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+  margin-top: 8px;
+  border-top: 1px solid var(--xro-line-strong);
 }
 
 .xro-round-result-panel + .xro-tracker .xro-tracker-header {
@@ -680,11 +1003,37 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-round-result-panel--winner {
-  background: var(--xro-success-soft);
+  border-color: color-mix(in srgb, var(--xro-success) 42%, var(--xro-line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--xro-success) 16%, var(--xro-surface)), var(--xro-bg-1));
 }
 
 .xro-round-result-panel--tie {
+  border-color: color-mix(in srgb, var(--xro-warning) 42%, var(--xro-line));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--xro-warning) 13%, var(--xro-surface)), var(--xro-bg-1));
+}
+
+.xro-round-result-emblem {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  flex: 0 0 auto;
+  border: 1px solid var(--xro-success);
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-success-soft);
+  color: var(--xro-success);
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.045), 0 2px 6px rgba(0, 0, 0, 0.16);
+}
+
+.xro-round-result-panel--tie .xro-round-result-emblem {
+  border-color: var(--xro-warning);
   background: var(--xro-warning-soft);
+  color: var(--xro-warning);
+}
+
+.xro-round-result-panel-copy {
+  min-width: 0;
+  flex: 1 1 auto;
 }
 
 .xro-round-result-panel-label {
@@ -706,7 +1055,7 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-round-result-panel-name {
-  margin-top: 0.2rem;
+  margin-top: 0.08rem;
   color: var(--xro-text);
   font-size: 1rem;
   font-weight: 800;
@@ -733,25 +1082,18 @@ button[data-action="cancelRollOff"] {
 .xro-footer {
   flex: 0 0 auto;
   border: 1px solid var(--xro-line);
-  border-radius: 0;
-  background: var(--xro-bg-1);
-  box-shadow: var(--xro-shadow-soft);
+  border-radius: var(--xro-radius);
+  background: linear-gradient(180deg, var(--xro-surface), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), var(--xro-shadow-soft);
 }
 
 .xro-tracker {
   overflow: hidden;
-  margin-top: calc(-1 * var(--xro-gap));
-  border-top: 0;
-  border-radius: 0;
-  border-bottom-left-radius: var(--xro-radius);
-  border-bottom-right-radius: var(--xro-radius);
+  margin: 7px 4px 0;
+  border-top-color: var(--xro-line-strong);
 }
 
-.xro-tracker-toggle {
-  display: none;
-}
-
-.xro-tracker-header {
+.xandra-roll-offs-window button.xro-tracker-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -764,24 +1106,30 @@ button[data-action="cancelRollOff"] {
   letter-spacing: 0.12em;
   text-transform: uppercase;
   user-select: none;
+  width: 100%;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
 }
 
-.xro-tracker-header:hover {
+.xandra-roll-offs-window button.xro-tracker-header:hover {
   color: var(--xro-text);
   background: var(--xro-surface-strong);
+}
+
+.xandra-roll-offs-window button.xro-tracker-header:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--xro-primary);
 }
 
 .xro-tracker-header-icon {
   transition: transform 150ms ease;
 }
 
-.xro-tracker-toggle:checked ~ .xro-tracker-header .xro-tracker-header-icon {
+.xro-tracker[data-expanded="true"] .xro-tracker-header-icon {
   transform: rotate(180deg);
 }
 
-.xro-tracker-toggle:not(:checked)
-  ~ .xro-tracker-rows
-  .xro-tracker-row:not(.xro-tracker-row--current) {
+.xro-tracker[data-expanded="false"] .xro-tracker-row:not(.xro-tracker-row--current):not(.xro-tracker-row--preview) {
   display: none;
 }
 
@@ -844,10 +1192,9 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-footer {
-  padding: var(--xro-gap-sm) 0 0;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
+  margin: 8px 4px 0;
+  padding: 7px;
+  border-top-color: var(--xro-line-strong);
 }
 
 .xro-roll-action {
@@ -860,11 +1207,29 @@ button[data-action="cancelRollOff"] {
 
 .xro-roll-action--row {
   display: flex;
-  gap: var(--xro-gap-sm);
+  gap: 0;
 }
 
 .xro-roll-action--row button {
   flex: 1 1 auto;
+  border-radius: 0;
+}
+
+.xro-roll-action--row button + button {
+  border-left: 0;
+}
+
+.xro-roll-action--row .xro-close-roll-off-btn {
+  background: var(--xro-warning);
+  color: var(--xro-primary-contrast);
+}
+
+.xro-roll-action--row button:first-child {
+  border-radius: var(--xro-radius-sm) 0 0 var(--xro-radius-sm);
+}
+
+.xro-roll-action--row button:last-child {
+  border-radius: 0 var(--xro-radius-sm) var(--xro-radius-sm) 0;
 }
 
 .xro-gm-controls {
@@ -876,7 +1241,7 @@ button[data-action="cancelRollOff"] {
 .xro-gm-btn-row {
   display: flex;
   justify-content: flex-end;
-  gap: var(--xro-gap-sm);
+  gap: 0;
 }
 
 .xro-gm-btn {
@@ -887,23 +1252,55 @@ button[data-action="cancelRollOff"] {
   min-height: 29px;
   padding: 0;
   border-color: var(--xro-line) !important;
-  background: transparent !important;
+  border-radius: 0 !important;
+  background: var(--xro-surface-raised) !important;
   color: var(--xro-text-secondary) !important;
   box-shadow: none !important;
 }
 
-.xro-gm-btn:hover {
+.xro-gm-btn + .xro-gm-btn {
+  border-left: 0 !important;
+}
+
+.xro-gm-btn:first-child {
+  border-radius: var(--xro-radius-sm) 0 0 var(--xro-radius-sm) !important;
+}
+
+.xro-gm-btn:last-child {
+  border-radius: 0 var(--xro-radius-sm) var(--xro-radius-sm) 0 !important;
+}
+
+.xro-gm-btn:hover:not(:disabled) {
+  background: var(--xro-surface-strong) !important;
   color: var(--xro-text) !important;
 }
 
-.xro-gm-select,
-.xro-gm-input {
+.xro-gm-btn:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--xro-primary) !important;
+}
+
+.xro-gm-btn.xro-cancel-btn,
+.xro-gm-btn.xro-cancel-btn:hover:not(:disabled) {
+  color: var(--xro-danger) !important;
+}
+
+.xandra-roll-offs-window .xro-gm-select,
+.xandra-roll-offs-window .xro-gm-input {
   min-width: 0;
+  min-height: 32px;
   border: 1px solid var(--xro-line-strong);
   border-radius: var(--xro-radius-sm);
-  background: var(--xro-bg-0);
+  background: var(--xro-surface-raised);
   color: var(--xro-text);
   font-size: 0.76rem;
+  color-scheme: inherit;
+}
+
+.xandra-roll-offs-window .xro-gm-select:focus-visible,
+.xandra-roll-offs-window .xro-gm-input:focus-visible {
+  outline: none;
+  border-color: var(--xro-primary);
+  box-shadow: inset 0 0 0 1px var(--xro-primary);
 }
 
 /* -------------------------------------------------------------------------- */
@@ -920,11 +1317,7 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-empty-notice {
-  flex: 0 0 auto;
-  padding: 0.75rem var(--xro-gap);
-  border-bottom: 1px solid var(--xro-line);
-  background: var(--xro-bg-1);
-  text-align: center;
+  display: none;
 }
 
 .xro-empty-notice p {
@@ -939,35 +1332,53 @@ button[data-action="cancelRollOff"] {
   min-height: 0;
   display: flex;
   flex-direction: column;
+  gap: var(--xro-gap-sm);
+  padding: var(--xro-gap);
 }
 
 .xro-gm-participants--full {
   flex: 1 1 auto;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--xro-gap);
+  padding: 0;
 }
 
 .xro-gm-user-list {
   display: flex;
   flex-direction: column;
-  gap: var(--xro-gap-xs);
+  gap: 0;
 }
 
 .xro-gm-user-row {
   display: flex;
   align-items: center;
-  gap: var(--xro-gap-sm);
-  min-height: 33px;
-  padding: 0.28rem 0.45rem;
-  border: 1px solid transparent;
-  border-radius: var(--xro-radius-sm);
+  gap: 7px;
+  min-height: 39px;
+  padding: 5px 7px;
+  border: 1px solid var(--xro-line);
+  border-bottom: 0;
+  border-radius: 0;
   background: var(--xro-surface);
   cursor: pointer;
   user-select: none;
+  width: 100%;
+  text-align: left;
   transition:
     background 120ms ease,
     border-color 120ms ease;
+}
+
+.xro-gm-user-row:first-child {
+  border-radius: var(--xro-radius-sm) var(--xro-radius-sm) 0 0;
+}
+
+.xro-gm-user-row:last-child {
+  border-bottom: 1px solid var(--xro-line);
+  border-radius: 0 0 var(--xro-radius-sm) var(--xro-radius-sm);
+}
+
+.xro-gm-user-row:only-child {
+  border-radius: var(--xro-radius-sm);
 }
 
 .xro-gm-user-row:hover {
@@ -976,8 +1387,8 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-gm-user-row:focus-visible {
-  outline: 2px solid var(--xro-primary);
-  outline-offset: -2px;
+  outline: none;
+  box-shadow: inset 0 0 0 2px var(--xro-primary);
 }
 
 .xro-gm-user-row::after {
@@ -993,8 +1404,14 @@ button[data-action="cancelRollOff"] {
 }
 
 .xro-gm-user-row--selected {
-  border-color: rgba(115, 183, 255, 0.4);
-  background: rgba(115, 183, 255, 0.12);
+  position: relative;
+  z-index: 1;
+  background: var(--xro-primary-soft);
+  box-shadow: inset 0 0 0 1px var(--xro-primary), inset 0 -2px var(--xro-primary);
+}
+
+.xro-gm-user-row--selected:focus-visible {
+  box-shadow: inset 0 0 0 2px var(--xro-primary), inset 0 -3px var(--xro-primary);
 }
 
 .xro-gm-user-avatar {
@@ -1016,6 +1433,35 @@ button[data-action="cancelRollOff"] {
   white-space: nowrap;
 }
 
+.xro-gm-user-index {
+  width: 18px;
+  flex: 0 0 18px;
+  color: var(--xro-muted);
+  font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+  font-size: 0.58rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+}
+
+.xro-gm-user-check {
+  display: grid;
+  place-items: center;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+  border: 1px solid var(--xro-line-strong);
+  border-radius: var(--xro-radius-sm);
+  color: transparent;
+  font-size: 0.58rem;
+}
+
+.xro-gm-user-row--selected .xro-gm-user-check {
+  border-color: var(--xro-primary);
+  background: var(--xro-primary);
+  color: var(--xro-primary-contrast);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--xro-primary-strong) 60%, transparent);
+}
+
 .xro-gm-user-status {
   width: 7px;
   height: 7px;
@@ -1026,7 +1472,7 @@ button[data-action="cancelRollOff"] {
 
 .xro-gm-user-status--online {
   background: var(--xro-success);
-  box-shadow: 0 0 0 3px rgba(82, 217, 145, 0.12);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--xro-success) 20%, transparent);
 }
 
 .xro-gm-footer {
@@ -1034,9 +1480,12 @@ button[data-action="cancelRollOff"] {
   display: flex;
   flex-direction: column;
   gap: var(--xro-gap-sm);
-  padding: var(--xro-gap);
-  border-top: 1px solid var(--xro-line);
-  background: var(--xro-bg-1);
+  padding: 9px;
+  border: 1px solid var(--xro-line);
+  border-top-color: var(--xro-line-strong);
+  border-radius: var(--xro-radius);
+  background: linear-gradient(180deg, var(--xro-surface), var(--xro-bg-1));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035), var(--xro-shadow-soft);
 }
 
 .xro-gm-setup-summary {
@@ -1044,10 +1493,29 @@ button[data-action="cancelRollOff"] {
   align-items: baseline;
   justify-content: space-between;
   gap: 0.5rem;
-  padding: 0.5rem 0.65rem;
+  padding: 7px 9px;
   border: 1px solid var(--xro-line);
   border-radius: var(--xro-radius-sm);
-  background: var(--xro-surface);
+  background: linear-gradient(180deg, var(--xro-surface-raised), var(--xro-bg-3));
+  box-shadow: inset 0 1px rgba(255, 255, 255, 0.035);
+}
+
+.xro-gm-rules-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  min-height: 22px;
+  color: var(--xro-text-secondary);
+  font-size: 0.65rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+}
+
+.xro-gm-rules-heading > span:last-child i {
+  margin: 0 4px;
+  color: var(--xro-muted);
+  font-size: 0.58rem;
 }
 
 .xro-gm-section-heading {
@@ -1055,7 +1523,8 @@ button[data-action="cancelRollOff"] {
   align-items: flex-end;
   justify-content: space-between;
   gap: 0.5rem;
-  margin-bottom: 0.35rem;
+  min-height: 36px;
+  margin: 0 0 7px;
 }
 
 .xro-gm-section-heading > div {
@@ -1079,17 +1548,29 @@ button[data-action="cancelRollOff"] {
 
 .xro-gm-selection-actions {
   display: flex;
-  gap: 0.3rem;
+  gap: 0;
   margin-bottom: 0.45rem;
 }
 
 .xro-gm-selection-actions button {
-  padding: 0.18rem 0.4rem;
+  padding: 0.25rem 0.5rem;
   border: 1px solid var(--xro-line);
-  border-radius: var(--xro-radius-sm);
-  background: transparent;
+  border-radius: 0;
+  background: var(--xro-surface-raised);
   color: var(--xro-text-secondary);
   font-size: 0.65rem;
+}
+
+.xro-gm-selection-actions button + button {
+  border-left: 0;
+}
+
+.xro-gm-selection-actions button:first-child {
+  border-radius: var(--xro-radius-sm) 0 0 var(--xro-radius-sm);
+}
+
+.xro-gm-selection-actions button:last-child {
+  border-radius: 0 var(--xro-radius-sm) var(--xro-radius-sm) 0;
 }
 
 .xro-gm-selection-actions button:hover {
@@ -1155,6 +1636,16 @@ button[data-action="cancelRollOff"] {
   width: 100%;
 }
 
+.xro-setup-error {
+  margin: 0;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid color-mix(in srgb, var(--xro-danger) 38%, var(--xro-line));
+  border-radius: var(--xro-radius-sm);
+  background: color-mix(in srgb, var(--xro-danger) 10%, var(--xro-bg-1));
+  color: var(--xro-danger);
+  font-size: 0.72rem;
+}
+
 /* -------------------------------------------------------------------------- */
 /* Chat cards                                                                */
 /* -------------------------------------------------------------------------- */
@@ -1211,7 +1702,7 @@ button[data-action="cancelRollOff"] {
 .xandra-roll-offs-chat .xro-roll-list .xro-high,
 .xandra-roll-offs-chat .xro-score-list .xro-first {
   background: var(--xro-success-soft);
-  box-shadow: inset 0 0 0 1px rgba(82, 217, 145, 0.25);
+  box-shadow: inset 0 0 0 1px var(--xro-success);
 }
 
 .xandra-roll-offs-chat .xro-user,
@@ -1270,7 +1761,7 @@ button[data-action="cancelRollOff"] {
 }
 
 .xandra-roll-offs-chat .xro-final-winner {
-  background: rgba(115, 183, 255, 0.12);
+  background: var(--xro-primary-soft);
   color: var(--xro-primary);
 }
 
@@ -1282,8 +1773,4 @@ button[data-action="cancelRollOff"] {
   margin-top: var(--xro-gap-sm);
   padding-top: var(--xro-gap-sm);
   border-top: 1px solid var(--xro-line);
-}
-
-#sidebar-tabs .item[data-tab="roll-offs"].active {
-  color: var(--xro-primary);
 }

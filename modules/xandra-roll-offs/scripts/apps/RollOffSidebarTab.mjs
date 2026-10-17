@@ -1,4 +1,3 @@
-import { RollOffWindow } from './RollOffWindow.mjs';
 import { SETTINGS } from '../settings.mjs';
 import { MODULE_ID } from '../utils.mjs';
 
@@ -7,7 +6,7 @@ import { MODULE_ID } from '../utils.mjs';
  * prevents the native tab-switching behavior and instead toggles the dedicated
  * Roll-Off window for all users, regardless of whether a roll-off is active.
  */
-export function registerSidebarTab() {
+export function registerSidebarTab(RollOffWindow) {
   const inject = () => {
     // Settings are registered in `ready`; the sidebar may render before then.
     if (!game.settings.has?.(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) return;
@@ -15,7 +14,7 @@ export function registerSidebarTab() {
       document.querySelector('#xro-sidebar-tab-btn')?.closest('li')?.remove();
       return;
     }
-    injectSidebarTabNav();
+    injectSidebarTabNav(RollOffWindow);
   };
 
   // Foundry v14 sometimes renders the sidebar before settings are registered, and
@@ -32,7 +31,7 @@ export function registerSidebarTab() {
   if (ui.sidebar?.rendered) inject();
 }
 
-function injectSidebarTabNav() {
+function injectSidebarTabNav(RollOffWindow) {
   const tabBar = document.querySelector('#sidebar-tabs');
   if (!tabBar) return;
 

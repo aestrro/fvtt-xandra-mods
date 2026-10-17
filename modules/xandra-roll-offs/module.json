@@ -2,7 +2,7 @@
   "id": "xandra-roll-offs",
   "title": "Xandra Roll-Offs",
   "description": "GM-run, multi-round roll-off contests with automatic tiebreak resolution and persistent win tallies.",
-  "version": "0.1.9",
+  "version": "0.2.1",
   "authors": [
     {
       "name": "aestrro",
@@ -14,22 +14,22 @@
     "verified": "14.360"
   },
   "esmodules": [
-    "scripts/main.mjs"
+    "dist/scripts/main.js"
   ],
   "styles": [
-    "styles/xandra-roll-offs.css"
+    "dist/styles/xandra-roll-offs.css"
   ],
   "languages": [
     {
       "lang": "en",
       "name": "English",
-      "path": "lang/en.json"
+      "path": "dist/lang/en.json"
     }
   ],
   "socket": true,
   "url": "https://github.com/aestrro/fvtt-xandra-mods",
   "manifest": "https://raw.githubusercontent.com/aestrro/fvtt-xandra-mods/main/modules/xandra-roll-offs/module.json",
-  "download": "https://github.com/aestrro/fvtt-xandra-mods/releases/download/xandra-roll-offs@v0.1.9/module.zip",
+  "download": "https://github.com/aestrro/fvtt-xandra-mods/releases/download/xandra-roll-offs@v0.2.1/module.zip",
   "license": "MIT",
   "readme": "README.md"
 }
