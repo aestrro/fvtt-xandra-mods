@@ -407,4 +407,4 @@
 - Compact win pips use the same 15px slot, 12px SVG, and 0.18rem gap as the expanded tracker. They stay left-packed rather than stretching across the half-row, keeping an n-length count visually tight at 2–20+ pips.
 
 - User pointed out the pips were too spaced out; aligned compact pip dimensions and spacing exactly with the expanded tracker, left-packed rather than distributed.
-- Verification: 50 Node tests, 9 React tests, typecheck, production build, `git diff --check`, and Docker-mounted JS/CSS hash parity pass for v0.2.2. Release tag/publish remains pending; live visual review remains outstanding.
+- Verification: 50 Node tests, 9 React tests, typecheck, production build, `git diff --check`, and Docker-mounted JS/CSS hash parity pass for v0.2.2. Commit `419df12326d71983d6638ae3e73798f4cb141721` and tag `xandra-roll-offs@v0.2.2` are pushed. GitHub Actions run `40255003233` succeeded; the published ZIP passed integrity and manifest checks. Live visual review remains outstanding.
