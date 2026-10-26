@@ -61,6 +61,33 @@ describe('module assets', () => {
     assert.match(value, /border-radius:\s*var\(--xro-radius-sm\)/);
   });
 
+  it('keeps the collapsed tracker to a player label, dots, and expand toggle', async () => {
+    const css = await readFile(new URL('styles/xandra-roll-offs.css', moduleRoot), 'utf8');
+    const body = css.match(/\.xro-window-body\s*\{([^}]*)\}/)?.[1] ?? '';
+    const stack = css.match(/\.xro-scroll-stack\s*\{([^}]*)\}/)?.[1] ?? '';
+    const compact = css.match(/\.xro-tracker-collapsed\s*\{([^}]*)\}/)?.[1] ?? '';
+    const compactRows = css.match(/\.xro-tracker\[data-expanded="false"\] \.xro-tracker-rows\s*\{([^}]*)\}/)?.[1] ?? '';
+    const compactPips = css.match(/\.xro-tracker-collapsed \.xro-tracker-slot\s*\{([^}]*)\}/)?.[1] ?? '';
+    const collapsedRows = css.match(/\.xro-tracker\[data-expanded="false"\] \.xro-tracker-row:not\(\.xro-tracker-row--current\)\s*\{([^}]*)\}/)?.[1] ?? '';
+    const completedFooter = css.match(/\.xro-window-body--complete \.xro-footer\s*\{([^}]*)\}/)?.[1] ?? '';
+    assert.match(body, /background:\s*var\(--xro-bg-1\)/);
+    assert.match(stack, /background:\s*transparent/);
+    assert.match(compact, /display:\s*grid/);
+    assert.match(compact, /grid-template-columns:\s*auto minmax\(0, 1fr\) auto auto/);
+    assert.match(compactPips, /flex:\s*0 0 15px/);
+    const compactSlots = css.match(/\.xro-tracker-collapsed \.xro-tracker-slots\s*\{([^}]*)\}/)?.[1] ?? '';
+    assert.match(compactSlots, /justify-content:\s*flex-start/);
+    assert.match(compactSlots, /gap:\s*0\.18rem/);
+    assert.match(compactRows, /display:\s*none/);
+    assert.match(collapsedRows, /display:\s*none/);
+    assert.match(completedFooter, /display:\s*flex/);
+  });
+
+  it('does not add last-roll repeat controls to the Roll-Off component', async () => {
+    const component = await readFile(new URL('src/components/RollOffApp/index.tsx', moduleRoot), 'utf8');
+    assert.doesNotMatch(component, /Repeat Last|Repeat last roll|repeatLast|lastFormula/i);
+  });
+
   it('allows session history to render without active roll-off data', async () => {
     const component = await readFile(new URL('src/components/RollOffApp/index.tsx', moduleRoot), 'utf8');
     assert.match(component, /showHistory \? <SessionHistory/);

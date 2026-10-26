@@ -70,4 +70,44 @@ describe('RollOffApp', () => {
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.NextRound' })).toBeTruthy();
     expect(screen.getByText('Alice, Bob')).toBeTruthy();
   });
+
+  it('shows current player name and dots with the collapse toggle, then all scores when expanded', () => {
+    const model = baseModel();
+    model.hasData = true;
+    model.isActive = false;
+    model.isGM = true;
+    model.isParticipant = true;
+    model.roundComplete = true;
+    model.roundResult = { type: 'winner', name: 'Alice' };
+    model.winsNeeded = 3;
+    model.tracker = [
+      { userId: 'gm', name: 'Current hero', isCurrentUser: true, wins: 2, slots: [{ won: true }, { won: true }, { won: false }] },
+      { userId: 'a', name: 'Alice with a long character name', isCurrentUser: false, wins: 1, slots: [{ won: true }, { won: false }, { won: false }] }
+    ];
+    render(<RollOffApp model={model} showHistory={false} onAction={vi.fn()} />);
+    expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.CloseRollOff' })).toBeTruthy();
+    expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Close' })).toBeTruthy();
+    expect(document.querySelector('.xro-window-body--complete')).not.toBeNull();
+    expect(document.querySelector('.xro-tracker[data-expanded="false"] .xro-tracker-rows')).toBeNull();
+    expect(screen.queryByRole('combobox')).toBeNull();
+    expect(document.querySelector('.xro-tracker-collapsed .xro-tracker-current-name')?.textContent).toBe('Current hero');
+    expect(document.querySelector('.xro-tracker-collapsed .xro-tracker-header-text')?.textContent).toBe('XANDRA_ROLL_OFFS.Labels.Wins');
+    expect(document.querySelectorAll('.xro-tracker-collapsed .xro-tracker-slot')).toHaveLength(3);
+    const compactChildren = Array.from(document.querySelector('.xro-tracker-collapsed')?.children ?? []);
+    expect(compactChildren.map((element) => element.className)).toEqual([
+      'xro-tracker-header xro-tracker-header--collapsed', 'xro-tracker-current-name', 'xro-tracker-slots', 'xro-tracker-header-icon-button'
+    ]);
+    expect(document.querySelectorAll('.xro-tracker-rows .xro-tracker-row')).toHaveLength(0);
+    fireEvent.click(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Labels.ExpandWins' }));
+    expect(document.querySelectorAll('.xro-tracker[data-expanded="true"] .xro-tracker-row')).toHaveLength(2);
+    const expandedToggle = screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Labels.CollapseWins' });
+    expect(expandedToggle.getAttribute('aria-expanded')).toBe('true');
+    expect(getComputedStyle(expandedToggle).display).not.toBe('none');
+    expect(expandedToggle.classList.contains('xro-tracker-header-icon-button--expanded')).toBe(true);
+    expect(expandedToggle.parentElement?.className).toBe('xro-tracker');
+    fireEvent.click(expandedToggle);
+    expect(document.querySelector('.xro-tracker[data-expanded="false"]')).not.toBeNull();
+    expect(screen.getByText('Current hero')).toBeTruthy();
+    expect(document.querySelector('.xro-footer')).not.toBeNull();
+  });
 });

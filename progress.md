@@ -353,6 +353,28 @@
 - Created and inspected a 76,237-byte production package at `C:/Users/aestr/AppData/Local/hermes/cache/scratch/xandra-dice-tray-v0.2.0.zip`.
 - No commit, tag, push, or GitHub release was created.
 
+## React Roll-Off Window Migration
+
+- User approved the UI-only conversion: preserve the module identity, settings, state rules, GM socket authority, and chat flows.
+- Confirmed the existing React ApplicationV2 adapter, roll-off source, tests, manifest, and release packaging contract; added Phase 10 to the plan.
+- An implementation subagent was rate-limited by its provider (HTTP 429) before making changes. Continuing locally; no source files were modified by that attempt.
+- Implemented the UI-only migration locally: a React ApplicationV2 window, GM setup, rounds and scrolling, wins tracker, completed-session history, and GM/player actions. The prior Handlebars window and its script are removed; rule/socket/chat modules and settings keys remain.
+- The React migration was initially prepared at `0.1.9`; the user then requested a new local `0.2.0` version. No Git history mutation or release was made.
+- Local verification: 44 existing node tests and 8 React/view-model/window tests passed; TypeScript typecheck and Vite build passed; `git diff --check` passed.
+- Built an installable archive at `C:/Users/aestr/AppData/Local/hermes/cache/scratch/xandra-roll-offs-react-local.zip`; verified its manifest, JavaScript, CSS, locale, README, license, and both chat templates.
+- Host/container hashes match for the built JS and CSS; Foundry serves the manifest, JS, CSS, and locale byte-for-byte from the bind mount.
+- Imported the compiled entry with a minimal Foundry lifecycle harness and confirmed it registers `init`/`ready` hooks and completes `init` without an exception.
+- Live GM/player interaction remains unverified: the available browser is redirected to Foundry `/auth`, and the vault has no saved login. Do not report visual or contest-lifecycle acceptance yet.
+- Synchronized `module.json` and `package.json` at `0.2.0`, updated the manifest download URL for the future `xandra-roll-offs@v0.2.0` release, and rebuilt. `pnpm install --frozen-lockfile`, 44 node tests, 8 React tests, TypeScript typecheck, production build, manifest/asset validation, and `git diff --check` passed.
+- Created and CRC-checked `C:/Users/aestr/AppData/Local/hermes/cache/scratch/xandra-roll-offs-v0.2.0.zip`; its embedded manifest is `0.2.0` and all referenced assets are present. This is a local artifact, not a published GitHub release; live Foundry acceptance is still pending.
+- Applied the dice tray's visual grammar to the roll-off surfaces: precise 4px corner geometry, single-seam segmented actions/selections, inset selection and keyboard-focus states, flat primary actions, always-visible GM roll-for buttons, and tighter control spacing.
+- Replaced global dark-only palette values with per-Foundry-window/chat-card scoped dark and light palettes. The outer `.application.xandra-roll-offs-window` owns theme variables; the React inner root is layout-only so it cannot mask Foundry's theme class.
+- Browser computed-style probes against the live Foundry v14.360 stylesheet verified the actual app surface, primary/advance/setup/close buttons, input, selection state, and chat card in light and dark modes. Measured action foreground/background contrast ratios exceed WCAG AA (minimum 6.30:1 among the sampled accent buttons).
+- Added CSS contract tests for theme scoping, per-mode palettes, single seams, keyboard focus, and visible roll-for controls. Final verification: 47 Node tests and 8 Vitest tests passed; TypeScript, build, package CRC/manifest/assets, served-file equality, and `git diff --check` passed. Rebuilt local 0.2.0 archive. The module/window has not been published; authenticated full contest flow remains pending.
+- Continued the visual correction requested for the round cards: removed the obsolete empty-state strip; added inset panel depth, bordered raised GM setup/footer surfaces, increased participant row/avatar scale, and refined active-round separators. Added a CSS contract test for layered card materials; updated one stale React assertion to the actual rendered `Contest complete` text.
+- Verification after these local-only edits: `pnpm --filter xandra-roll-offs test` passed (48 Node tests, 8 Vitest tests). An earlier run failed one stale test assertion; corrected it and reran successfully. Typecheck and production build also pass after the 0.2.1 version update. Built `C:/Users/aestr/AppData/Local/hermes/cache/scratch/xandra-roll-offs-v0.2.1.zip`; embedded manifest version is 0.2.1, all manifest-referenced assets exist, and ZIP CRC passes.
+- User requested publishing roll-offs 0.2.1. Verified the remote tag history ended at 0.1.9 and release workflow matches `*@v*`. Synchronized package/manifest metadata at 0.2.1 and updated the download URL.
+
 ## 5-Question Reboot Check
 
 | Question | Answer |
@@ -362,3 +384,27 @@
 | What's the goal? | Verified Foundry-native modules with authoritative logic, resilient lifecycle handling, and no duplicate UI |
 | What have I learned? | A generic React mount registry plus module-owned observers keeps shared infrastructure reusable without encoding screen-specific selectors |
 | What have I done? | Completed Dice Tray X Phase 1 with 15 new tests, retained 44 passing roll-off tests, and installed the package into local Foundry data |
+
+- No `gh` CLI was available, so Actions/release state was verified through GitHub's read-only API instead.
+- Committed the roll-offs 0.2.1 release as `a0cbcc3` (`feat(xandra-roll-offs): release React window v0.2.1`); its Actions run `39079895490` succeeded, and the published ZIP's CRC, manifest, and assets were verified.
+- The 0.2.2 release work is separate and not yet committed or published. Planning notes/findings are local and not release payload.
+
+## Panel Surface and Footer Condensation
+
+- Applied the supplied live DOM diagnosis: the grey surface now belongs to the complete contest body, while the round-history viewport is transparent and flexes only within that shared panel. Removed the old fixed `calc(100% - 9rem)` scroll height.
+- The closed win tracker now summarizes participant rows side-by-side with compact win slots; expanding still exposes the vertically stacked full rows. The live header shows the collapsed control.
+- Combined completed-session Close Roll-Off and Close actions into a compact single-line footer next to the disabled roll state; moved Force Resolve / Cancel labels into the utility buttons and removed the prior separate icon-only footer row.
+- Tightened round row/card spacing and added short-height rules so a typical 793px Foundry panel spends less vertical room on header/history/tracker chrome.
+- Added CSS and React regression checks for the full-body background, transparent scroll area, compact tracker, completed-session state, and accessible close controls.
+- Verification: 49 Node tests and 9 React tests passed; `tsc --noEmit`, Vite production build, and `git diff --check` passed. Built CSS and JS SHA-256 hashes match the Docker-mounted Foundry assets.
+- No version bump or release performed for this follow-up. Live authenticated visual review is still outstanding.
+
+## Wins Container Follow-up
+
+- User clarified that the “reroll last roll” mention referred to a different component. Kept it out of Roll-Offs; confirmed the Dice Tray owns repeat-last behavior through its `lastFormula` store and `handleRepeat` in `components/DiceTray`.
+- Corrected collapsed Wins to show the current player's name and pips with the existing right-side expand/collapse chevron. Removed the character dropdown; expanding reveals all players' win rows, and collapsing returns to the current player summary. No second row or `n/x` counter.
+- The collapsed strip now contains the `Wins` toggle, current player's name, pips, and far-right chevron; it has no character dropdown. Expanded state shows all players' win rows and retains a collapse chevron at the far right.
+- Compact win pips use the same 15px slot, 12px SVG, and 0.18rem gap as the expanded tracker. They stay left-packed rather than stretching across the half-row, keeping an n-length count visually tight at 2–20+ pips.
+
+- User pointed out the pips were too spaced out; aligned compact pip dimensions and spacing exactly with the expanded tracker, left-packed rather than distributed.
+- Verification: 50 Node tests, 9 React tests, typecheck, production build, `git diff --check`, and Docker-mounted JS/CSS hash parity pass for v0.2.2. Release tag/publish remains pending; live visual review remains outstanding.

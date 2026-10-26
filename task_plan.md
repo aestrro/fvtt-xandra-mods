@@ -10,7 +10,7 @@ Hard-refresh Foundry and manually verify history-without-active-state, duplicate
 
 ## Current Phase
 
-Phase 8 — Live Foundry Acceptance
+Phase 13 — Full Panel Surface and Compact Footer
 
 ## Phases
 
@@ -85,6 +85,25 @@ Phase 8 — Live Foundry Acceptance
 - [x] Add regression coverage and implement approved fixes
 - **Status:** complete
 
+### Phase 10: React Roll-Off Window Migration
+
+- [x] Preserve `xandra-roll-offs` identity, settings, pure rules, GM socket authority, and chat interception
+- [x] Replace the Handlebars window with a React ApplicationV2 window and focused function components
+- [x] Build and package the module including chat templates, locale, and window styling
+- [x] Add React window/component tests and adapt asset tests without weakening existing regressions
+- [x] Run unit tests, typecheck, build, and packaged-asset checks
+- [ ] Exercise live GM/player contest lifecycle in the authenticated Foundry client (browser session is at `/auth` with no saved login)
+- **Status:** in_progress
+
+### Phase 11: Dice-Tray Visual Language and Foundry Theme Support
+
+- [x] Scope roll-off color tokens to its ApplicationV2 window and chat cards, with light/dark theme variants
+- [x] Carry the dice tray's flat materials, single-seam controls, inset selection/focus states, and compact spacing across setup, rounds, history, tracker, footer, and chat cards
+- [x] Verify contrast, asset/token coverage, typecheck, tests, build, packaged stylesheet, and served-file parity
+- [x] Exercise light/dark theme tokens in a browser computed-style probe against the locally served Foundry stylesheet
+- [ ] Inspect actual Roll-Offs ApplicationV2 window visually in an authenticated Foundry client
+- **Status:** in_progress
+
 ### Parallel Initiative: Xandra Dice Tray X
 
 - [x] Audit inline behavior in the legacy dice tray
@@ -126,3 +145,31 @@ World-persisted history, latest 25 sessions, visible to participants, with a sep
 | Error | Attempt | Resolution |
 |-------|---------|------------|
 | Plan patch matched duplicate phase markers | 1 | Re-read the current plan and rewrote it with the UI-refresh phases. |
+
+### Phase 12: Publish Xandra Roll-Offs 0.2.1
+
+- [x] Synchronize module/package version and download URL at 0.2.1
+- [x] Run module tests, typecheck, production build, package manifest/asset and CRC checks
+- [x] Commit the tested module state, tag `xandra-roll-offs@v0.2.1`, and push
+- [x] Verify release workflow and published `module.zip`
+- [ ] Complete authenticated live Foundry acceptance (separate outstanding gate)
+- **Status:** complete — release workflow succeeded and the published archive was downloaded and verified
+
+### Phase 13: Full Panel Surface and Compact Footer
+
+- [x] Make the grey surface cover the contest panel, with the round history transparent inside it
+- [x] Condense the wins tracker into a one-row closed summary; preserve the full participant breakdown when expanded
+- [x] Group completed-contest actions into a single compact footer row
+- [x] Verify module tests, typecheck, build, CSS contract checks, and Foundry bind-mounted asset parity
+- [ ] Hard-refresh and visually review in Foundry
+- **Status:** in_progress — implementation and automated/build verification pass; live client review remains
+
+### Phase 14: Wins Summary and Component Scope
+
+- [x] Keep the last-roll repeat control out of Roll-Offs; it belongs to Dice Tray
+- [x] Keep collapsed Wins to one row: current player name, dots, and expand/collapse toggle; no dropdown
+- [x] Expand Wins to show all character win rows
+- [x] Remove the player dropdown; retain the right-side expand/collapse toggle
+- [x] Verify tests, typecheck, build, and diff hygiene for v0.2.2
+- [ ] Hard-refresh and visually review the tracker in Foundry
+- **Status:** in_progress — implementation and automated checks pass; live visual acceptance remains
