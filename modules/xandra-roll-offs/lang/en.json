@@ -29,6 +29,8 @@
       "RollOffComplete": "Roll-Off Complete",
       "Winner": "Winner",
       "Wins": "Wins",
+      "FinalScore": "Final Score",
+      "RoundDetails": "Round Details",
       "Tie": "Tie between",
       "RoundSummary": "{round} Summary",
       "RollOffSummary": "Roll-Off Summary",

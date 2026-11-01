@@ -157,6 +157,11 @@ export async function postRoundSummary(
  * @returns {Promise<ChatMessage>} The created chat message document.
  */
 export async function postRollOffSummary(history, tallies, winner) {
+  const ordinal = (value) => {
+    const mod100 = value % 100;
+    if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
+    return `${value}${value % 10 === 1 ? 'st' : value % 10 === 2 ? 'nd' : value % 10 === 3 ? 'rd' : 'th'}`;
+  };
   const rounds = (history ?? []).map((entry) => ({
     round: entry.round,
     winnerName: game.users.get(entry.winner)?.name ?? entry.winner,
@@ -167,9 +172,11 @@ export async function postRollOffSummary(history, tallies, winner) {
       name: game.users.get(userId)?.name ?? userId,
       score: Number(score) || 0,
     }))
-    .sort((a, b) => b.score - a.score);
+    .sort((a, b) => b.score - a.score)
+    .map((entry, index) => ({ ...entry, place: ordinal(index + 1) }));
 
   const winnerName = winner?.name ?? (talliesList[0]?.name ?? '');
+  const winnerScore = talliesList.find((entry) => entry.name === winnerName)?.score ?? 0;
 
   const content = await foundry.applications.handlebars.renderTemplate(
     "modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs",
@@ -177,6 +184,7 @@ export async function postRollOffSummary(history, tallies, winner) {
       rounds,
       tallies: talliesList,
       winner: winnerName,
+      winnerScore,
     }
   );
 

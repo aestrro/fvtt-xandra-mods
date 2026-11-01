@@ -28,9 +28,11 @@ const RoundScroller = ({ label, rolls, current, alternate, isParticipant, isGM, 
     return () => observer?.disconnect();
   }, [rolls.length]);
   return <div className={`xro-round-group ${current ? 'xro-round-group--current' : alternate ? 'xro-round-group--alt' : ''}`}>
-    <div className="xro-round-title"><span className="xro-round-marker">{current ? <i className="fas fa-crosshairs" /> : <i className="fas fa-dice-d20" />}</span>
-      <span>{label}</span>
-      {current && <span className="xro-round-live-mark"><i className="fas fa-circle" /> LIVE</span>}</div>
+    <div className="xro-round-title-row">
+      <div className="xro-round-title">
+        <span>{label}</span>
+      </div>
+    </div>
     <div className={`xro-round-scroller ${edges.left || edges.right ? 'xro-round-scroller--scrollable' : ''}`}>
       <button type="button" className="xro-row-nav xro-row-nav--left" disabled={!edges.left}
         aria-label="Scroll round left" onClick={() => row.current?.scrollBy({ left: -Math.max((row.current?.clientWidth ?? 0) * 0.72, 120), behavior: 'smooth' })}>
@@ -40,7 +42,9 @@ const RoundScroller = ({ label, rolls, current, alternate, isParticipant, isGM, 
         {rolls.map((roll) => <div key={roll.userId}
           className={`xro-roll-pill ${current ? roll.rolled ? 'xro-roll-pill--rolled' : 'xro-roll-pill--waiting' : roll.isWinner ? 'xro-roll-pill--winner' : ''}`}>
           <img className="xro-avatar" src={roll.avatar} alt={roll.name} />
-          <span className="xro-roll-pill-value">{roll.value ?? '-'}</span>
+          <span className="xro-roll-pill-value">
+            {roll.rolled ? roll.value ?? '-' : current ? roll.rolling ? 'Rolling…' : '-' : roll.value ?? '-'}
+          </span>
           <span className="xro-roll-pill-name" title={roll.name}>{roll.name}</span>
           {current && isGM && !roll.rolled && <button type="button" className="xro-pill-roll-btn"
             disabled={!isParticipant}
@@ -67,23 +71,27 @@ interface RoundTimelineProps {
 }
 
 const RoundTimeline = ({ history, current, roundLabel, isActive, isGM, isParticipant, onRollFor }: RoundTimelineProps) => {
-  const stack = useRef<HTMLDivElement>(null);
+  const historyStack = useRef<HTMLDivElement>(null);
   const previousCount = useRef(-1);
   useEffect(() => {
-    const element = stack.current;
+    const element = historyStack.current;
     if (!element || previousCount.current === history.length) return;
     const atBottom = previousCount.current < 0 || element.scrollHeight - element.scrollTop - element.clientHeight < 80;
     if (atBottom) element.scrollTop = element.scrollHeight;
     previousCount.current = history.length;
   }, [history.length]);
-  return <div className="xro-scroll-stack" ref={stack}>
-    <div className="xro-scroll-stack-content">
-      {history.map((round, index) => <RoundScroller key={`${round.label}-${index}`} label={round.label} rolls={round.rolls} alternate={index % 2 !== 0} />)}
-      {isActive && <RoundScroller label={`${roundLabel} · Current`} rolls={current}
-        current isGM={isGM} isParticipant={isParticipant} onRollFor={onRollFor} />}
-      {!isActive && history.length === 0 && <div className="xro-empty-rounds">{game.i18n.localize('XANDRA_ROLL_OFFS.Labels.NoRoundsYet')}</div>}
+  return <>
+    <div className="xro-scroll-stack" ref={historyStack}>
+      <div className="xro-scroll-stack-content">
+        {history.map((round, index) => <RoundScroller key={`${round.label}-${index}`} label={round.label} rolls={round.rolls} alternate={index % 2 !== 0} />)}
+      </div>
     </div>
-  </div>;
+    {isActive && <div className="xro-current-round">
+      <RoundScroller label={roundLabel} rolls={current}
+        current isGM={isGM} isParticipant={isParticipant} onRollFor={onRollFor} />
+    </div>}
+    {!isActive && history.length === 0 && <div className="xro-empty-rounds">{game.i18n.localize('XANDRA_ROLL_OFFS.Labels.NoRoundsYet')}</div>}
+  </>;
 };
 
 export default RoundTimeline;

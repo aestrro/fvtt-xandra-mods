@@ -40,6 +40,11 @@ export class RollOffSocketHandler {
   _onSocketEvent(data) {
     if (!data?.type) return;
 
+    if (data.type === 'rolling') {
+      this._onRolling(data);
+      return;
+    }
+
     switch (data.type) {
       case 'submitRoll':
         this._runSocketTask('submitRoll', () => this._onSubmitRoll(data));
@@ -157,6 +162,7 @@ export class RollOffSocketHandler {
       const evaluatedRolls = [];
       for (const userId of pending) {
         try {
+          this._emit('rolling', { userId, roundLabel: activeRound.label });
           const roll = await new Roll(activeRollOff.dieType).evaluate({ allowInteractive: false });
           evaluatedRolls.push({ userId, roll });
         } catch (err) {
@@ -172,6 +178,9 @@ export class RollOffSocketHandler {
 
       await setActiveRollOff(activeRollOff);
       this._emit('stateUpdated', activeRollOff);
+      if (State.isRoundComplete(activeRollOff)) {
+        this._emit('roundRollsComplete', { roundLabel: activeRound.label });
+      }
 
       if (game.settings.get(MODULE_ID, SETTINGS.POST_PER_ROLL_CARD)) {
         for (const { userId, roll } of evaluatedRolls) {
@@ -179,9 +188,6 @@ export class RollOffSocketHandler {
         }
       }
 
-      if (State.isRoundComplete(activeRollOff)) {
-        await this._resolveRound(activeRollOff);
-      }
     } finally {
       this.#resolving = false;
     }
@@ -217,11 +223,15 @@ export class RollOffSocketHandler {
       const activeRound = State.findActiveRound(activeRollOff.roundStack);
       const dieType = activeRollOff.dieType;
       console.log(`${MODULE_ID} | _onSubmitRoll: evaluating ${dieType} for ${userId}`);
+      this._emit('rolling', { userId, roundLabel: activeRound.label });
       const roll = await new Roll(dieType).evaluate({ allowInteractive: false });
       console.log(`${MODULE_ID} | _onSubmitRoll: roll result ${roll.total} for ${userId}`);
       State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id });
       await setActiveRollOff(activeRollOff);
       this._emit('stateUpdated', activeRollOff);
+      if (State.isRoundComplete(activeRollOff)) {
+        this._emit('roundRollsComplete', { roundLabel: activeRound.label });
+      }
 
       if (game.settings.get(MODULE_ID, SETTINGS.POST_PER_ROLL_CARD)) {
         await this._runChatEffect('Audit roll card', () => this._postAuditRoll(userId, roll, activeRound.label));
@@ -235,6 +245,19 @@ export class RollOffSocketHandler {
     } finally {
       this.#rollingUsers.delete(userId);
     }
+  }
+
+  _onRolling(data) {
+    if (game.user.isGM) return;
+    const activeRollOff = getActiveRollOff();
+    if (!activeRollOff?.active || !activeRollOff.participants?.includes(data.userId)) return;
+    const activeRound = State.findActiveRound(activeRollOff.roundStack);
+    if (!activeRound || activeRound.label !== data.roundLabel || activeRound.rolls?.[data.userId]) return;
+    const notifiedRollOff = structuredClone(activeRollOff);
+    const notifiedRound = State.findActiveRound(notifiedRollOff.roundStack);
+    if (!notifiedRound) return;
+    notifiedRound.rolls[data.userId] = { total: null, rolling: true };
+    Hooks.callAll('xandraRollOffs.stateUpdated', notifiedRollOff);
   }
 
   async _onRequestStartRollOff(data) {

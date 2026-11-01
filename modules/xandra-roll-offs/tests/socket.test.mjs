@@ -133,16 +133,17 @@ describe('RollOffSocketHandler hardening', () => {
     assert.ok(harness.hookEvents.some((event) => event.name === 'xandraRollOffs.roundStarted'));
   });
 
-  it('persists force-resolved rolls even when audit cards fail', async () => {
+  it('persists force-resolved rolls without advancing the round', async () => {
     const activeRollOff = startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2'] });
     const harness = createHarness({ activeRollOff, rollTotals: [18, 12] });
 
     await harness.handler.forceResolve();
 
     const stored = harness.values.get('activeRollOff');
-    assert.equal(stored.history.length, 1);
-    assert.equal(stored.history[0].winner, 'u1');
-    assert.equal(stored.currentRoundIndex, 1);
+    assert.equal(stored.history.length, 0);
+    assert.equal(stored.currentRoundIndex, 0);
+    assert.equal(stored.roundStack[0].rolls.u1.total, 18);
+    assert.equal(stored.roundStack[0].rolls.u2.total, 12);
   });
 
   it('resolves a complete round only once when advance is triggered concurrently', async () => {

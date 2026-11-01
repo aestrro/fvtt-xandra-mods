@@ -69,6 +69,8 @@ describe('RollOffApp', () => {
     render(<RollOffApp model={model} showHistory={false} onAction={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.NextRound' })).toBeTruthy();
     expect(screen.getByText('Alice, Bob')).toBeTruthy();
+    expect(document.querySelector('.xro-round-result-modal')?.parentElement?.className).toBe('xro-round-stage');
+    expect(document.querySelector('.xro-round-result-panel')?.classList.contains('xro-round-result-panel--tie')).toBe(true);
   });
 
   it('shows current player name and dots with the collapse toggle, then all scores when expanded', () => {
@@ -88,6 +90,8 @@ describe('RollOffApp', () => {
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.CloseRollOff' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Close' })).toBeTruthy();
     expect(document.querySelector('.xro-window-body--complete')).not.toBeNull();
+    expect(document.querySelector('.xro-window-body--complete .xro-footer--complete')).not.toBeNull();
+    expect(document.querySelector('.xro-completion-modal')).not.toBeNull();
     expect(document.querySelector('.xro-tracker[data-expanded="false"] .xro-tracker-rows')).toBeNull();
     expect(screen.queryByRole('combobox')).toBeNull();
     expect(document.querySelector('.xro-tracker-collapsed .xro-tracker-current-name')?.textContent).toBe('Current hero');

@@ -171,5 +171,11 @@ World-persisted history, latest 25 sessions, visible to participants, with a sep
 - [x] Expand Wins to show all character win rows
 - [x] Remove the player dropdown; retain the right-side expand/collapse toggle
 - [x] Verify tests, typecheck, build, and diff hygiene for v0.2.2
+- [x] Apply the Foundry window shell radius and theme background tokens
+- [x] Verify asset tests, typecheck, build, and Docker CSS parity for the shell styling follow-up
+- [x] Remove the inner window-content border, top radius, and background
+- [x] Verify the shell cleanup with regression tests and the full module checks
+- [x] Remove banner top border and add bottom spacing below banners
+- [x] Square top corners on shared surface banners while retaining the bottom radius
 - [ ] Hard-refresh and visually review the tracker in Foundry
 - **Status:** in_progress — implementation and automated checks pass; live visual acceptance remains

@@ -27,8 +27,8 @@ describe('module assets', () => {
 
   it('keeps the theme palette on Foundry app chrome, not the inner React root', async () => {
     const css = await readFile(new URL('styles/xandra-roll-offs.css', moduleRoot), 'utf8');
-    const darkTokens = css.match(/\.application\.xandra-roll-offs-window,\s*\.xandra-roll-offs-chat\s*\{([^}]*)\}/)?.[1] ?? '';
-    const lightTokens = css.match(/body\.theme-light \.application\.xandra-roll-offs-window:not\(\.theme-dark\),[\s\S]*?\{([^}]*)\}/)?.[1] ?? '';
+    const darkTokens = css.match(/\.application\.xandra-roll-offs-window,\s*\.xandra-roll-offs-chat\s*\{\s*--xro-bg-0:[^}]*\}/)?.[0] ?? '';
+    const lightTokens = css.match(/body\.theme-light \.application\.xandra-roll-offs-window:not\(\.theme-dark\),\s*\.application\.xandra-roll-offs-window\.theme-light,\s*body\.theme-light \.xandra-roll-offs-chat,\s*\.themed\.theme-light \.xandra-roll-offs-chat\s*\{[^}]*--xro-primary:\s*#255eaf[^}]*\}/)?.[0] ?? '';
     const component = await readFile(new URL('src/components/RollOffApp/index.tsx', moduleRoot), 'utf8');
     assert.match(darkTokens, /--xro-primary:\s*#6ea8fe/);
     assert.match(lightTokens, /--xro-primary:\s*#255eaf/);
@@ -37,13 +37,14 @@ describe('module assets', () => {
     assert.doesNotMatch(component, /className="xandra-roll-offs-window"/);
   });
 
-  it('uses one-seam selection and visible keyboard focus in the React window', async () => {
+  it('applies the requested shell radius and theme background to the Foundry window', async () => {
     const css = await readFile(new URL('styles/xandra-roll-offs.css', moduleRoot), 'utf8');
-    assert.match(css, /\.xro-gm-user-row--selected[\s\S]*?inset 0 0 0 1px var\(--xro-primary\)/);
-    assert.match(css, /\.xro-gm-selection-actions button \+ button\s*\{\s*border-left: 0/);
-    const rollForRule = css.match(/\.xro-pill-roll-btn\s*\{([^}]*)\}/)?.[1] ?? '';
-    assert.match(rollForRule, /display: flex !important/);
-    assert.doesNotMatch(rollForRule, /display: none/);
+    const darkShell = css.match(/\.application\.xandra-roll-offs-window,\s*\.xandra-roll-offs-chat\s*\{([^}]*)\}/)?.[1] ?? '';
+    const lightShell = css.match(/body\.theme-light \.application\.xandra-roll-offs-window:not\(\.theme-dark\),[\s\S]*?\.themed\.theme-light \.xandra-roll-offs-chat\s*\{([^}]*)\}/)?.[1] ?? '';
+    assert.match(darkShell, /border-radius:\s*var\(--xro-radius-xl\)/);
+    assert.match(darkShell, /background:\s*var\(--xro-bg-0\)/);
+    assert.match(lightShell, /border-radius:\s*var\(--xro-radius-xl\)/);
+    assert.match(css, /\.application\.xandra-roll-offs-window \.window-content\s*\{[^}]*padding:\s*0;[^}]*border:\s*0;[^}]*border-radius:\s*0;[^}]*background:\s*transparent;[^}]*box-shadow:\s*none;/);
   });
 
   it('gives each round card layered chrome and individualized contestant cards', async () => {
@@ -59,6 +60,30 @@ describe('module assets', () => {
     assert.match(pill, /linear-gradient\(/);
     assert.match(avatar, /border-radius:\s*var\(--xro-radius-sm\)/);
     assert.match(value, /border-radius:\s*var\(--xro-radius-sm\)/);
+  });
+
+  it('keeps round groups flush with no outer margin or shadow', async () => {
+    const css = await readFile(new URL('styles/xandra-roll-offs.css', moduleRoot), 'utf8');
+    const roundGroup = css.match(/\.xro-round-group\s*\{([^}]*)\}/)?.[1] ?? '';
+    const followingGroup = css.match(/\.xro-round-group:not\(:first-child\)\s*\{([^}]*)\}/)?.[1] ?? '';
+    assert.match(roundGroup, /margin:\s*0;/);
+    assert.match(roundGroup, /box-shadow:\s*none/);
+    assert.match(followingGroup, /margin-top:\s*0/);
+  });
+
+  it('removes the banner top border and adds space beneath the banner', async () => {
+    const css = await readFile(new URL('styles/xandra-roll-offs.css', moduleRoot), 'utf8');
+    const banner = css.match(/\.xro-surface-heading,\s*\.xro-setup-banner,\s*\.xro-live-banner\s*\{([^}]*)\}/)?.[1] ?? '';
+    const bannerSpacing = css.match(/\.xro-setup-banner,[\s\S]*?\.xro-live-banner\s*\{[^}]*\}\s*\.xro-setup-banner,[\s\S]*?\.xro-live-banner\s*\{([^}]*)\}/)?.[1] ?? '';
+    assert.match(banner, /border-top:\s*0/);
+    assert.match(banner, /border-radius:\s*0 0 var\(--xro-radius\) var\(--xro-radius\)/);
+    assert.match(bannerSpacing, /margin:\s*0 0 var\(--xro-gap\)/);
+  });
+
+  it('removes the top border from the Foundry window header', async () => {
+    const css = await readFile(new URL('styles/xandra-roll-offs.css', moduleRoot), 'utf8');
+    const windowHeader = css.match(/\.xandra-roll-offs-window \.window-header\s*\{([^}]*)\}/)?.[1] ?? '';
+    assert.match(windowHeader, /border-top:\s*0/);
   });
 
   it('keeps the collapsed tracker to a player label, dots, and expand toggle', async () => {

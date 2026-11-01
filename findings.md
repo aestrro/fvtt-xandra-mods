@@ -86,6 +86,21 @@
 - Ordinary state updates rerender an already-open window but do not reopen a window the user manually closed.
 - Missing visual tokens `--xro-primary-soft` and `--xro-surface-raised` are now defined and covered by an asset-contract test.
 
+## React Roll-Off Theme Styling
+
+- Dice Tray's current `src/styles/dice-tray.css` is precise but hard-codes a dark palette; copy its interaction grammar, not its colors verbatim.
+- The live Foundry v14.360 stylesheet defines `body.theme-light` and `body.theme-dark`, theme-specific text variables, and per-application theme classes. The React roll-off has both an outer `.application.xandra-roll-offs-window` and an inner `.xandra-roll-offs-window`; define theme tokens only on the outer app so the inner component cannot reset them to dark.
+- The roll-off stylesheet defines its palette globally at `:root` and contains fixed dark surfaces plus non-tokenized accent washes. Scope the palette to the app and chat-card roots; adapt light surfaces and semantic accents; replace raw washes with token-derived colors.
+- This phase changes presentation and asset tests only; no version bump, authority rewrite, or release.
+- Browser computed-style probe against the actual locally served v14.360 stylesheet confirms `body.theme-dark` uses the dark palette and `body.theme-light` changes both the base surface and semantic action colors; individual React buttons, inputs, selected state, and chat-card surfaces were checked.
+- Theme state belongs to Foundry's outer `.application` chrome. An inner `.xandra-roll-offs-window` class on React output was removed from palette ownership after the probe revealed it shadowed light-theme tokens and held old button colors through CSS transitions. The React root now uses the layout-only `.xro-app-content` class.
+
+## Roll-Off Compact Wins Tracker
+
+- The compact wins selector is a vertically stacked list with a constrained vertical scroll area. Long names receive the full row width and truncate only when necessary; horizontal participant chips are explicitly rejected.
+- The selection defaults to the current user's tracker row, falling back to the first participant if the viewer is not in the contest. Selection is local presentation state and must not affect authoritative scoring.
+- “Repeat last roll” belongs to `xandra-dice-tray` (`src/components/DiceTray/index.tsx` + shared store `lastFormula`). It is unrelated to Roll-Offs and is deliberately not added to the Roll-Off component.
+
 ## React Dice Tray Architecture Consultation
 
 - The current dice tray is a 788-line single script combining settings, chat DOM injection, mutation observers, queue state, formula construction, rolling, calculator UI, and a legacy `Application` subclass.
@@ -144,6 +159,14 @@
 | Issue | Resolution |
 |-------|------------|
 | First patch used repository-root paths instead of module paths | No files were modified; corrected the patch to `modules/xandra-roll-offs/...`. |
+
+## Roll-Off 0.2.1 Release Findings
+
+- The last published roll-off tag is `xandra-roll-offs@v0.1.9`; `0.2.0` is only local metadata and has no tag/release. The next version stays at `0.2.1` as requested.
+- `.github/workflows/release.yml` triggers on `*@v*`; pushing `xandra-roll-offs@v0.2.1` will run the build/package/release workflow and create `module.zip` if its run succeeds.
+- The release workflow creates a bot commit on `main` for its manifest download URL change. Therefore the pushed tag must include the complete tested source/version commit, and final remote state must be read back after Actions completes.
+- Local release preflight found no `gh` CLI. Git tag/push can still use the configured SSH remote; GitHub Actions and release state need an alternate remote read (or be reported blocked if unavailable).
+- The active worktree contains the full React window migration, theme and card styling, tests, and local 0.2.0 metadata. Publish requires committing the intended source before tagging; unrelated planning files remain modified and must be handled deliberately.
 
 ## Resources
 

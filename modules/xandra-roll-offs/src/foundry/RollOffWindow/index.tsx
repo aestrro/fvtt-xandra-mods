@@ -19,6 +19,7 @@ const BaseWindow = createReactApplicationV2(
 export class RollOffWindow extends BaseWindow {
   static #instance: RollOffWindow | null = null;
   static #hookId: number | null = null;
+  static #rollsSettled = true;
   #showHistory = false;
 
   static DEFAULT_OPTIONS = {
@@ -67,7 +68,19 @@ export class RollOffWindow extends BaseWindow {
     super(...args);
     if (RollOffWindow.#hookId === null) {
       RollOffWindow.#hookId = Hooks.on('xandraRollOffs.stateUpdated', () => RollOffWindow.onStateChanged());
+      Hooks.on('xandraRollOffs.rolling', () => {
+        RollOffWindow.#rollsSettled = false;
+        if (RollOffWindow.#instance?.rendered) void RollOffWindow.#instance.render({ force: true });
+      });
+      Hooks.on('xandraRollOffs.roundRollsComplete', () => {
+        RollOffWindow.#rollsSettled = true;
+        if (RollOffWindow.#instance?.rendered) void RollOffWindow.#instance.render({ force: true });
+      });
     }
+  }
+
+  static get areRollsSettled(): boolean {
+    return this.#rollsSettled;
   }
 
   async close(options?: unknown): Promise<void> {
@@ -77,6 +90,7 @@ export class RollOffWindow extends BaseWindow {
 
   renderReact() {
     return <RollOffApp model={prepareViewModel()} showHistory={this.#showHistory}
+      areRollsSettled={RollOffWindow.areRollsSettled}
       onAction={(action, payload) => this.#dispatch(action, payload)} />;
   }
 

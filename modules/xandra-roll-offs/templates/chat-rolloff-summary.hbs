@@ -1,28 +1,26 @@
 <div class="xandra-roll-offs-chat xro-roll-off-summary">
-  <div class="xro-chat-header">
-    <span class="xro-chat-title">{{localize 'XANDRA_ROLL_OFFS.Labels.RollOffComplete'}}</span>
-  </div>
   {{#if winner}}
-  <p class="xro-final-winner">{{localize 'XANDRA_ROLL_OFFS.Chat.RollOffWinner' name=winner}}</p>
-  {{/if}}
-  {{#if rounds.length}}
-  <ul class="xro-round-list">
-    {{#each rounds}}
-    <li>
-      <span class="xro-round-label">{{localize 'XANDRA_ROLL_OFFS.Labels.Round' round=round}}</span>
-      <span class="xro-round-winner">{{winnerName}}</span>
-    </li>
-    {{/each}}
-  </ul>
+  <section class="xro-result-block">
+    <span class="xro-result-icon" aria-hidden="true"><i class="fas fa-trophy"></i></span>
+    <span class="xro-result-copy">
+      <span class="xro-result-label">{{localize 'XANDRA_ROLL_OFFS.Labels.Winner'}}</span>
+      <strong class="xro-result-name">{{winner}}</strong>
+    </span>
+  </section>
   {{/if}}
   {{#if tallies.length}}
-  <ul class="xro-score-list">
-    {{#each tallies}}
-    <li class="{{#if (eq @index 0)}}xro-first{{/if}}">
-      <span class="xro-score-name">{{name}}</span>
-      <span class="xro-score-value">{{score}}</span>
-    </li>
-    {{/each}}
-  </ul>
+  <section class="xro-summary-section xro-summary-section--scores">
+    <h3>{{localize 'XANDRA_ROLL_OFFS.Labels.FinalScore'}}</h3>
+    <ul class="xro-score-list">
+      {{#each tallies}}
+      <li class="{{#if (eq @index 0)}}xro-first{{/if}}">
+        <span class="xro-place-badge">{{place}}</span>
+        <span class="xro-score-name">{{name}}</span>
+        <span class="xro-score-value">{{score}}</span>
+      </li>
+      {{/each}}
+    </ul>
+  </section>
   {{/if}}
+ 
 </div>

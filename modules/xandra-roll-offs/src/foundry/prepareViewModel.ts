@@ -51,12 +51,12 @@ export interface RollOffViewModel {
   canCurrentUserRoll: boolean;
   roundComplete: boolean;
   roundLabel: string;
-  roundResult: { type: 'winner' | 'tie'; name?: string; tieNames?: string } | null;
+  roundResult: { type: 'winner' | 'tie'; name?: string; tieNames?: string; avatar?: string } | null;
   roundHistory: HistoryRound[];
   participantStatuses: ParticipantStatus[];
   tracker: TrackerParticipant[];
   sessionHistory: SessionHistoryEntry[];
-  winner: { id: string; name: string; score: number } | null;
+  winner: { id: string; name: string; score: number; avatar: string } | null;
   winsNeeded: number;
   dieChoices: { value: string; label: string }[];
   defaultDieType: string;
@@ -114,7 +114,11 @@ export const prepareViewModel = (): RollOffViewModel => {
       const result = resolveRound(activeRound!.rolls);
       if (result.type === 'winner') {
         provisionalWinnerId = result.userId;
-        roundResult = { type: 'winner', name: getUserName(result.userId) };
+        roundResult = {
+          type: 'winner',
+          name: getUserName(result.userId),
+          avatar: getUserActor(result.userId)?.img ?? game.users.get(result.userId)?.avatar ?? ''
+        };
       } else {
         roundResult = {
           type: 'tie',
@@ -140,7 +144,7 @@ export const prepareViewModel = (): RollOffViewModel => {
         userId,
         name: getUserName(userId),
         rolled: Boolean(activeRound.rolls[userId]),
-        value: activeRound.rolls[userId]?.total ?? null,
+        value: activeRound.rolls[userId] ? activeRound.rolls[userId].total : null,
         avatar: getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? ''
       })).sort((a: ParticipantStatus, b: ParticipantStatus) => {
         if (a.value === null && b.value === null) return 0;
@@ -154,7 +158,8 @@ export const prepareViewModel = (): RollOffViewModel => {
       if (lastRound) winner = {
         id: lastRound.winner,
         name: getUserName(lastRound.winner),
-        score: tallies[lastRound.winner] || 0
+        score: tallies[lastRound.winner] || 0,
+        avatar: getUserActor(lastRound.winner)?.img ?? game.users.get(lastRound.winner)?.avatar ?? 'icons/svg/mystery-man.svg'
       };
     }
   }
