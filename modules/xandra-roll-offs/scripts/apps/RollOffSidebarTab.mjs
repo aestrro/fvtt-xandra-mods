@@ -9,8 +9,13 @@ import { MODULE_ID } from '../utils.mjs';
 export function registerSidebarTab(RollOffWindow) {
   const inject = () => {
     // Settings are registered in `ready`; the sidebar may render before then.
-    if (!game.settings.has?.(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) return;
-    if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB)) {
+    let showTab;
+    try {
+      showTab = game.settings.get(MODULE_ID, SETTINGS.SHOW_SIDEBAR_TAB);
+    } catch {
+      return; // Not registered yet. The ready/render hooks will retry.
+    }
+    if (!showTab) {
       document.querySelector('#xro-sidebar-tab-btn')?.closest('li')?.remove();
       return;
     }
@@ -33,10 +38,16 @@ export function registerSidebarTab(RollOffWindow) {
 
 function injectSidebarTabNav(RollOffWindow) {
   const tabBar = document.querySelector('#sidebar-tabs');
-  if (!tabBar) return;
+  if (!tabBar) {
+    console.warn(`${MODULE_ID} | Sidebar tab navigation is not rendered yet`);
+    return;
+  }
 
   const menu = tabBar.querySelector('menu.flexcol');
-  if (!menu) return;
+  if (!menu) {
+    console.warn(`${MODULE_ID} | Sidebar tab menu was not found`);
+    return;
+  }
 
   const existingId = 'xro-sidebar-tab-btn';
   // Only inject once.

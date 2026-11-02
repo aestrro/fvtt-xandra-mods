@@ -28,22 +28,16 @@ Hooks.once('ready', async () => {
 
   registerSettings();
 
-  // Pre-load templates so AppV2 parts resolve
-  const templates = [
-    'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
-    'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
-  ];
-  const loadTemplatesFn = foundry.applications.handlebars?.loadTemplates ?? loadTemplates;
-  await loadTemplatesFn(templates);
-  log('Templates loaded.');
-
   initSocketHandler();
 
   // Inject a Roll-Offs button into the chat controls (visible to GM always,
   // and to players whenever a roll-off is active).
   const injectChatButton = () => {
     const chatControls = document.querySelector('#chat-controls');
-    if (!chatControls) return;
+    if (!chatControls) {
+      console.warn(`${MODULE_ID} | Chat controls are not rendered yet`);
+      return;
+    }
 
     let button = chatControls.querySelector('.xro-open-gm-panel');
     if (!game.settings.get(MODULE_ID, SETTINGS.SHOW_CHAT_BUTTON)) {
@@ -85,11 +79,6 @@ Hooks.once('ready', async () => {
     openRollOffWindow: () => RollOffWindow.open(),
   };
 
-  log('Initialization complete.');
-
-  // Restore GM panel visibility, including setup without an active session.
-  await RollOffWindow.restore();
-
   Hooks.on('xandraRollOffs.roundStarted', () => {
     RollOffWindow.open();
   });
@@ -111,6 +100,27 @@ Hooks.once('ready', async () => {
   // Prevent tagged native copies before creation; cleanup is a last-resort fallback.
   Hooks.on('preCreateChatMessage', onPreCreateChatMessage);
   Hooks.on('createChatMessage', (message, options, userId) => onCreateChatMessage(message, options, userId));
+
+  // Entry points and runtime hooks must not depend on optional chat-template preloading.
+  try {
+    const loadTemplatesFn = foundry.applications.handlebars?.loadTemplates ?? globalThis.loadTemplates;
+    if (typeof loadTemplatesFn !== 'function') throw new Error('Template loader unavailable');
+    await loadTemplatesFn([
+      'modules/xandra-roll-offs/templates/chat-round-summary.hbs',
+      'modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs',
+    ]);
+    log('Templates loaded.');
+  } catch (error) {
+    console.warn(`${MODULE_ID} | Chat-template preloading failed; panel controls remain available`, error);
+  }
+
+  // Restore GM panel visibility, including setup without an active session.
+  try {
+    await RollOffWindow.restore();
+  } catch (error) {
+    console.warn(`${MODULE_ID} | Could not restore the panel; use the Roll-Offs button to open it`, error);
+  }
+  log('Initialization complete.');
 });
 
 /* ================================================================ */

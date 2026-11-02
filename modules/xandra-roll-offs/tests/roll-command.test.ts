@@ -26,6 +26,24 @@ beforeEach(async () => {
 afterEach(() => { vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 describe('roll command chat suppression', () => {
+  it('keeps chat entry points available if template preloading fails', async () => {
+    document.body.innerHTML = '<div id="chat-controls"><div class="control-buttons"></div></div>';
+    game.socket = { on: vi.fn(), emit: vi.fn() };
+    game.settings.register = vi.fn();
+    vi.stubGlobal('foundry', { applications: { handlebars: { loadTemplates: vi.fn().mockRejectedValue(new Error('Missing template')) } } });
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    const panel = { open: vi.fn(), restore: vi.fn().mockResolvedValue(undefined), onStateChanged: vi.fn() };
+    commands.registerRollOffHooks(panel);
+    const ready = vi.mocked(Hooks.once).mock.calls.find(([name]: [string]) => name === 'ready')?.[1];
+    await ready();
+    const button = document.querySelector('.xro-open-gm-panel') as HTMLButtonElement;
+    expect(button).not.toBeNull();
+    button.click();
+    expect(panel.open).toHaveBeenCalledTimes(1);
+    expect(panel.restore).toHaveBeenCalledTimes(1);
+    document.body.innerHTML = '';
+  });
+
   it('tags and suppresses native copies before chat creation without creating a second request', () => {
     const data: any = { flags: { anotherModule: { keep: true } } };
     expect(commands.onChatMessage(null, '/roll 1d20', data)).toBe(false);
