@@ -1,7 +1,9 @@
 import { getActiveRollOff, setActiveRollOff, getWinTallies, setWinTallies, getRollOffHistory, setRollOffHistory, SETTINGS } from './settings.mjs';
 import * as State from './state.mjs';
 import * as Chat from './chat.mjs';
-import { getRoundContext, getRollKey, sameRound, REQUEST_TIMEOUT_MS, SOCKET_NAMESPACE } from './roll-protocol.mjs';
+import { getRoundContext, getRollKey, getSessionId, sameRound, REQUEST_TIMEOUT_MS, SOCKET_NAMESPACE } from './roll-protocol.mjs';
+import { escapeHTML, getParticipantIdentity, getWorldActor, snapshotParticipantIdentities } from './utils.mjs';
+import { hasPendingAnimations, waitForRollAnimation } from './animation.mjs';
 
 const MODULE_ID = 'xandra-roll-offs';
 const MAX_SESSION_HISTORY = 25;
@@ -15,6 +17,7 @@ function createSessionSnapshot(activeRollOff, endedAt) {
     winsNeeded: activeRollOff.winsNeeded,
     participants: [...activeRollOff.participants],
     history: structuredClone(activeRollOff.history ?? []),
+    participantIdentities: structuredClone(activeRollOff.participantIdentities ?? {}),
     winner: activeRollOff.history?.at(-1)?.winner ?? null,
   };
 }
@@ -52,7 +55,7 @@ export class RollOffSocketHandler {
       return;
     }
 
-    if (['submitRoll', 'requestStartRollOff', 'requestAdvance', 'requestForceResolve', 'requestClose'].includes(data.type)) {
+    if (['submitRoll', 'requestStartRollOff', 'requestAdvance', 'requestForceResolve', 'requestClose', 'requestSetIdentity'].includes(data.type)) {
       if (!this._isAuthority() || data.authorityId !== game.userId) return;
       return this._runSocketTask(data.type, async () => {
         let accepted = false;
@@ -67,8 +70,8 @@ export class RollOffSocketHandler {
       });
     }
 
-    if (data.type === 'rolling') {
-      this._onRolling(data);
+    if (data.type === 'rolling' || data.type === 'animateRoll' || data.type === 'rollAnimationCancelled') {
+      this._onBroadcast(data);
       return;
     }
 
@@ -130,6 +133,24 @@ export class RollOffSocketHandler {
     return this._request('requestClose');
   }
 
+  async setGMIdentity(actorId) {
+    if (!game.user.isGM) return false;
+    return this._request('requestSetIdentity', { actorId });
+  }
+
+  async _setGMIdentity(data) {
+    if (!this._isAuthority() || Object.keys(getActiveRollOff() ?? {}).length) return false;
+    if (typeof data.actorId !== 'string') return false;
+    const actor = getWorldActor(data.actorId);
+    if (data.actorId && !actor) return false;
+    const identities = game.settings.get(MODULE_ID, SETTINGS.GM_IDENTITIES) ?? {};
+    identities[data.requesterId] = actor
+      ? { actorId: actor.id, name: actor.name, avatar: actor.img ?? '' }
+      : getParticipantIdentity(data.requesterId);
+    await game.settings.set(MODULE_ID, SETTINGS.GM_IDENTITIES, identities);
+    return true;
+  }
+
   async _closeRollOff() {
     if (!this._isAuthority()) return false;
     await setActiveRollOff({});
@@ -156,6 +177,7 @@ export class RollOffSocketHandler {
       const activeRollOff = getActiveRollOff();
       if (!activeRollOff?.active) return;
       if (!State.isRoundComplete(activeRollOff)) return;
+      if (hasPendingAnimations(getSessionId(activeRollOff))) return false;
       await this._resolveRound(activeRollOff);
       return true;
     } finally {
@@ -177,26 +199,32 @@ export class RollOffSocketHandler {
     if (!this._isAuthority()) return false;
     if (this.#resolving) return;
     this.#resolving = true;
+    let context;
+    let pendingUsers = [];
+    let animated = false;
     try {
       const activeRollOff = getActiveRollOff();
       if (!activeRollOff?.active) return;
 
       const activeRound = State.findActiveRound(activeRollOff.roundStack);
       if (!activeRound) return;
-      const context = getRoundContext(activeRollOff);
+      context = getRoundContext(activeRollOff);
 
-    const pending = State.getPendingRollers(activeRollOff);
+      const pending = State.getPendingRollers(activeRollOff);
+      pendingUsers = pending;
       if (pending.length === 0) return;
 
       const evaluatedRolls = [];
       for (const userId of pending) {
         try {
-          this._emit('rolling', { userId, roundLabel: activeRound.label });
+          const motion = { ...context, userId, animationId: crypto.randomUUID() };
+          this._emit('rolling', motion);
           const roll = await new Roll(activeRollOff.dieType).evaluate({ allowInteractive: false });
-          evaluatedRolls.push({ userId, roll });
+          evaluatedRolls.push({ userId, roll, motion });
         } catch (err) {
           console.error(`${MODULE_ID} | Force-resolve roll failed for user ${userId}`, err);
           ui.notifications?.error?.(`Force-resolve roll failed: ${err.message}`);
+          this._emit('rollAnimationCancelled', { ...context, userIds: pending });
           return;
         }
       }
@@ -207,6 +235,8 @@ export class RollOffSocketHandler {
 
       if (!this._isAuthority() || !sameRound(context, getRoundContext(getActiveRollOff()))) return false;
       await setActiveRollOff(activeRollOff);
+      for (const { userId, roll, motion } of evaluatedRolls) this._animateRoll(roll, userId, motion, activeRollOff);
+      animated = true;
       this._emit('stateUpdated', activeRollOff);
       if (State.isRoundComplete(activeRollOff)) {
         this._emit('roundRollsComplete', { roundLabel: activeRound.label });
@@ -220,6 +250,7 @@ export class RollOffSocketHandler {
 
       return true;
     } finally {
+      if (!animated && context && pendingUsers.length) this._emit('rollAnimationCancelled', { ...context, userIds: pendingUsers });
       this.#resolving = false;
     }
   }
@@ -238,6 +269,8 @@ export class RollOffSocketHandler {
     const userId = data.userId;
     if (this.#rollingUsers.has(userId)) return false;
     this.#rollingUsers.add(userId);
+    let motion;
+    let animated = false;
 
     try {
       const activeRollOff = getActiveRollOff();
@@ -258,12 +291,15 @@ export class RollOffSocketHandler {
       const activeRound = State.findActiveRound(activeRollOff.roundStack);
       const dieType = activeRollOff.dieType;
       console.log(`${MODULE_ID} | _onSubmitRoll: evaluating ${dieType} for ${userId}`);
-      this._emit('rolling', { userId, roundLabel: activeRound.label });
+      motion = { ...context, userId, animationId: crypto.randomUUID() };
+      this._emit('rolling', motion);
       const roll = await new Roll(dieType).evaluate({ allowInteractive: false });
       console.log(`${MODULE_ID} | _onSubmitRoll: roll result ${roll.total} for ${userId}`);
       if (!this._isAuthority() || !sameRound(context, getRoundContext(getActiveRollOff()))) return false;
       if (!State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id })) return false;
       await setActiveRollOff(activeRollOff);
+      this._animateRoll(roll, userId, motion, activeRollOff);
+      animated = true;
       this._emit('stateUpdated', activeRollOff);
       if (State.isRoundComplete(activeRollOff)) {
         this._emit('roundRollsComplete', { roundLabel: activeRound.label });
@@ -277,23 +313,25 @@ export class RollOffSocketHandler {
     } catch (err) {
       console.error(`${MODULE_ID} | Roll evaluation failed for user ${userId}`, err);
       ui.notifications?.error?.(`Roll-off roll failed: ${err.message}`);
+      if (motion) this._emit('rollAnimationCancelled', { ...motion, userIds: [userId] });
       return false;
     } finally {
+      if (motion && !animated) this._emit('rollAnimationCancelled', { ...motion, userIds: [userId] });
       this.#rollingUsers.delete(userId);
     }
   }
 
-  _onRolling(data) {
-    if (game.user.isGM) return;
-    const activeRollOff = getActiveRollOff();
-    if (!activeRollOff?.active || !activeRollOff.participants?.includes(data.userId)) return;
-    const activeRound = State.findActiveRound(activeRollOff.roundStack);
-    if (!activeRound || activeRound.label !== data.roundLabel || activeRound.rolls?.[data.userId]) return;
-    const notifiedRollOff = structuredClone(activeRollOff);
-    const notifiedRound = State.findActiveRound(notifiedRollOff.roundStack);
-    if (!notifiedRound) return;
-    notifiedRound.rolls[data.userId] = { total: null, rolling: true };
-    Hooks.callAll('xandraRollOffs.stateUpdated', notifiedRollOff);
+  _animateRoll(roll, userId, motion, active) {
+    try {
+      this._emit('animateRoll', {
+        ...motion,
+        rollData: roll.toJSON?.() ?? null,
+        speaker: Chat.getSpeakerForUser(game.users.get(userId), active.participantIdentities),
+      });
+    } catch (error) {
+      console.warn(`${MODULE_ID} | Could not start dice animation`, error);
+      this._emit('rollAnimationCancelled', { ...motion, userIds: [userId] });
+    }
   }
 
   async _onRequestStartRollOff(data) {
@@ -304,15 +342,20 @@ export class RollOffSocketHandler {
     try {
       const dieType = typeof data.dieType === 'string' ? data.dieType.trim() : '';
       const winsNeeded = Number(data.winsNeeded);
-      const participants = Array.isArray(data.participants)
+      const selectedPlayers = Array.isArray(data.participants)
         ? [...new Set(data.participants.filter((id) => typeof id === 'string' && id.trim()))]
         : [];
+      // Every GM slot is mandatory, regardless of client selection or the legacy setting.
+      const gmIds = Array.from(game.users.values()).filter((user) => user.isGM).map((user) => user.id);
+      const participants = [...new Set([...gmIds, ...selectedPlayers])];
       if (
         !dieType
+        || !Array.isArray(data.participants)
         || !Number.isInteger(winsNeeded)
         || winsNeeded < 1
         || winsNeeded > 20
         || participants.length < 2
+        || participants.some((id) => !game.users.get(id))
       ) {
         console.warn(`${MODULE_ID} | requestStartRollOff rejected: invalid configuration`, data);
         ui.notifications?.warn?.('Roll-off requires a die type, a wins-needed target, and at least two participants.');
@@ -326,13 +369,14 @@ export class RollOffSocketHandler {
       });
       activeRollOff.sessionId = crypto.randomUUID();
       activeRollOff.startedAt = new Date().toISOString();
+      activeRollOff.participantIdentities = snapshotParticipantIdentities(participants, game.settings.get(MODULE_ID, SETTINGS.GM_IDENTITIES) ?? {});
 
       await setActiveRollOff(activeRollOff);
       await setWinTallies({}); // per-roll-off tallies
       const startedRound = State.findActiveRound(activeRollOff.roundStack);
       this._emit('stateUpdated', activeRollOff);
       this._emit('roundStarted', startedRound);
-      await this._runChatEffect('Roll-off start announcement', () => Chat.postRollOffStarted(startedRound, winsNeeded, participants, dieType));
+      await this._runChatEffect('Roll-off start announcement', () => Chat.postRollOffStarted(startedRound, winsNeeded, participants, dieType, activeRollOff.participantIdentities));
       return true;
     } finally {
       this.#starting = false;
@@ -370,7 +414,7 @@ export class RollOffSocketHandler {
           winnerByRound: activeRollOff.history,
           finalTallies: getWinTallies(),
         });
-        await this._runChatEffect('Roll-off summary', () => Chat.postRollOffSummary(activeRollOff.history, getWinTallies(), game.users.get(result.winnerId)));
+        await this._runChatEffect('Roll-off summary', () => Chat.postRollOffSummary(activeRollOff.history, getWinTallies(), game.users.get(result.winnerId), activeRollOff.participantIdentities));
         return;
       }
 
@@ -378,7 +422,7 @@ export class RollOffSocketHandler {
       const newRound = State.findActiveRound(activeRollOff.roundStack);
       this._emit('roundStarted', newRound);
       if (game.settings.get(MODULE_ID, SETTINGS.POST_ROUND_ANNOUNCEMENTS)) {
-        await this._runChatEffect('Round start announcement', () => Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType));
+        await this._runChatEffect('Round start announcement', () => Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType, activeRollOff.participantIdentities));
       }
     } else if (result.type === 'tiebreak') {
       const topRound = State.findActiveRound(activeRollOff.roundStack);
@@ -386,7 +430,7 @@ export class RollOffSocketHandler {
       this._emit('tiebreakStarted', topRound);
       this._emit('stateUpdated', activeRollOff);
       if (game.settings.get(MODULE_ID, SETTINGS.POST_TIEBREAK_ANNOUNCEMENTS)) {
-        await this._runChatEffect('Tiebreak start announcement', () => Chat.postRoundStarted(topRound, tiedUserIds, activeRollOff.dieType));
+        await this._runChatEffect('Tiebreak start announcement', () => Chat.postRoundStarted(topRound, tiedUserIds, activeRollOff.dieType, activeRollOff.participantIdentities));
       }
     }
   }
@@ -409,16 +453,23 @@ export class RollOffSocketHandler {
     await setActiveRollOff(active);
     if (!this._isAuthority()) return;
     const user = game.users.get(userId);
-    const speaker = user?.character
-      ? ChatMessage.getSpeaker({ actor: user.character })
-      : { alias: user?.name ?? userId };
-    const flavor = `${user?.name ?? userId} rolls for ${roundLabel}`;
+    const identity = getParticipantIdentity(userId, active.participantIdentities);
+    const speaker = Chat.getSpeakerForUser(user, active.participantIdentities);
+    const flavor = `${escapeHTML(identity.name)} rolls for ${escapeHTML(roundLabel)}`;
 
-    await roll.toMessage({
-      speaker,
-      flavor,
-      flags: { [MODULE_ID]: { auditRoll: true, rollKey, ...context, participantId: userId } },
-    }, { create: true });
+    // Reserve inside the mutation queue, but never hold that queue during dice animations.
+    void waitForRollAnimation(rollKey).then(async () => {
+      const current = getActiveRollOff();
+      if (!this._isAuthority() || !Object.keys(current ?? {}).length || getSessionId(current) !== context.sessionId) return;
+      await roll.toMessage({
+        speaker,
+        flavor,
+        flags: {
+          [MODULE_ID]: { auditRoll: true, rollKey, ...context, participantId: userId },
+          'dice-so-nice': { skip: true }, // The synchronized roll has already been animated.
+        },
+      }, { create: true });
+    }).catch((error) => console.warn(`${MODULE_ID} | Audit roll card failed`, error));
   }
 
   async _runChatEffect(label, callback) {
@@ -488,6 +539,7 @@ export class RollOffSocketHandler {
         return (await this._onSubmitRoll(data)) === true;
       }
       if (!requester.isGM) return false;
+      if (data.type === 'requestSetIdentity') return (await this._setGMIdentity(data)) === true;
       if (data.type === 'requestStartRollOff') return (await this._onRequestStartRollOff(data)) === true;
       const active = getActiveRollOff();
       if ((active?.sessionId ?? null) !== data.expectedSessionId) return false;

@@ -437,6 +437,7 @@
 - Condensed the expressive summary: removed the redundant `Roll-Off Complete` title from the template, tightened the winner panel, reduced row heights and gaps, and scaled down badges and score spacing while preserving the visual hierarchy. Quick build succeeded.
 - Reorganized the winner icon into the winner section itself: added a dedicated trophy icon element beside the winner text, aligned it with the section grid, and corrected the legacy pseudo-icon vertical positioning. Quick build succeeded.
 - Applied a final UI/UX composition pass: grouped the trophy, winner label, and name into one result block; converted final scores and round history into two aligned list groups; removed per-row card clutter; normalized row heights and columns; preserved a single subtle first-place highlight. Quick build succeeded.
+- Published `xandra-roll-offs@v0.3.0`: synchronized `module.json`/`package.json`, committed `486df36`, created and pushed the annotated tag, verified GitHub Actions run `41373546878` succeeded, and verified the published ZIP manifest reports version `0.3.0`.
 - Rebuilt the module on request; build succeeded and regenerated Foundry package assets. Host/container CSS and JS hashes match. No release or version change.
 - Shell follow-up verification: 51 Node tests, 9 React tests, typecheck, production build, diff check, and Docker CSS parity pass. Not published.
 

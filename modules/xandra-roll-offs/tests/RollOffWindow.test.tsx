@@ -98,7 +98,7 @@ describe('React RollOffWindow lifecycle', () => {
     vi.stubGlobal('foundry', { applications: { api: { ApplicationV2: FakeApplication } } });
     vi.stubGlobal('Hooks', { on: vi.fn(() => 1) });
     vi.stubGlobal('game', {
-      userId: 'gm', user: { isGM: true }, users: { map: () => [] },
+      userId: 'gm', user: { isGM: true }, users: { map: () => [], get: () => ({ id: 'gm', name: 'GM', isGM: true }) },
       settings: {
         get: (_module: string, key: string) => key === 'activeRollOff' ? active : key === 'rollOffHistory' ? [] : {},
         set: vi.fn()

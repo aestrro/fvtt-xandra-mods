@@ -5,7 +5,8 @@ A Foundry VTT module for GM-run, multi-round roll-off contests with automatic ti
 ## Features
 
 - GM configures die type, wins needed, and participants in a React-powered window.
-- GM can also participate as a contestant.
+- GM and assistant-GM slots are always included; Select all / Clear affects players only.
+- Each GM can choose any world character or NPC as their display identity in setup, or use their GM name. Identities are locked into the session when it starts; participant user IDs and scoring do not change.
 - Participants roll from the window or by typing a standard `/roll` command matching the configured die pattern.
 - Rolls are evaluated authoritatively on the GM client.
 - Ties spawn recursive tiebreak rounds scoped to the tied participants.
@@ -18,6 +19,7 @@ A Foundry VTT module for GM-run, multi-round roll-off contests with automatic ti
 - Roll identity includes the session, round/tiebreak, and participant. Repeated requests acknowledge an existing result without rolling or posting again; requests from an old round are rejected.
 - Intercepted `/roll` commands suppress their native copies. Unrelated system and macro messages are left untouched.
 - Chat cards are reserved before posting. If posting has an ambiguous failure, the module does not retry the card automatically: the result remains saved in the panel, but a chat card may be missing. This favors avoiding duplicates over guaranteed chat delivery.
+- Dice So Nice animations run independently of chat cards. Each client reveals values and winner/score cues only after its own animation completes; the result modal follows after a 500 ms pause. Disabled or unavailable dice animations do not block results.
 - If a request times out or the GM disconnects, check the panel before retrying. These protections cover module-managed messages, not independent messages created by third-party modules.
 
 ## Development

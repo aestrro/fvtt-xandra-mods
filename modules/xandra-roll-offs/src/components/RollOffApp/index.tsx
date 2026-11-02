@@ -13,7 +13,8 @@ export type RollOffAction =
   | "cancel"
   | "closeRollOff"
   | "closeWindow"
-  | "start";
+  | "start"
+  | "setGMIdentity";
 
 interface RollOffAppProps {
   model: RollOffViewModel;
@@ -23,6 +24,7 @@ interface RollOffAppProps {
 }
 
 const label = (key: string) => game.i18n.localize(`XANDRA_ROLL_OFFS.${key}`);
+const RESULT_MODAL_DELAY_MS = 500;
 
 const WinProgress = ({ wins, target }: { wins: number; target: number }) => (
   <span className="xro-win-progress">
@@ -111,6 +113,20 @@ const RollOffApp = ({
 }: RollOffAppProps) => {
   const [busy, setBusy] = useState<RollOffAction | null>(null);
   const [rollAsUserId, setRollAsUserId] = useState<string | null>(null);
+  const [shownResult, setShownResult] = useState<string | null>(null);
+  const resultToken = areRollsSettled && model.hasData && (
+    (model.isActive && model.roundComplete && model.roundResult) || !model.isActive
+  ) ? JSON.stringify([model.sessionId ?? 'legacy', model.roundLabel, model.isActive,
+    model.roundResult?.type, model.roundResult?.name, model.roundResult?.tieNames, model.winner?.id]) : null;
+  const resultVisible = resultToken !== null && shownResult === resultToken;
+  useEffect(() => {
+    if (!resultToken) {
+      setShownResult(null);
+      return;
+    }
+    const timeout = setTimeout(() => setShownResult(resultToken), RESULT_MODAL_DELAY_MS);
+    return () => clearTimeout(timeout);
+  }, [resultToken]);
   const busyRef = useRef(false);
   const localParticipant = model.tracker.find((player) => player.isCurrentUser);
   const localStatus = model.participantStatuses.find((player) => player.userId === localParticipant?.userId);
@@ -163,6 +179,7 @@ const RollOffApp = ({
         <SetupView
           model={model}
           onStart={(config) => dispatch("start", config)}
+          onIdentityChange={(actorId) => dispatch("setGMIdentity", actorId)}
         />
       ) : (
         <>
@@ -218,7 +235,7 @@ const RollOffApp = ({
             </div>
           )}
           <div
-            className={`xro-window-body${model.isActive ? "" : " xro-window-body--complete"}`}
+            className={`xro-window-body${!model.isActive && resultVisible ? " xro-window-body--complete" : ""}`}
           >
             <div className="xro-round-stage">
               <RoundTimeline
@@ -230,7 +247,7 @@ const RollOffApp = ({
                 isParticipant={model.isParticipant}
                 onRollFor={(userId) => void dispatch("rollFor", userId)}
               />
-              {model.roundComplete && model.roundResult && areRollsSettled && (
+              {model.roundComplete && model.roundResult && resultVisible && (
                 <div className="xro-round-result-modal" role="status">
                   <div
                     className={`xro-round-result-panel xro-round-result-panel--${model.roundResult.type}`}
@@ -296,18 +313,21 @@ const RollOffApp = ({
                     </button>
                   ) : (
                     <div className="xro-footer-status" role="status">
-                      {!model.roundComplete && localStatus?.rolled && (
+                      {localStatus?.rolling && <i className="fas fa-circle-notch xro-roll-spinner" role="img" aria-label={label("Labels.Rolling")} />}
+                      {!model.roundComplete && localStatus?.rolled && !localStatus.rolling && (
                         <strong>{localStatus.value ?? "—"}</strong>
                       )}
                       <span>{model.roundComplete
                         ? label("Labels.WaitingForGM")
-                        : localStatus?.rolled
+                        : localStatus?.rolling
+                          ? null
+                          : localStatus?.rolled
                           ? label("Labels.Rolled")
                           : label("Labels.Waiting")}</span>
                     </div>
                   )}
                 </div>
-              ) : areRollsSettled ? (
+               ) : resultVisible ? (
                 <div className="xro-completion-modal">
                   <button
                     type="button"

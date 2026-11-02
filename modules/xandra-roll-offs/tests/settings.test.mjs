@@ -44,6 +44,14 @@ describe('setting change hooks', () => {
     assert.deepEqual(setting.default, {});
   });
 
+  it('keeps GM identities shared and hides the obsolete optional-GM setting', () => {
+    const setting = registrations.get(SETTINGS.GM_IDENTITIES);
+    assert.equal(setting.scope, 'world');
+    assert.equal(setting.config, false);
+    assert.deepEqual(setting.default, {});
+    assert.equal(registrations.get(SETTINGS.INCLUDE_GM_BY_DEFAULT).config, false);
+  });
+
   it('defaults optional chat messages to off with world-wide controls', () => {
     for (const key of [SETTINGS.POST_PER_ROLL_CARD, SETTINGS.POST_ROUND_ANNOUNCEMENTS, SETTINGS.POST_TIEBREAK_ANNOUNCEMENTS]) {
       const setting = registrations.get(key);

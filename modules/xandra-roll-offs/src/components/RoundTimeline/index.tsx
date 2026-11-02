@@ -10,7 +10,7 @@ const FOLLOW_LATEST_THRESHOLD = 80;
 interface RoundScrollerProps {
   key?: string;
   label: string;
-  rolls: (RollDisplay & { rolling?: boolean })[];
+  rolls: RollDisplay[];
   current?: boolean;
   alternate?: boolean;
   isTie?: boolean;
@@ -88,11 +88,11 @@ const RoundScroller = ({
           {rolls.map((roll) => (
             <div
               key={roll.userId}
-              className={`xro-roll-pill ${current ? (roll.rolled ? "xro-roll-pill--rolled" : "xro-roll-pill--waiting") : roll.isWinner ? "xro-roll-pill--winner" : ""}`}
+              className={`xro-roll-pill ${current ? (roll.rolled ? "xro-roll-pill--rolled" : "xro-roll-pill--waiting") : roll.isWinner ? "xro-roll-pill--winner" : ""}${roll.rolling ? " xro-roll-pill--rolling" : ""}`}
             >
               <img className="xro-avatar" src={roll.avatar} alt={roll.name} />
               <div className="xro-player-result">
-              {current && isGM && !roll.rolled ? (
+               {current && isGM && !roll.rolled && !roll.rolling ? (
                 <button
                   type="button"
                   className="xro-pill-roll-btn"
@@ -108,12 +108,12 @@ const RoundScroller = ({
                   className="xro-roll-pill-value"
                   aria-label={!current && roll.isWinner ? `${game.i18n.localize("XANDRA_ROLL_OFFS.Labels.Winner")}: ${roll.value ?? "-"}` : undefined}
                 >
-                  {roll.rolled
+                  {roll.rolling ? (
+                    <i className="fas fa-circle-notch xro-roll-spinner" role="img" aria-label={game.i18n.localize('XANDRA_ROLL_OFFS.Labels.Rolling')} />
+                  ) : roll.rolled
                     ? (roll.value ?? "-")
                     : current
-                      ? roll.rolling
-                        ? "Rolling…"
-                        : "-"
+                      ? "-"
                       : (roll.value ?? "-")}
                 </span>
               )}

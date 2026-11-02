@@ -14,6 +14,7 @@ function createHarness({ activeRollOff = {}, postPerRollCard = false, postRoundA
     ['postPerRollCard', postPerRollCard],
     ['postRoundAnnouncements', postRoundAnnouncements],
     ['postTiebreakAnnouncements', postTiebreakAnnouncements],
+    ['gmIdentities', {}],
   ]);
   const socketEvents = [];
   const hookEvents = [];
@@ -34,6 +35,7 @@ function createHarness({ activeRollOff = {}, postPerRollCard = false, postRoundA
     user: users.get('gm'),
     userId: 'gm',
     users,
+    actors: [],
     settings: {
       get: (moduleId, key) => structuredClone(values.get(key)),
       set: async (moduleId, key, value) => values.set(key, structuredClone(value)),
@@ -122,11 +124,12 @@ describe('RollOffSocketHandler hardening', () => {
   });
 
   it('posts only start and final results for a complete quiet contest', async () => {
-    const harness = createHarness({ chatAvailable: true, rollTotals: [18, 4, 17, 3] });
+    const harness = createHarness({ chatAvailable: true, rollTotals: [18, 4, 2, 3, 17, 1] });
     await harness.handler.startRollOff({ dieType: '1d20', winsNeeded: 2, participants: ['u1', 'u2'] });
     assert.equal(harness.chatMessages.length, 1);
     await harness.handler.requestRoll('u1');
     await harness.handler.requestRoll('u2');
+    await harness.handler.forceResolve(); // GM is mandatory too.
     await harness.handler.advanceRound();
     assert.equal(harness.chatMessages.length, 1);
     await harness.handler.forceResolve();
@@ -164,8 +167,9 @@ describe('RollOffSocketHandler hardening', () => {
     await harness.handler.startRollOff({ dieType: '1d20', winsNeeded: 1, participants: ['u1', 'u2'] });
     await harness.handler.requestRoll('u1');
     await harness.handler.forceResolve();
-    assert.equal(harness.auditMessages.length, 2);
+    assert.equal(harness.auditMessages.length, 3);
     assert.ok(harness.auditMessages.every((message) => message.flags[MODULE_ID].auditRoll));
+    assert.ok(harness.auditMessages.every((message) => message.flags['dice-so-nice'].skip));
     assert.equal(harness.chatMessages.length, 1);
   });
 
@@ -180,6 +184,39 @@ describe('RollOffSocketHandler hardening', () => {
 
     assert.deepEqual(harness.values.get('activeRollOff'), {});
     assert.equal(harness.notifications.at(-1).type, 'warn');
+  });
+
+  it('always includes GM slots and snapshots the chosen NPC identity at session start', async () => {
+    const harness = createHarness({ chatAvailable: true, postPerRollCard: true, rollTotals: [18, 4] });
+    const npc = { id: 'npc-1', name: 'The Archivist', img: 'archivist.png' };
+    game.actors = new Map([[npc.id, npc]]);
+    assert.equal(await harness.handler.setGMIdentity(npc.id), true);
+    assert.equal(harness.values.get('gmIdentities').gm.actorId, npc.id);
+    await harness.handler.startRollOff({ dieType: '1d20', winsNeeded: 1, participants: ['u1'] });
+    const active = harness.values.get('activeRollOff');
+    assert.deepEqual(active.participants, ['gm', 'u1']);
+    assert.equal(active.participantIdentities.gm.name, 'The Archivist');
+    npc.name = 'Renamed later';
+    assert.equal(await harness.handler.setGMIdentity(''), false);
+    await harness.handler.requestRoll('gm');
+    assert.match(harness.auditMessages[0].flavor, /The Archivist/);
+    assert.equal(harness.auditMessages[0].speaker.alias, 'The Archivist');
+    await harness.handler.forceResolve();
+    await harness.handler.advanceRound();
+    assert.equal(harness.values.get('rollOffHistory')[0].participantIdentities.gm.name, 'The Archivist');
+    assert.equal(harness.values.get('rollOffHistory')[0].participantIdentities.gm.avatar, 'archivist.png');
+  });
+
+  it('rejects missing actors and player identity changes while leaving other GM identities untouched', async () => {
+    const harness = createHarness();
+    game.actors = new Map([['pc', { id: 'pc', name: 'Player Character', img: 'pc.png' }]]);
+    harness.values.set('gmIdentities', { assistant: { actorId: 'different', name: 'Other GM', avatar: 'other.png' } });
+    assert.equal(await harness.handler.setGMIdentity('missing'), false);
+    assert.equal(await harness.handler.setGMIdentity('pc'), true);
+    assert.equal(harness.values.get('gmIdentities').assistant.actorId, 'different');
+    assert.equal(await harness.handler._handleRequest({
+      type: 'requestSetIdentity', authorityId: 'gm', requesterId: 'u1', actorId: 'pc',
+    }), false);
   });
 
   it('broadcasts a started contest even when chat creation fails', async () => {

@@ -4,6 +4,8 @@ import { prepareViewModel } from "../prepareViewModel";
 import { getActiveRollOff, SETTINGS } from "../../../scripts/settings.mjs";
 import { canUserRoll } from "../../../scripts/state.mjs";
 import { MODULE_ID } from "../../../scripts/utils.mjs";
+import { hasPendingAnimations } from "../../../scripts/animation.mjs";
+import { getSessionId } from "../../../scripts/roll-protocol.mjs";
 
 type FoundryWindow = {
   _preClose(options?: unknown): Promise<void>;
@@ -21,7 +23,6 @@ const BaseWindow = createReactApplicationV2(
 export class RollOffWindow extends BaseWindow {
   static #instance: RollOffWindow | null = null;
   static #hookId: number | null = null;
-  static #rollsSettled = true;
   #showHistory = false;
 
   static DEFAULT_OPTIONS = {
@@ -87,7 +88,6 @@ export class RollOffWindow extends BaseWindow {
   static onStateChanged() {
     const active = getActiveRollOff();
     if (!active || Object.keys(active).length === 0) {
-      this.#rollsSettled = true;
       if (game.user.isGM && this.#instance?.rendered) {
         this.#instance.#showHistory = false;
         void this.#instance.render({ force: true });
@@ -112,13 +112,7 @@ export class RollOffWindow extends BaseWindow {
       RollOffWindow.#hookId = Hooks.on("xandraRollOffs.stateUpdated", () =>
         RollOffWindow.onStateChanged(),
       );
-      Hooks.on("xandraRollOffs.rolling", () => {
-        RollOffWindow.#rollsSettled = false;
-        if (RollOffWindow.#instance?.rendered)
-          void RollOffWindow.#instance.render({ force: true });
-      });
-      Hooks.on("xandraRollOffs.roundRollsComplete", () => {
-        RollOffWindow.#rollsSettled = true;
+      Hooks.on("xandraRollOffs.presentationUpdated", () => {
         if (RollOffWindow.#instance?.rendered)
           void RollOffWindow.#instance.render({ force: true });
       });
@@ -126,7 +120,7 @@ export class RollOffWindow extends BaseWindow {
   }
 
   static get areRollsSettled(): boolean {
-    return this.#rollsSettled;
+    return !hasPendingAnimations(getSessionId(getActiveRollOff()));
   }
 
   async close(options?: unknown): Promise<void> {
@@ -159,6 +153,11 @@ export class RollOffWindow extends BaseWindow {
     }
     try {
       switch (action) {
+        case "setGMIdentity": {
+          const accepted = await socket.setGMIdentity(payload);
+          if (accepted) await this.render({ force: true });
+          return accepted;
+        }
         case "roll":
           return await socket.requestRoll(game.userId);
         case "rollFor":

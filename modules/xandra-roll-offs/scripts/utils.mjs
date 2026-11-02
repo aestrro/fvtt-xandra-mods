@@ -1,5 +1,10 @@
 export const MODULE_ID = 'xandra-roll-offs';
 
+export function escapeHTML(value) {
+  const entities = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' };
+  return String(value ?? '').replace(/[&<>"']/g, (character) => entities[character]);
+}
+
 export function log(message) {
   console.log(`Xandra Roll-Offs | ${message}`);
 }
@@ -16,6 +21,36 @@ export function parseRollCommand(messageText) {
 export function getUserName(userId) {
   const user = game.users.get(userId);
   return user?.name ?? userId;
+}
+
+/** Resolve a participant's public display identity, preferring a frozen session snapshot. */
+export function getParticipantIdentity(userId, identities = {}) {
+  const snapshot = identities?.[userId];
+  if (snapshot?.name) return { ...snapshot };
+  const user = game.users.get(userId);
+  const actor = user?.isGM ? null : getUserActor(userId);
+  return {
+    actorId: user?.isGM ? '' : user?.character?.id ?? '',
+    name: actor?.name ?? user?.name ?? userId ?? '',
+    avatar: actor?.img ?? user?.avatar ?? '',
+  };
+}
+
+export function getWorldActor(actorId) {
+  if (!actorId) return null;
+  return game.actors?.get?.(actorId) ?? game.actors?.find?.((actor) => actor.id === actorId) ?? null;
+}
+
+/** Only the authority uses actor IDs to build snapshots. Clients never supply display text. */
+export function snapshotParticipantIdentities(participants, gmIdentities = {}) {
+  return Object.fromEntries(participants.map((userId) => {
+    const user = game.users.get(userId);
+    const actor = user?.isGM ? getWorldActor(gmIdentities[userId]?.actorId) : null;
+    const identity = actor
+      ? { actorId: actor.id, name: actor.name, avatar: actor.img ?? '' }
+      : getParticipantIdentity(userId);
+    return [userId, identity];
+  }));
 }
 
 /**
@@ -38,8 +73,8 @@ export function getUserActor(userId) {
 }
 
 function findFirstOwnedActor(user) {
-  for (const actor of game.actors) {
-    if (actor.testUserPermission(user, 'OWNER')) {
+  for (const actor of game.actors?.values?.() ?? game.actors ?? []) {
+    if (actor.testUserPermission?.(user, 'OWNER')) {
       return actor;
     }
   }

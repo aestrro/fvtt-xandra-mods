@@ -4,6 +4,7 @@ import { registerSettings, getActiveRollOff, SETTINGS } from './settings.mjs';
 import { findActiveRound } from './state.mjs';
 import { MODULE_ID, log, parseRollCommand } from './utils.mjs';
 import { getRoundContext, getRollKey } from './roll-protocol.mjs';
+import { initRollAnimations } from './animation.mjs';
 
 const interceptedCommands = new Map();
 let commandSessionId = null;
@@ -28,6 +29,7 @@ Hooks.once('ready', async () => {
 
   registerSettings();
 
+  initRollAnimations();
   initSocketHandler();
 
   // Inject a Roll-Offs button into the chat controls (visible to GM always,
@@ -73,6 +75,7 @@ Hooks.once('ready', async () => {
   injectChatButton(); // Chat log may already be rendered
   Hooks.on('xandraRollOffs.stateUpdated', injectChatButton);
   Hooks.on('xandraRollOffs.chatButtonSettingChanged', injectChatButton);
+  Hooks.on('xandraRollOffs.identitySettingChanged', () => RollOffWindow.onStateChanged());
 
   // Register a macro-friendly global function for opening the panel
   game.xandraRollOffs = {

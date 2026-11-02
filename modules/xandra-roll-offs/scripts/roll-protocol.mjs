@@ -2,11 +2,15 @@
 export const REQUEST_TIMEOUT_MS = 10000;
 export const SOCKET_NAMESPACE = 'module.xandra-roll-offs';
 
+export function getSessionId(state) {
+  return state?.sessionId ?? state?.startedAt ?? 'legacy-session';
+}
+
 export function getRoundContext(state) {
   if (!state?.active || !state.roundStack?.length) return null;
   const round = state.roundStack.at(-1);
   return {
-    sessionId: state.sessionId ?? state.startedAt ?? 'legacy-session',
+    sessionId: getSessionId(state),
     roundKey: `${state.currentRoundIndex ?? 0}:${round.tiebreakIndex ?? 0}`,
   };
 }

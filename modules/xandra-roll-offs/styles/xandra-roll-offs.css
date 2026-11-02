@@ -1260,6 +1260,32 @@ body.theme-light .application.xandra-roll-offs-window .window-content,
   place-items: center;
 }
 
+.xro-round-group .xro-roll-pill--rolling .xro-roll-pill-value {
+  max-width: 100%;
+  overflow: hidden;
+  font-size: 0.65rem;
+  font-weight: 500;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xro-roll-spinner {
+  display: inline-block;
+  color: var(--xro-text-secondary);
+  font-size: 0.8rem;
+  animation: xro-roll-spin 900ms linear infinite;
+}
+
+@keyframes xro-roll-spin {
+  to { transform: rotate(360deg); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .xro-roll-spinner {
+    animation: none;
+  }
+}
+
 .xro-pill-roll-btn {
   position: static;
   display: flex !important;
@@ -2110,6 +2136,103 @@ body.theme-light .application.xandra-roll-offs-window .window-content,
 
 .xro-gm-user-row--selected:hover {
   background: color-mix(in srgb, var(--xro-primary) 22%, var(--xro-bg-1));
+}
+
+.xro-gm-identity-picker {
+  position: relative;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  flex: 0 0 auto;
+  min-width: 0;
+  gap: 5px;
+  margin: 10px 12px 0;
+}
+
+.xro-identity-label {
+  color: var(--xro-text-secondary);
+  font-size: 0.65rem;
+}
+
+.xandra-roll-offs-window .xro-identity-trigger {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 46px;
+  padding: 6px 10px;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius);
+  background: var(--xro-bg-3);
+  color: var(--xro-text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  text-align: left;
+}
+
+.xro-identity-trigger[aria-expanded="true"] .xro-wins-chevron {
+  transform: translateY(1px) rotate(225deg);
+}
+
+.xro-identity-avatar {
+  display: block;
+  flex: 0 0 32px;
+  width: 32px;
+  height: 32px;
+  object-fit: cover;
+  border: 1px solid var(--xro-line);
+  border-radius: var(--xro-radius-sm);
+  background: var(--xro-bg-3);
+}
+
+.xro-identity-avatar--fallback {
+  display: grid;
+  place-items: center;
+  color: var(--xro-muted);
+}
+
+.xro-identity-name {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.xro-identity-menu {
+  position: absolute;
+  z-index: 6;
+  top: calc(100% + 4px);
+  inset-inline: 0;
+  max-height: min(260px, 40vh);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  padding: 4px;
+  border: 1px solid var(--xro-line-strong);
+  border-radius: var(--xro-radius);
+  background: var(--xro-bg-1);
+  box-shadow: var(--xro-shadow);
+  scrollbar-width: thin;
+}
+
+.xandra-roll-offs-window .xro-identity-option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  min-height: 44px;
+  padding: 6px;
+  border: 0;
+  background: transparent;
+  color: var(--xro-text-secondary);
+  font-size: 0.8rem;
+  font-weight: 500;
+  text-align: left;
+}
+
+.xandra-roll-offs-window .xro-identity-option[aria-selected="true"] {
+  background: var(--xro-primary-soft);
+  color: var(--xro-text);
 }
 
 .xro-gm-user-row--selected:focus-visible {

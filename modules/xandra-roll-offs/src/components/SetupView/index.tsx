@@ -1,5 +1,6 @@
 import { useState } from "react";
 import type { RollOffViewModel } from "../../foundry/prepareViewModel";
+import GMIdentityPicker from "../GMIdentityPicker";
 
 const label = (key: string) => game.i18n.localize(`XANDRA_ROLL_OFFS.${key}`);
 
@@ -10,23 +11,32 @@ interface SetupViewProps {
     winsNeeded: number;
     participants: string[];
   }) => Promise<boolean>;
+  onIdentityChange: (actorId: string) => Promise<boolean>;
 }
 
-const SetupView = ({ model, onStart }: SetupViewProps) => {
-  const [selected, setSelected] = useState<string[]>(() => {
-    const includeGM = game.settings.get(
-      "xandra-roll-offs",
-      "includeGMByDefault",
-    );
-    return model.users
-      .filter((user) => includeGM || !user.isGM)
-      .map((user) => user.id);
-  });
+const SetupView = ({ model, onStart, onIdentityChange }: SetupViewProps) => {
+  const [selected, setSelected] = useState<string[]>(() => model.users.filter((user) => !user.isGM).map((user) => user.id));
   const [dieType, setDieType] = useState(model.defaultDieType);
   const [winsNeeded, setWinsNeeded] = useState(model.defaultWinsNeeded);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [keyboardFocus, setKeyboardFocus] = useState(false);
+  const [identityBusy, setIdentityBusy] = useState(false);
+  const gmIds = model.users.filter((user) => user.isGM).map((user) => user.id);
+  const participants = [...gmIds, ...selected.filter((id) => model.users.some((user) => user.id === id && !user.isGM))];
+  const currentUserId = model.currentUserId ?? gmIds[0];
+  const changeIdentity = async (actorId: string) => {
+    if (identityBusy || busy) return;
+    setIdentityBusy(true);
+    setError("");
+    try {
+      if (!(await onIdentityChange(actorId))) setError(label("Errors.IdentityUpdateFailed"));
+    } catch {
+      setError(label("Errors.IdentityUpdateFailed"));
+    } finally {
+      setIdentityBusy(false);
+    }
+  };
   const selection = new Set(selected);
   const toggle = (id: string) =>
     setSelected((current) =>
@@ -37,7 +47,8 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
   const start = async () => {
     if (
       busy ||
-      selected.length < 2 ||
+      identityBusy ||
+      participants.length < 2 ||
       !Number.isInteger(winsNeeded) ||
       winsNeeded < 1 ||
       winsNeeded > 20
@@ -49,7 +60,7 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
       const accepted = await onStart({
         dieType,
         winsNeeded,
-        participants: selected,
+        participants,
       });
       if (!accepted)
         setError(
@@ -79,12 +90,19 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
         </div>
         {model.isGM && (
           <span className="xro-gm-selection-count" aria-live="polite">
-            {game.i18n.format("XANDRA_ROLL_OFFS.Labels.SelectedCount", { count: selected.length })}
+            {game.i18n.format("XANDRA_ROLL_OFFS.Labels.SelectedCount", { count: participants.length })}
           </span>
         )}
       </header>
       {model.isGM && (
         <div className="xro-empty-content">
+          <GMIdentityPicker
+            choices={model.gmActorChoices ?? []}
+            value={model.gmActorId ?? ''}
+            fallback={model.gmDefaultIdentity ?? model.users.find((user) => user.id === currentUserId) ?? { name: label('Labels.UseGMName'), avatar: '' }}
+            disabled={busy || identityBusy}
+            onChange={changeIdentity}
+          />
           <div className="xro-gm-participants xro-gm-participants--full">
             <div className="xro-gm-roster">
             <div
@@ -94,7 +112,7 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
             >
               <button
                 type="button"
-                onClick={() => setSelected(model.users.map((user) => user.id))}
+                onClick={() => setSelected(model.users.filter((user) => !user.isGM).map((user) => user.id))}
               >
                 {label("Actions.SelectAll")}
               </button>
@@ -103,15 +121,9 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
               </button>
             </div>
             <div className="xro-gm-user-list" role="group" aria-label={label("Labels.Participants")}>
-              {model.users.map((user) => (
-                <button
-                  type="button"
-                  key={user.id}
-                  className={`xro-gm-user-row ${selection.has(user.id) ? "xro-gm-user-row--selected" : ""}`}
-                  data-selected={selection.has(user.id)}
-                  aria-pressed={selection.has(user.id)}
-                  onClick={() => toggle(user.id)}
-                >
+              {model.users.filter((user) => !user.isGM).map((user) => {
+                const selectedRow = selection.has(user.id);
+                const contents = <>
                   <span className="xro-gm-user-portrait">
                     <img className="xro-gm-user-avatar" src={user.avatar} alt="" />
                     <span
@@ -119,14 +131,25 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
                       title={label(user.connected ? "Labels.Online" : "Labels.Offline")}
                     />
                   </span>
-                  <span className="xro-gm-user-name" title={user.name}>
-                    {user.name}
-                  </span>
+                  <span className="xro-gm-user-name" title={user.name}>{user.name}</span>
                   <span className="xro-gm-user-check" aria-hidden="true">
                     <i className="fas fa-check" />
                   </span>
+                </>;
+                const className = `xro-gm-user-row ${selectedRow ? "xro-gm-user-row--selected" : ""}`;
+                return (
+                <button
+                  type="button"
+                  key={user.id}
+                  className={className}
+                  data-selected={selectedRow}
+                  aria-pressed={selectedRow}
+                  onClick={() => toggle(user.id)}
+                >
+                  {contents}
                 </button>
-              ))}
+                );
+              })}
             </div>
             </div>
           </div>
@@ -176,7 +199,8 @@ const SetupView = ({ model, onStart }: SetupViewProps) => {
               className="xro-gm-start-btn"
               disabled={
                 busy ||
-                selected.length < 2 ||
+                identityBusy ||
+                participants.length < 2 ||
                 !Number.isInteger(winsNeeded) ||
                 winsNeeded < 1 ||
                 winsNeeded > 20

@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import RollOffApp from '../src/components/RollOffApp';
 import type { RollOffViewModel } from '../src/foundry/prepareViewModel';
@@ -31,7 +31,7 @@ beforeEach(() => {
     settings: { get: () => true }
   });
 });
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 describe('RollOffApp', () => {
   it('shows the rolling identity with supporting round, target, roll count, and wins utility', () => {
@@ -146,12 +146,13 @@ describe('RollOffApp', () => {
 
   it('keeps setup selection and rules accessible for a 20-player roster with one selection mark per player', () => {
     const model = baseModel();
-    model.users = Array.from({ length: 20 }, (_, index) => ({
+    model.users = [model.users[0], ...Array.from({ length: 19 }, (_, index) => ({
       id: `p${index}`, name: `Player ${index + 1}`, avatar: `p${index}.png`, isGM: false, connected: true
-    }));
+    }))];
     render(<RollOffApp model={model} showHistory={false} onAction={vi.fn()} />);
-    expect(document.querySelectorAll('.xro-gm-user-row')).toHaveLength(20);
-    expect(document.querySelectorAll('.xro-gm-user-check')).toHaveLength(20);
+    expect(document.querySelectorAll('.xro-gm-user-row')).toHaveLength(19);
+    expect(document.querySelectorAll('.xro-gm-user-check')).toHaveLength(19);
+    expect(document.querySelector('.xro-gm-user-row--automatic button')).toBeNull();
     const roster = document.querySelector('.xro-gm-roster');
     expect(roster?.firstElementChild?.className).toBe('xro-gm-selection-actions');
     expect(roster?.lastElementChild?.className).toBe('xro-gm-user-list');
@@ -165,11 +166,52 @@ describe('RollOffApp', () => {
     expect(screen.getByRole('combobox', { name: 'XANDRA_ROLL_OFFS.Labels.DieType' })).toBeTruthy();
     expect(screen.getByRole('spinbutton', { name: 'XANDRA_ROLL_OFFS.Labels.WinsNeeded' })).toBeTruthy();
     fireEvent.click(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Clear' }));
-    expect(screen.getByText('0 selected')).toBeTruthy();
+    expect(screen.getByText('1 selected')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Start' }).hasAttribute('disabled')).toBe(true);
     fireEvent.click(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.SelectAll' }));
     expect(screen.getByText('20 selected')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Start' }).hasAttribute('disabled')).toBe(false);
+  });
+
+  it('lets a GM choose a PC or NPC identity without creating another participant slot', async () => {
+    const model = baseModel();
+    model.currentUserId = 'gm';
+    model.gmActorChoices = [
+      { id: 'pc', name: 'Player Character', avatar: 'pc.png' },
+      { id: 'npc', name: 'The Archivist', avatar: 'npc.png' },
+      { id: 'npc-copy', name: 'The Archivist', avatar: 'npc.png' }
+    ];
+    const onAction = vi.fn().mockResolvedValue(true);
+    const { rerender } = render(<RollOffApp model={model} showHistory={false} onAction={onAction} />);
+    const choice = screen.getByRole('button', { name: /XANDRA_ROLL_OFFS.Labels.GMIdentity/ });
+    expect(choice.closest('.xro-gm-roster')).toBeNull();
+    expect(choice.querySelector('img')?.getAttribute('src')).toBe('gm.png');
+    fireEvent.click(choice);
+    expect(screen.getAllByRole('option', { name: 'The Archivist' })).toHaveLength(1);
+    expect(screen.getByRole('option', { name: 'The Archivist' })).toBeTruthy();
+    const npc = screen.getByRole('option', { name: 'The Archivist' });
+    expect(npc.querySelector('img')?.getAttribute('src')).toBe('npc.png');
+    fireEvent.click(npc);
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('setGMIdentity', 'npc'));
+    model.gmActorId = 'npc-copy';
+    rerender(<RollOffApp model={model} showHistory={false} onAction={onAction} />);
+    expect(choice.querySelector('img')?.getAttribute('src')).toBe('npc.png');
+    fireEvent.keyDown(choice, { key: 'ArrowDown' });
+    expect(screen.getByRole('listbox')).toBeTruthy();
+    const selectedOption = screen.getByRole('option', { name: 'The Archivist' });
+    expect(selectedOption.getAttribute('aria-selected')).toBe('true');
+    expect(document.activeElement).toBe(selectedOption);
+    fireEvent.keyDown(selectedOption, { key: 'Escape' });
+    expect(screen.queryByRole('listbox')).toBeNull();
+    expect(document.activeElement).toBe(choice);
+    fireEvent.click(choice);
+    fireEvent.click(screen.getByRole('option', { name: 'The Archivist' }));
+    await waitFor(() => expect(onAction).toHaveBeenCalledWith('setGMIdentity', 'npc-copy'));
+    expect(document.querySelectorAll('.xro-gm-user-row')).toHaveLength(2);
+    expect(document.querySelectorAll('.xro-gm-user-check')).toHaveLength(2);
+    fireEvent.click(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Clear' }));
+    expect(screen.getByText('1 selected')).toBeTruthy();
+    expect(screen.queryByText('XANDRA_ROLL_OFFS.Labels.AlwaysIncluded')).toBeNull();
   });
 
   it('renders the active participant and GM action paths without duplicating roll handlers', async () => {
@@ -186,7 +228,8 @@ describe('RollOffApp', () => {
     expect(onAction).toHaveBeenCalledTimes(1);
   });
 
-  it('offers GM advancement only after the round is complete', () => {
+  it('offers GM advancement after completion but delays the result modal', async () => {
+    vi.useFakeTimers();
     const model = baseModel();
     model.hasData = true;
     model.isActive = true;
@@ -194,6 +237,10 @@ describe('RollOffApp', () => {
     model.roundResult = { type: 'tie', tieNames: 'Alice, Bob' };
     render(<RollOffApp model={model} showHistory={false} onAction={vi.fn()} />);
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.NextRound' })).toBeTruthy();
+    expect(document.querySelector('.xro-round-result-modal')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(499); });
+    expect(document.querySelector('.xro-round-result-modal')).toBeNull();
+    await act(async () => { await vi.advanceTimersByTimeAsync(1); });
     expect(screen.getByText('Alice, Bob')).toBeTruthy();
     expect(document.querySelector('.xro-round-result-modal')?.parentElement?.className).toBe('xro-round-stage');
     expect(document.querySelector('.xro-round-result-panel')?.classList.contains('xro-round-result-panel--tie')).toBe(true);
@@ -247,7 +294,8 @@ describe('RollOffApp', () => {
     expect(screen.getByText('XANDRA_ROLL_OFFS.Labels.WaitingForGM')).toBeTruthy();
   });
 
-  it('opens scores from the header without a bottom tracker and dismisses on Escape or outside click', () => {
+  it('opens scores from the header without a bottom tracker and dismisses on Escape or outside click', async () => {
+    vi.useFakeTimers();
     const model = baseModel();
     model.hasData = true;
     model.isActive = false;
@@ -261,6 +309,7 @@ describe('RollOffApp', () => {
       { userId: 'a', name: 'Alice with a long character name', isCurrentUser: false, wins: 1, slots: [{ won: true }, { won: false }, { won: false }] }
     ];
     render(<RollOffApp model={model} showHistory={false} onAction={vi.fn()} />);
+    await act(async () => { await vi.advanceTimersByTimeAsync(500); });
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.CloseRollOff' })).toBeTruthy();
     expect(screen.getByRole('button', { name: 'XANDRA_ROLL_OFFS.Actions.Close' })).toBeTruthy();
     expect(document.querySelector('.xro-window-body--complete')).not.toBeNull();

@@ -17,12 +17,20 @@ const SETTINGS = {
   SHOW_SIDEBAR_TAB: 'showSidebarTab',
   INCLUDE_GM_BY_DEFAULT: 'includeGMByDefault',
   OPEN_GM_PANELS: 'openGmPanels',
+  GM_IDENTITIES: 'gmIdentities',
 };
 
 /**
  * Register all module settings.
  */
 export function registerSettings() {
+  game.settings.register(MODULE_ID, SETTINGS.GM_IDENTITIES, {
+    scope: 'world',
+    config: false,
+    type: Object,
+    default: {},
+    onChange: () => Hooks.callAll('xandraRollOffs.identitySettingChanged'),
+  });
   // Per-user panel visibility on this browser, including setup without a session.
   game.settings.register(MODULE_ID, SETTINGS.OPEN_GM_PANELS, {
     scope: 'client',
@@ -100,12 +108,12 @@ export function registerSettings() {
     default: false,
   });
 
-  // Visible world setting: whether the GM participates by default
+  // Legacy preference retained for compatibility; GM participation is now mandatory.
   game.settings.register(MODULE_ID, SETTINGS.INCLUDE_GM_BY_DEFAULT, {
     name: 'XANDRA_ROLL_OFFS.Settings.IncludeGMByDefault.Name',
     hint: 'XANDRA_ROLL_OFFS.Settings.IncludeGMByDefault.Hint',
     scope: 'world',
-    config: true,
+    config: false,
     type: Boolean,
     default: true,
   });

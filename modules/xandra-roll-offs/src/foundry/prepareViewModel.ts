@@ -11,7 +11,9 @@ import {
   isRoundComplete,
   resolveRound,
 } from "../../scripts/state.mjs";
-import { getUserActor, MODULE_ID } from "../../scripts/utils.mjs";
+import { getParticipantIdentity, MODULE_ID } from "../../scripts/utils.mjs";
+import { hasPendingAnimations, isRollHidden } from "../../scripts/animation.mjs";
+import { getRoundContext, getSessionId } from "../../scripts/roll-protocol.mjs";
 
 export interface RollDisplay {
   userId: string;
@@ -20,6 +22,7 @@ export interface RollDisplay {
   value: number | null;
   rolled?: boolean;
   isWinner?: boolean;
+  rolling?: boolean;
 }
 
 export interface ParticipantStatus extends RollDisplay {
@@ -56,6 +59,7 @@ export interface SessionHistoryEntry {
 
 export interface RollOffViewModel {
   hasData: boolean;
+  sessionId?: string;
   isActive: boolean;
   isGM: boolean;
   isParticipant: boolean;
@@ -77,6 +81,10 @@ export interface RollOffViewModel {
   dieChoices: { value: string; label: string }[];
   defaultDieType: string;
   defaultWinsNeeded: number;
+  gmActorId?: string;
+  gmActorChoices?: { id: string; name: string; avatar: string }[];
+  gmDefaultIdentity?: { name: string; avatar: string };
+  currentUserId?: string;
   users: {
     id: string;
     name: string;
@@ -86,36 +94,42 @@ export interface RollOffViewModel {
   }[];
 }
 
-const getUserName = (userId: string): string => {
-  const user = game.users.get(userId);
-  if (user?.isGM) return user.name;
-  return getUserActor(userId)?.name ?? user?.name ?? userId;
-};
+const getUserName = (userId: string, identities = {}): string => getParticipantIdentity(userId, identities).name;
 
-export const prepareRoundHistory = (history: any[] = []): HistoryRound[] =>
-  flattenRoundHistory(history).map((entry: any) => ({
+export const prepareRoundHistory = (history: any[] = [], identities = {}, sessionId?: string): HistoryRound[] =>
+  flattenRoundHistory(history).map((entry: any) => {
+    const roundIndex = Number(entry.tieRound ? entry.parentRound : entry.round) - 1;
+    const context = { sessionId, roundKey: `${roundIndex}:${entry.tieIndex ?? 0}` };
+    const pendingRound = sessionId ? hasPendingAnimations(sessionId, roundIndex) : false;
+    return {
     label: entry.tieRound
       ? `Tie #${entry.tieIndex}`
       : game.i18n.format("XANDRA_ROLL_OFFS.Labels.Round", {
           round: entry.round,
         }),
     isTie: Boolean(entry.tieRound),
-    winnerName: getUserName(entry.winner),
-    winnerValue: entry.finalRolls?.[entry.winner]?.total ?? null,
+    winnerName: pendingRound ? '' : getUserName(entry.winner, identities),
+    winnerValue: pendingRound ? null : entry.finalRolls?.[entry.winner]?.total ?? null,
     rolls: Object.entries(entry.finalRolls ?? {})
       .map(([userId, roll]) => ({
-        name: getUserName(userId),
-        value: (roll as { total: number }).total,
+        name: getUserName(userId, identities),
+        value: isRollHidden(context, userId) ? null : (roll as { total: number }).total,
+        rolling: isRollHidden(context, userId),
         userId,
-        avatar:
-          getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? "",
-        isWinner: userId === entry.winner,
+        avatar: getParticipantIdentity(userId, identities).avatar,
+        isWinner: !pendingRound && userId === entry.winner,
       }))
-      .sort((a, b) => b.value - a.value),
-  }));
+      .sort((a, b) => (b.value ?? -Infinity) - (a.value ?? -Infinity)),
+    };
+  });
 
 export const prepareViewModel = (): RollOffViewModel => {
   const activeRollOff = getActiveRollOff() as any;
+  const sessionId = getSessionId(activeRollOff);
+  const context = getRoundContext(activeRollOff);
+  const pendingAnimations = hasPendingAnimations(sessionId);
+  const identities = activeRollOff?.participantIdentities ?? {};
+  const gmIdentities = game.settings.get(MODULE_ID, SETTINGS.GM_IDENTITIES) ?? {};
   const tallies = getWinTallies() as Record<string, number>;
   const isActive = activeRollOff?.active ?? false;
   const activeRound = isActive
@@ -139,7 +153,7 @@ export const prepareViewModel = (): RollOffViewModel => {
     winsNeeded = activeRollOff.winsNeeded;
     isParticipant = activeRollOff.participants?.includes(game.userId) ?? false;
     roundComplete = Boolean(
-      isActive && activeRound && isRoundComplete(activeRollOff),
+      isActive && activeRound && isRoundComplete(activeRollOff) && !pendingAnimations,
     );
     if (roundComplete) {
       const result = resolveRound(activeRound!.rolls);
@@ -147,28 +161,25 @@ export const prepareViewModel = (): RollOffViewModel => {
         provisionalWinnerId = result.userId;
         roundResult = {
           type: "winner",
-          name: getUserName(result.userId),
-          avatar:
-            getUserActor(result.userId)?.img ??
-            game.users.get(result.userId)?.avatar ??
-            "",
+          name: getUserName(result.userId, identities),
+          avatar: getParticipantIdentity(result.userId, identities).avatar,
         };
       } else {
         roundResult = {
           type: "tie",
           tieNames: result.userIds
-            .map((id: string) => getUserName(id))
+            .map((id: string) => getUserName(id, identities))
             .join(", "),
         };
       }
     }
     tracker = (activeRollOff.participants ?? []).map((userId: string) => {
       const wins =
-        (activeRollOff.history?.filter((h: any) => h.winner === userId)
+        (activeRollOff.history?.filter((h: any) => h.winner === userId && !hasPendingAnimations(sessionId, h.round - 1))
           .length ?? 0) + (provisionalWinnerId === userId ? 1 : 0);
       return {
         userId,
-        name: getUserName(userId),
+        name: getUserName(userId, identities),
         slots: Array.from({ length: winsNeeded }, (_, index) => ({
           won: index < wins,
         })),
@@ -176,19 +187,19 @@ export const prepareViewModel = (): RollOffViewModel => {
         isCurrentUser: userId === game.userId,
       };
     });
-    roundHistory = prepareRoundHistory(activeRollOff.history ?? []);
+    roundHistory = prepareRoundHistory(activeRollOff.history ?? [], identities, sessionId);
     if (isActive && activeRound) {
       participantStatuses = (activeRound.participants ?? [])
         .map((userId: string) => ({
           id: userId,
           userId,
-          name: getUserName(userId),
-          rolled: Boolean(activeRound.rolls[userId]),
-          value: activeRound.rolls[userId]
+          name: getUserName(userId, identities),
+          rolled: Boolean(activeRound.rolls[userId]) && !isRollHidden(context, userId),
+          rolling: isRollHidden(context, userId),
+          value: activeRound.rolls[userId] && !isRollHidden(context, userId)
             ? activeRound.rolls[userId].total
             : null,
-          avatar:
-            getUserActor(userId)?.img ?? game.users.get(userId)?.avatar ?? "",
+          avatar: getParticipantIdentity(userId, identities).avatar,
         }))
         .sort((a: ParticipantStatus, b: ParticipantStatus) => {
           if (a.value === null && b.value === null) return 0;
@@ -196,18 +207,15 @@ export const prepareViewModel = (): RollOffViewModel => {
           if (b.value === null) return -1;
           return b.value - a.value;
         });
-      canCurrentUserRoll = canUserRoll(activeRollOff, game.userId);
-    } else if (!isActive && roundHistory.length > 0) {
+      canCurrentUserRoll = canUserRoll(activeRollOff, game.userId) && !isRollHidden(context, game.userId);
+    } else if (!isActive && roundHistory.length > 0 && !pendingAnimations) {
       const lastRound = activeRollOff.history.at(-1);
       if (lastRound)
         winner = {
           id: lastRound.winner,
-          name: getUserName(lastRound.winner),
+          name: getUserName(lastRound.winner, identities),
           score: tallies[lastRound.winner] || 0,
-          avatar:
-            getUserActor(lastRound.winner)?.img ??
-            game.users.get(lastRound.winner)?.avatar ??
-            "icons/svg/mystery-man.svg",
+          avatar: getParticipantIdentity(lastRound.winner, identities).avatar || "icons/svg/mystery-man.svg",
         };
     }
   }
@@ -218,6 +226,7 @@ export const prepareViewModel = (): RollOffViewModel => {
   );
   return {
     hasData,
+    sessionId,
     isActive,
     isGM: game.user.isGM,
     isParticipant,
@@ -235,11 +244,18 @@ export const prepareViewModel = (): RollOffViewModel => {
         ...session,
         startedLabel: new Date(session.startedAt).toLocaleString(),
         endedLabel: new Date(session.endedAt).toLocaleString(),
-        history: prepareRoundHistory(session.history),
-        winnerName: getUserName(session.winner),
+        history: prepareRoundHistory(session.history, session.participantIdentities ?? {}, session.id),
+        winnerName: hasPendingAnimations(session.id) ? '' : getUserName(session.winner, session.participantIdentities ?? {}),
       }))
       .reverse(),
     defaultDieType,
+    currentUserId: game.userId,
+    gmActorId: gmIdentities[game.userId]?.actorId ?? '',
+    gmDefaultIdentity: game.user.isGM ? getParticipantIdentity(game.userId) : undefined,
+    gmActorChoices: game.user.isGM
+      ? Array.from(game.actors?.values?.() ?? game.actors ?? []).map((actor: any) => ({ id: actor.id, name: actor.name, avatar: actor.img ?? '' }))
+        .sort((a, b) => a.name.localeCompare(b.name))
+      : [],
     defaultWinsNeeded: game.settings.get(
       MODULE_ID,
       SETTINGS.DEFAULT_WINS_NEEDED,
@@ -249,13 +265,10 @@ export const prepareViewModel = (): RollOffViewModel => {
     ),
     users: game.users.map((user: any) => ({
       id: user.id,
-      name: getUserName(user.id),
+      name: getUserName(user.id, hasData ? identities : gmIdentities),
       isGM: user.isGM,
       connected: user.active,
-      avatar:
-        getUserActor(user.id)?.img ??
-        user.avatar ??
-        "icons/svg/mystery-man.svg",
+      avatar: getParticipantIdentity(user.id, hasData ? identities : gmIdentities).avatar || "icons/svg/mystery-man.svg",
     })),
   };
 };

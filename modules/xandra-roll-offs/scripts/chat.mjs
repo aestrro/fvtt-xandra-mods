@@ -4,6 +4,7 @@
  * This module is intentionally system-agnostic: it relies only on the Foundry
  * ChatMessage and Roll APIs, never on system-specific actor or sheet data.
  */
+import { escapeHTML, getParticipantIdentity, getWorldActor } from './utils.mjs';
 
 /**
  * Returns a ChatMessage speaker object for a user, using their assigned
@@ -12,9 +13,10 @@
  * @param {User} user - The Foundry User document.
  * @returns {Object} Speaker data compatible with ChatMessage.create.
  */
-export function getSpeakerForUser(user) {
-  const actor = user?.character ?? null;
-  return ChatMessage.getSpeaker({ actor });
+export function getSpeakerForUser(user, identities = {}) {
+  const identity = getParticipantIdentity(user?.id, identities);
+  const actor = getWorldActor(identity.actorId) ?? (user?.isGM ? null : user?.character ?? null);
+  return { ...ChatMessage.getSpeaker({ actor }), alias: identity.name };
 }
 
 /**
@@ -49,10 +51,10 @@ export async function postRollToChat(user, roll, roundLabel) {
   });
 }
 
-export async function postRollOffStarted(round, winsNeeded, participants, dieType) {
+export async function postRollOffStarted(round, winsNeeded, participants, dieType, identities = {}) {
   if (!round) return;
 
-  const participantNames = participants.map((id) => game.users.get(id)?.name ?? id).join(', ');
+  const participantNames = participants.map((id) => escapeHTML(getParticipantIdentity(id, identities).name)).join(', ');
   const content = game.i18n.format('XANDRA_ROLL_OFFS.Chat.RollOffStartedBody', {
     round: round.label,
     winsNeeded,
@@ -60,7 +62,7 @@ export async function postRollOffStarted(round, winsNeeded, participants, dieTyp
     die: dieType,
   });
 
-  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user);
+  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user, identities);
 
   return ChatMessage.create({
     content,
@@ -69,21 +71,21 @@ export async function postRollOffStarted(round, winsNeeded, participants, dieTyp
   });
 }
 
-export async function postRoundStarted(round, participants, dieType) {
+export async function postRoundStarted(round, participants, dieType, identities = {}) {
   if (!round) return;
 
   const isTiebreak = Boolean(round.parent);
-  const participantNames = participants.map((id) => game.users.get(id)?.name ?? id).join(', ');
+  const participantNames = participants.map((id) => escapeHTML(getParticipantIdentity(id, identities).name)).join(', ');
   const title = isTiebreak
     ? `Tie-Break #${round.tiebreakIndex ?? 1} Started`
     : `${round.label} Started`;
   const content = `<div class="xro-chat-round-started">
-    <div class="xro-chat-round-started-title"><i class="fas ${isTiebreak ? 'fa-bolt' : 'fa-dice'}"></i><strong>${title}</strong></div>
-    <div class="xro-chat-round-started-meta">${dieType} · ${isTiebreak ? 'Tied participants roll again' : 'First to the required wins'}</div>
+    <div class="xro-chat-round-started-title"><i class="fas ${isTiebreak ? 'fa-bolt' : 'fa-dice'}"></i><strong>${escapeHTML(title)}</strong></div>
+    <div class="xro-chat-round-started-meta">${escapeHTML(dieType)} · ${isTiebreak ? 'Tied participants roll again' : 'First to the required wins'}</div>
     <div class="xro-chat-round-started-participants">${participantNames}</div>
   </div>`;
 
-  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user);
+  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user, identities);
 
   return ChatMessage.create({
     content,
@@ -156,7 +158,7 @@ export async function postRoundSummary(
  * @param {Object<string, number>} tallies - Map of userId to lifetime win count.
  * @returns {Promise<ChatMessage>} The created chat message document.
  */
-export async function postRollOffSummary(history, tallies, winner) {
+export async function postRollOffSummary(history, tallies, winner, identities = {}) {
   const ordinal = (value) => {
     const mod100 = value % 100;
     if (mod100 >= 11 && mod100 <= 13) return `${value}th`;
@@ -164,19 +166,21 @@ export async function postRollOffSummary(history, tallies, winner) {
   };
   const rounds = (history ?? []).map((entry) => ({
     round: entry.round,
-    winnerName: game.users.get(entry.winner)?.name ?? entry.winner,
+    winnerName: getParticipantIdentity(entry.winner, identities).name,
   }));
 
   const talliesList = Object.entries(tallies ?? {})
     .map(([userId, score]) => ({
-      name: game.users.get(userId)?.name ?? userId,
+      name: getParticipantIdentity(userId, identities).name,
       score: Number(score) || 0,
     }))
     .sort((a, b) => b.score - a.score)
     .map((entry, index) => ({ ...entry, place: ordinal(index + 1) }));
 
-  const winnerName = winner?.name ?? (talliesList[0]?.name ?? '');
-  const winnerScore = talliesList.find((entry) => entry.name === winnerName)?.score ?? 0;
+  const winnerName = winner?.id ? getParticipantIdentity(winner.id, identities).name : winner?.name ?? (talliesList[0]?.name ?? '');
+  const winnerScore = winner?.id
+    ? Number(tallies?.[winner.id]) || 0
+    : talliesList.find((entry) => entry.name === winnerName)?.score ?? 0;
 
   const content = await foundry.applications.handlebars.renderTemplate(
     "modules/xandra-roll-offs/templates/chat-rolloff-summary.hbs",
@@ -188,7 +192,7 @@ export async function postRollOffSummary(history, tallies, winner) {
     }
   );
 
-  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user);
+  const speaker = getSpeakerForUser(game.users.activeGM ?? game.user, identities);
 
   return ChatMessage.create({
     content,
