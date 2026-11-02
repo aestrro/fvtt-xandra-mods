@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useEffect, useId, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { RollOffViewModel } from "../../foundry/prepareViewModel";
 import RoundTimeline from "../RoundTimeline";
@@ -24,23 +24,132 @@ interface RollOffAppProps {
 
 const label = (key: string) => game.i18n.localize(`XANDRA_ROLL_OFFS.${key}`);
 
-const RollOffActionRow = ({ children, className = "" }: { children: ReactNode; className?: string }) => (
-  <div className={`xro-roll-action xro-roll-action--row ${className}`.trim()}>{children}</div>
+const WinProgress = ({ wins, target }: { wins: number; target: number }) => (
+  <span className="xro-win-progress">
+    {game.i18n.format("XANDRA_ROLL_OFFS.Labels.WinProgress", { wins, target })}
+  </span>
 );
 
-const RollOffApp = ({ model, showHistory, areRollsSettled = true, onAction }: RollOffAppProps) => {
-  const [trackerExpanded, setTrackerExpanded] = useState(false);
+const WinsPopover = ({ model }: { model: RollOffViewModel }) => {
+  const [open, setOpen] = useState(false);
+  const control = useRef<HTMLDivElement>(null);
+  const trigger = useRef<HTMLButtonElement>(null);
+  const id = useId();
+
+  useEffect(() => {
+    if (!open) return;
+    const dismissOutside = (event: Event) => {
+      if (event.target instanceof Node && !control.current?.contains(event.target)) {
+        setOpen(false);
+      }
+    };
+    const dismissEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.stopPropagation();
+      event.preventDefault();
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("focusin", dismissOutside);
+    document.addEventListener("keydown", dismissEscape, true);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("focusin", dismissOutside);
+      document.removeEventListener("keydown", dismissEscape, true);
+    };
+  }, [open]);
+
+  return (
+    <div className="xro-wins-control" ref={control}>
+      <button
+        type="button"
+        className="xro-wins-toggle"
+        id={`${id}-trigger`}
+        ref={trigger}
+        aria-expanded={open}
+        aria-controls={open ? id : undefined}
+        onClick={() => setOpen((value) => !value)}
+      >
+        {label("Labels.Wins")}
+        <span className="xro-wins-chevron" aria-hidden="true" />
+      </button>
+      {open && (
+        <section className="xro-wins-popover" id={id} role="region" aria-labelledby={`${id}-trigger`} tabIndex={0}>
+          <div className="xro-wins-heading">{label("Labels.Leaderboard")}</div>
+          <ul className="xro-wins-list">
+            {model.tracker.map((participant) => (
+              <li key={participant.userId} className={`xro-wins-player${participant.isCurrentUser ? " xro-wins-player--current" : ""}`}>
+                <span className="xro-wins-name" title={participant.name}>{participant.name}</span>
+                <WinProgress wins={participant.wins} target={model.winsNeeded} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+};
+
+const RollOffActionRow = ({
+  children,
+  className = "",
+}: {
+  children: ReactNode;
+  className?: string;
+}) => (
+  <div className={`xro-roll-action xro-roll-action--row ${className}`.trim()}>
+    {children}
+  </div>
+);
+
+const RollOffApp = ({
+  model,
+  showHistory,
+  areRollsSettled = true,
+  onAction,
+}: RollOffAppProps) => {
   const [busy, setBusy] = useState<RollOffAction | null>(null);
+  const [rollAsUserId, setRollAsUserId] = useState<string | null>(null);
   const busyRef = useRef(false);
+  const localParticipant = model.tracker.find((player) => player.isCurrentUser);
+  const localStatus = model.participantStatuses.find((player) => player.userId === localParticipant?.userId);
+  const rollAsParticipant = model.tracker.find((player) => player.userId === rollAsUserId)
+    ?? localParticipant;
+  const rollAsDisplay = model.participantStatuses.find((player) => player.userId === rollAsParticipant?.userId)
+    ?? model.users.find((player) => player.id === rollAsParticipant?.userId);
+  const headerIdentity = model.isActive
+    ? rollAsParticipant && { name: rollAsParticipant.name, avatar: rollAsDisplay?.avatar ?? "" }
+    : model.winner;
+  const roundPlayerCount = model.participantStatuses.length;
+  const rolledCount = model.participantStatuses.filter((player) => player.rolled).length;
+  const rollProgressLabel = game.i18n.format("XANDRA_ROLL_OFFS.Labels.RollsReceived", {
+    count: rolledCount,
+    total: roundPlayerCount,
+  });
+  // Split only a standalone trailing number; preserve full tiebreak/localized labels otherwise.
+  const roundParts = model.isActive ? model.roundLabel.match(/^(.+?)\s+(\d+)$/u) : null;
+  const heading = model.isActive
+    ? model.roundLabel || label("Labels.RoundInProgress")
+    : model.winner?.name ?? label("Labels.Winner");
   const dispatch = async (
     action: RollOffAction,
     payload?: any,
   ): Promise<boolean> => {
     if (busyRef.current) return false;
+    const previousRollAsUserId = rollAsUserId;
+    const changesIdentity = action === "rollFor" || action === "roll";
+    if (action === "rollFor" && typeof payload === "string") setRollAsUserId(payload);
+    if (action === "roll") setRollAsUserId(null);
     busyRef.current = true;
     setBusy(action);
     try {
-      return (await onAction(action, payload)) !== false;
+      const accepted = (await onAction(action, payload)) !== false;
+      if (!accepted && changesIdentity) setRollAsUserId(previousRollAsUserId);
+      return accepted;
+    } catch (error) {
+      if (changesIdentity) setRollAsUserId(previousRollAsUserId);
+      throw error;
     } finally {
       busyRef.current = false;
       setBusy(null);
@@ -58,31 +167,48 @@ const RollOffApp = ({ model, showHistory, areRollsSettled = true, onAction }: Ro
       ) : (
         <>
           <header className="xro-live-banner">
-            <div
-              className={`xro-live-state-mark ${model.isActive ? "is-active" : "is-complete"}`}
-            >
-              <i
-                className={`fas ${model.isActive ? "fa-dice" : "fa-trophy"}`}
-              />
-            </div>
-            <div className="xro-live-banner-copy">
-              <span className="xro-surface-kicker">
-                {model.isActive ? "Live contest" : "Contest complete"}
-              </span>
-              <strong>
-                {model.isActive
-                  ? model.roundLabel || "Round in progress"
-                  : (model.winner?.name ?? label("Labels.Winner"))}
-              </strong>
-            </div>
-            <div className="xro-live-banner-meta">
-              <span>
-                <i className="fas fa-trophy" /> First to {model.winsNeeded}
-              </span>
-              <span className="xro-live-meta-divider" />
-              <span>
-                <i className="fas fa-users" /> {model.tracker.length} players
-              </span>
+            {headerIdentity ? (
+              <div className="xro-header-identity">
+                {headerIdentity.avatar ? (
+                  <img className="xro-header-avatar" src={headerIdentity.avatar} alt="" />
+                ) : (
+                  <span className="xro-header-avatar xro-header-avatar--fallback" aria-hidden="true">
+                    {Array.from(headerIdentity.name.trim())[0] ?? ""}
+                  </span>
+                )}
+                <h2 className="xro-live-banner-copy" aria-label={model.isActive ? `${headerIdentity.name} — ${heading}` : headerIdentity.name}>
+                  <span className="xro-header-eyebrow" aria-hidden="true">
+                    {model.isActive ? heading : label("Labels.Winner")}
+                  </span>
+                  <strong className="xro-header-character-name" title={headerIdentity.name} aria-hidden="true">
+                    {headerIdentity.name}
+                  </strong>
+                </h2>
+              </div>
+            ) : (
+              <h2 className="xro-live-banner-copy" aria-label={heading}>
+                <span className="xro-header-eyebrow" aria-hidden="true">
+                  {roundParts?.[1] ?? label(model.isActive ? "Labels.CurrentRound" : "Labels.Winner")}
+                </span>
+                <strong className={roundParts ? "xro-header-round-number" : "xro-header-round-name"} aria-hidden="true">
+                  {roundParts ? roundParts[2].padStart(2, "0") : heading}
+                </strong>
+              </h2>
+            )}
+            <div className="xro-header-utilities">
+              <div className="xro-header-target">
+                {game.i18n.format("XANDRA_ROLL_OFFS.Labels.FirstTo", { wins: model.winsNeeded })}
+              </div>
+              <div className="xro-header-utility-row">
+                <span className="xro-header-progress" aria-live="polite" aria-atomic="true">
+                  {model.isActive
+                    ? roundPlayerCount > 0
+                      ? rollProgressLabel
+                      : game.i18n.format("XANDRA_ROLL_OFFS.Labels.PlayerCount", { count: model.tracker.length })
+                    : label("Labels.ContestComplete")}
+                </span>
+                {model.tracker.length > 0 && <WinsPopover model={model} />}
+              </div>
             </div>
           </header>
           {!model.isParticipant && (
@@ -142,207 +268,47 @@ const RollOffApp = ({ model, showHistory, areRollsSettled = true, onAction }: Ro
                 </div>
               )}
             </div>
-            {model.tracker.length > 0 && (
-              <div
-                className="xro-tracker"
-                data-expanded={trackerExpanded}
-                data-player-count={model.tracker.length}
-              >
-                {trackerExpanded ? (
-                  <>
-                    <div className="xro-tracker-rows">
-                      {model.tracker.map((participant) => (
-                        <div
-                          key={participant.userId}
-                          className={`xro-tracker-row ${participant.isCurrentUser ? "xro-tracker-row--current" : ""}`}
-                        >
-                          <span
-                            className="xro-tracker-name"
-                            title={participant.name}
-                          >
-                            {participant.name}
-                          </span>
-                          <div
-                            className="xro-tracker-slots"
-                            aria-label={`${participant.wins} of ${model.winsNeeded} wins`}
-                          >
-                            {participant.slots.map(
-                              (slot: { won: boolean }, index: number) => (
-                                <span
-                                  key={index}
-                                  className={`xro-tracker-slot ${slot.won ? "xro-tracker-won" : "xro-tracker-empty"}`}
-                                >
-                                  {slot.won ? (
-                                    <svg viewBox="0 0 24 24" aria-hidden="true">
-                                      <path d="M5 5 L19 19 M19 5 L5 19"></path>
-                                    </svg>
-                                  ) : (
-                                    <svg
-                                      viewBox="0 0 24 24"
-                                      aria-hidden="true"
-                                      strokeWidth="1"
-                                    >
-                                      <circle cx="12" cy="12" r="9"></circle>
-                                    </svg>
-                                  )}
-                                </span>
-                              ),
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      type="button"
-                      className="xro-tracker-header-icon-button xro-tracker-header-icon-button--expanded"
-                      aria-expanded="true"
-                      onClick={() => setTrackerExpanded(false)}
-                      aria-label={label("Labels.CollapseWins")}
-                    >
-                      <span className="xro-tracker-header-icon">
-                        <i className="fas fa-chevron-down" />
-                      </span>
-                    </button>
-                  </>
-                ) : (
-                  <div className="xro-tracker-collapsed">
-                    <button
-                      type="button"
-                      className="xro-tracker-header xro-tracker-header--collapsed"
-                      aria-expanded="false"
-                      onClick={() => setTrackerExpanded(true)}
-                    >
-                      <span className="xro-tracker-header-text">
-                        {label("Labels.Wins")}
-                      </span>
-                    </button>
-                    {(() => {
-                      const current =
-                        model.tracker.find((entry) => entry.isCurrentUser) ??
-                        model.tracker[0];
-                      return (
-                        <>
-                          <span
-                            className="xro-tracker-current-name"
-                            title={current?.name}
-                          >
-                            {current?.name}
-                          </span>
-                          <div
-                            className="xro-tracker-slots"
-                            aria-label={`${current?.wins ?? 0} of ${model.winsNeeded} wins`}
-                          >
-                            {current?.slots.map((slot, index) => (
-                              <span
-                                key={index}
-                                className={`xro-tracker-slot ${slot.won ? "xro-tracker-won" : "xro-tracker-empty"}`}
-                              >
-                                {slot.won ? (
-                                  <svg viewBox="0 0 24 24" aria-hidden="true">
-                                    <path d="M5 5 L19 19 M19 5 L5 19" />
-                                  </svg>
-                                ) : (
-                                  <svg
-                                    viewBox="0 0 24 24"
-                                    aria-hidden="true"
-                                    strokeWidth="1"
-                                  >
-                                    <circle cx="12" cy="12" r="9" />
-                                  </svg>
-                                )}
-                              </span>
-                            ))}
-                          </div>
-                        </>
-                      );
-                    })()}
-                    <button
-                      type="button"
-                      className="xro-tracker-header-icon-button"
-                      aria-expanded="false"
-                      onClick={() => setTrackerExpanded(true)}
-                      aria-label={label("Labels.ExpandWins")}
-                    >
-                      <span className="xro-tracker-header-icon">
-                        <i className="fas fa-chevron-down" />
-                      </span>
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
             <div
-              className={`xro-footer${model.isActive ? "" : " xro-footer--complete"}`}
+              className={`xro-footer${model.isActive ? " xro-footer--active" : " xro-footer--complete"}`}
               aria-label={label("Labels.ContestActions")}
             >
               {model.isActive ? (
-                model.roundComplete ? (
-                  <div className="xro-roll-action">
-                    {model.isGM ? (
-                      <>
-                        <button
-                          type="button"
-                          className="xro-next-round-btn"
-                          disabled={Boolean(busy)}
-                          onClick={() => void dispatch("advance")}
-                        >
-                          {label("Actions.NextRound")}
-                        </button>
-                        <RollOffActionRow className="xro-gm-btn-row xro-gm-utility-row">
-                          <button
-                            type="button"
-                            disabled={Boolean(busy)}
-                            className="xro-gm-btn"
-                            title="Roll for Missing Participants"
-                            aria-label="Roll for Missing Participants"
-                            onClick={() => void dispatch("forceResolve")}
-                          >
-                            <i className="fas fa-bolt" />
-                            <span>Force Resolve</span>
-                          </button>
-                          <button
-                            type="button"
-                            disabled={Boolean(busy)}
-                            className="xro-gm-btn xro-cancel-btn"
-                            title="Cancel Roll-Off"
-                            aria-label="Cancel Roll-Off"
-                            onClick={() => void dispatch("cancel")}
-                          >
-                            <i className="fas fa-times" />
-                            <span>Cancel</span>
-                          </button>
-                        </RollOffActionRow>
-                      </>
-                    ) : (
-                      <button
-                        type="button"
-                        disabled
-                        className="xro-waiting-btn"
-                      >
-                        {label("Labels.WaitingForGM")}
-                      </button>
-                    )}
-                  </div>
-                ) : model.canCurrentUserRoll ? (
-                  <div className="xro-roll-action">
+                <div className="xro-footer-primary">
+                  {model.roundComplete && model.isGM ? (
+                    <button
+                      type="button"
+                      className="xro-next-round-btn"
+                      disabled={Boolean(busy)}
+                      onClick={() => void dispatch("advance")}
+                    >
+                      {label("Actions.NextRound")}
+                      <span className="xro-footer-next-arrow" aria-hidden="true">→</span>
+                    </button>
+                  ) : !model.roundComplete && model.canCurrentUserRoll ? (
                     <button
                       type="button"
                       className="xro-roll-btn"
                       disabled={Boolean(busy)}
                       onClick={() => void dispatch("roll")}
                     >
+                      <i className="fas fa-dice" aria-hidden="true" />
                       {label("Actions.Roll")}
                     </button>
-                  </div>
-                ) : (
-                  <div className="xro-roll-action">
-                    <button type="button" disabled className="xro-waiting-btn">
-                      {label("Actions.Roll")}
-                    </button>
-                  </div>
-                )
+                  ) : (
+                    <div className="xro-footer-status" role="status">
+                      {!model.roundComplete && localStatus?.rolled && (
+                        <strong>{localStatus.value ?? "—"}</strong>
+                      )}
+                      <span>{model.roundComplete
+                        ? label("Labels.WaitingForGM")
+                        : localStatus?.rolled
+                          ? label("Labels.Rolled")
+                          : label("Labels.Waiting")}</span>
+                    </div>
+                  )}
+                </div>
               ) : areRollsSettled ? (
-              <div className="xro-completion-modal">
+                <div className="xro-completion-modal">
                   <button
                     type="button"
                     onClick={() => void dispatch("closeWindow")}
@@ -384,32 +350,30 @@ const RollOffApp = ({ model, showHistory, areRollsSettled = true, onAction }: Ro
                   )}
                 </div>
               ) : null}
-              {model.isGM && model.isActive && !model.roundComplete && (
-                <div className="xro-gm-controls">
-                  <RollOffActionRow className="xro-gm-btn-row xro-gm-utility-row">
+              {model.isGM && model.isActive && (
+                <div className="xro-footer-utilities" role="group" aria-label={label("Labels.GMControls")}>
+                    {!model.roundComplete && (
                     <button
                       type="button"
                       disabled={Boolean(busy)}
-                      className="xro-gm-btn"
-                      title="Roll for Missing Participants"
-                      aria-label="Roll for Missing Participants"
+                      className="xro-footer-utility"
+                      title={label("Actions.ForceResolve")}
+                      aria-label={label("Actions.ForceResolve")}
                       onClick={() => void dispatch("forceResolve")}
                     >
-                      <i className="fas fa-bolt" />
-                      <span>Force Resolve</span>
+                      {label("Actions.RollMissing")}
                     </button>
+                    )}
                     <button
                       type="button"
                       disabled={Boolean(busy)}
-                      className="xro-gm-btn xro-cancel-btn"
-                      title="Cancel Roll-Off"
-                      aria-label="Cancel Roll-Off"
+                      className="xro-footer-utility xro-footer-cancel"
+                      title={label("Actions.Cancel")}
+                      aria-label={label("Actions.Cancel")}
                       onClick={() => void dispatch("cancel")}
                     >
-                      <i className="fas fa-times" />
-                      <span>Cancel</span>
+                      <span className="xro-close-glyph" aria-hidden="true" />
                     </button>
-                  </RollOffActionRow>
                 </div>
               )}
             </div>

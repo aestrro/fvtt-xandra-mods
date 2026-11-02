@@ -1,9 +1,9 @@
 import { getActiveRollOff, setActiveRollOff, getWinTallies, setWinTallies, getRollOffHistory, setRollOffHistory, SETTINGS } from './settings.mjs';
 import * as State from './state.mjs';
 import * as Chat from './chat.mjs';
+import { getRoundContext, getRollKey, sameRound, REQUEST_TIMEOUT_MS, SOCKET_NAMESPACE } from './roll-protocol.mjs';
 
 const MODULE_ID = 'xandra-roll-offs';
-const SOCKET_NAMESPACE = 'module.xandra-roll-offs';
 const MAX_SESSION_HISTORY = 25;
 
 function createSessionSnapshot(activeRollOff, endedAt) {
@@ -27,6 +27,9 @@ export class RollOffSocketHandler {
   #resolving = false;
   #starting = false;
   #rollingUsers = new Set();
+  #mutationQueue = Promise.resolve();
+  #pendingRequests = new Map();
+  #chatClaims = new Set();
 
   constructor() {
     this._registerHandler();
@@ -40,19 +43,38 @@ export class RollOffSocketHandler {
   _onSocketEvent(data) {
     if (!data?.type) return;
 
+    if (data.type === 'requestResult') {
+      const pending = this.#pendingRequests.get(data.requestId);
+      if (!pending || data.requesterId !== game.userId || data.authorityId !== pending.authorityId) return;
+      this.#pendingRequests.delete(data.requestId);
+      clearTimeout(pending.timeout);
+      pending.resolve(data.accepted === true);
+      return;
+    }
+
+    if (['submitRoll', 'requestStartRollOff', 'requestAdvance', 'requestForceResolve', 'requestClose'].includes(data.type)) {
+      if (!this._isAuthority() || data.authorityId !== game.userId) return;
+      return this._runSocketTask(data.type, async () => {
+        let accepted = false;
+        try {
+          accepted = await this._handleRequest(data);
+        } finally {
+          game.socket.emit(SOCKET_NAMESPACE, {
+            type: 'requestResult', requestId: data.requestId, requesterId: data.requesterId,
+            authorityId: game.userId, accepted,
+          });
+        }
+      });
+    }
+
     if (data.type === 'rolling') {
       this._onRolling(data);
       return;
     }
 
     switch (data.type) {
-      case 'submitRoll':
-        this._runSocketTask('submitRoll', () => this._onSubmitRoll(data));
-        break;
-      case 'requestStartRollOff':
-        this._runSocketTask('requestStartRollOff', () => this._onRequestStartRollOff(data));
-        break;
       case 'stateUpdated':
+      case 'roundRollsComplete':
       case 'roundStarted':
       case 'tiebreakStarted':
       case 'rollOffEnded':
@@ -81,15 +103,7 @@ export class RollOffSocketHandler {
       return;
     }
 
-    if (game.user.isGM) {
-      // GM evaluates the roll locally; socket.emit does not echo back to the sender.
-      console.log(`${MODULE_ID} | requestRoll: GM handling roll for ${userId} locally`);
-      return this._onSubmitRoll({ type: 'submitRoll', userId });
-    } else {
-      console.log(`${MODULE_ID} | requestRoll: emitting submitRoll for ${userId}`);
-      this._emit('submitRoll', { userId, roundLabel: this._getActiveRoundLabel() });
-      return null;
-    }
+    return this._request('submitRoll', { userId });
   }
 
   /**
@@ -97,29 +111,32 @@ export class RollOffSocketHandler {
    * @param {{dieType: string, winsNeeded: number, participants: string[]}} config
    */
   async startRollOff(config) {
-    if (game.user.isGM) {
-      await this._onRequestStartRollOff({ type: 'requestStartRollOff', ...config });
-    } else {
-      this._emit('requestStartRollOff', config);
-    }
+    if (!game.user.isGM) return false;
+    return this._request('requestStartRollOff', config);
   }
 
   /**
    * Cancel the active roll-off. GM only.
    */
   async cancelRollOff() {
-    await this.closeRollOff();
+    return this.closeRollOff();
   }
 
   /**
    * Close the active roll-off and clear its state. GM only.
    */
   async closeRollOff() {
-    if (!game.user.isGM) return;
+    if (!game.user.isGM) return false;
+    return this._request('requestClose');
+  }
+
+  async _closeRollOff() {
+    if (!this._isAuthority()) return false;
     await setActiveRollOff({});
     await setWinTallies({});
     this._emit('rollOffCancelled', {});
     this._emit('stateUpdated', {});
+    return true;
   }
 
   /**
@@ -127,7 +144,12 @@ export class RollOffSocketHandler {
    * GM only.
    */
   async advanceRound() {
-    if (!game.user.isGM) return;
+    if (!game.user.isGM) return false;
+    return this._request('requestAdvance');
+  }
+
+  async _advanceRound() {
+    if (!this._isAuthority()) return false;
     if (this.#resolving) return;
     this.#resolving = true;
     try {
@@ -135,6 +157,7 @@ export class RollOffSocketHandler {
       if (!activeRollOff?.active) return;
       if (!State.isRoundComplete(activeRollOff)) return;
       await this._resolveRound(activeRollOff);
+      return true;
     } finally {
       this.#resolving = false;
     }
@@ -146,7 +169,12 @@ export class RollOffSocketHandler {
    * removed from the contest.
    */
   async forceResolve() {
-    if (!game.user.isGM) return;
+    if (!game.user.isGM) return false;
+    return this._request('requestForceResolve');
+  }
+
+  async _forceResolve() {
+    if (!this._isAuthority()) return false;
     if (this.#resolving) return;
     this.#resolving = true;
     try {
@@ -155,8 +183,9 @@ export class RollOffSocketHandler {
 
       const activeRound = State.findActiveRound(activeRollOff.roundStack);
       if (!activeRound) return;
+      const context = getRoundContext(activeRollOff);
 
-      const pending = State.getPendingRollers(activeRollOff);
+    const pending = State.getPendingRollers(activeRollOff);
       if (pending.length === 0) return;
 
       const evaluatedRolls = [];
@@ -173,9 +202,10 @@ export class RollOffSocketHandler {
       }
 
       for (const { userId, roll } of evaluatedRolls) {
-        State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id });
+        if (!State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id })) return false;
       }
 
+      if (!this._isAuthority() || !sameRound(context, getRoundContext(getActiveRollOff()))) return false;
       await setActiveRollOff(activeRollOff);
       this._emit('stateUpdated', activeRollOff);
       if (State.isRoundComplete(activeRollOff)) {
@@ -184,10 +214,11 @@ export class RollOffSocketHandler {
 
       if (game.settings.get(MODULE_ID, SETTINGS.POST_PER_ROLL_CARD)) {
         for (const { userId, roll } of evaluatedRolls) {
-          await this._runChatEffect('Force-resolve audit card', () => this._postAuditRoll(userId, roll, activeRound.label));
+          await this._runChatEffect('Force-resolve audit card', () => this._postAuditRoll(userId, roll, activeRound.label, context));
         }
       }
 
+      return true;
     } finally {
       this.#resolving = false;
     }
@@ -199,7 +230,7 @@ export class RollOffSocketHandler {
 
   async _onSubmitRoll(data) {
     console.log(`${MODULE_ID} | _onSubmitRoll received`, data);
-    if (!game.user.isGM) {
+    if (!this._isAuthority()) {
       console.warn(`${MODULE_ID} | _onSubmitRoll ignored: not GM`);
       return false;
     }
@@ -210,11 +241,15 @@ export class RollOffSocketHandler {
 
     try {
       const activeRollOff = getActiveRollOff();
+      const context = getRoundContext(activeRollOff);
+      if (!sameRound(data, context)) return false;
       if (!activeRollOff?.active) {
         console.warn(`${MODULE_ID} | submitRoll ignored: no active roll-off`);
         return false;
       }
 
+      const existing = State.findActiveRound(activeRollOff.roundStack)?.rolls?.[userId];
+      if (existing) return Number.isFinite(existing.total); // Committed: acknowledge, never evaluate/post again.
       if (!State.canUserRoll(activeRollOff, userId)) {
         console.warn(`${MODULE_ID} | submitRoll ignored: user ${userId} cannot roll`);
         return false;
@@ -226,7 +261,8 @@ export class RollOffSocketHandler {
       this._emit('rolling', { userId, roundLabel: activeRound.label });
       const roll = await new Roll(dieType).evaluate({ allowInteractive: false });
       console.log(`${MODULE_ID} | _onSubmitRoll: roll result ${roll.total} for ${userId}`);
-      State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id });
+      if (!this._isAuthority() || !sameRound(context, getRoundContext(getActiveRollOff()))) return false;
+      if (!State.submitRoll(activeRollOff, userId, { total: roll.total, rollId: roll.id })) return false;
       await setActiveRollOff(activeRollOff);
       this._emit('stateUpdated', activeRollOff);
       if (State.isRoundComplete(activeRollOff)) {
@@ -234,7 +270,7 @@ export class RollOffSocketHandler {
       }
 
       if (game.settings.get(MODULE_ID, SETTINGS.POST_PER_ROLL_CARD)) {
-        await this._runChatEffect('Audit roll card', () => this._postAuditRoll(userId, roll, activeRound.label));
+        await this._runChatEffect('Audit roll card', () => this._postAuditRoll(userId, roll, activeRound.label, context));
       }
       return true;
 
@@ -261,7 +297,8 @@ export class RollOffSocketHandler {
   }
 
   async _onRequestStartRollOff(data) {
-    if (!game.user.isGM) return;
+    if (!this._isAuthority()) return false;
+    if (Object.keys(getActiveRollOff() ?? {}).length) return false;
     if (this.#starting) return;
     this.#starting = true;
     try {
@@ -296,7 +333,7 @@ export class RollOffSocketHandler {
       this._emit('stateUpdated', activeRollOff);
       this._emit('roundStarted', startedRound);
       await this._runChatEffect('Roll-off start announcement', () => Chat.postRollOffStarted(startedRound, winsNeeded, participants, dieType));
-      await this._runChatEffect('Round start announcement', () => Chat.postRoundStarted(startedRound, participants, dieType));
+      return true;
     } finally {
       this.#starting = false;
     }
@@ -340,13 +377,17 @@ export class RollOffSocketHandler {
       this._emit('stateUpdated', activeRollOff);
       const newRound = State.findActiveRound(activeRollOff.roundStack);
       this._emit('roundStarted', newRound);
-      await this._runChatEffect('Round start announcement', () => Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType));
+      if (game.settings.get(MODULE_ID, SETTINGS.POST_ROUND_ANNOUNCEMENTS)) {
+        await this._runChatEffect('Round start announcement', () => Chat.postRoundStarted(newRound, newRound.participants, activeRollOff.dieType));
+      }
     } else if (result.type === 'tiebreak') {
       const topRound = State.findActiveRound(activeRollOff.roundStack);
       const tiedUserIds = topRound.participants;
       this._emit('tiebreakStarted', topRound);
       this._emit('stateUpdated', activeRollOff);
-      await this._runChatEffect('Tiebreak start announcement', () => Chat.postRoundStarted(topRound, tiedUserIds, activeRollOff.dieType));
+      if (game.settings.get(MODULE_ID, SETTINGS.POST_TIEBREAK_ANNOUNCEMENTS)) {
+        await this._runChatEffect('Tiebreak start announcement', () => Chat.postRoundStarted(topRound, tiedUserIds, activeRollOff.dieType));
+      }
     }
   }
 
@@ -354,7 +395,19 @@ export class RollOffSocketHandler {
   /*  Chat helpers                                                  */
   /* ================================================================ */
 
-  async _postAuditRoll(userId, roll, roundLabel) {
+  async _postAuditRoll(userId, roll, roundLabel, context) {
+    if (!this._isAuthority()) return;
+    const active = getActiveRollOff();
+    if (!sameRound(context, getRoundContext(active))) return;
+    const rollKey = getRollKey(context, userId);
+    if (!rollKey || !State.findActiveRound(active.roundStack)?.rolls?.[userId]) return;
+    active.chatRollClaims ??= {};
+    if (this.#chatClaims.has(rollKey) || active.chatRollClaims[rollKey] || game.messages?.some?.((message) => message.flags?.[MODULE_ID]?.rollKey === rollKey)) return;
+    // Reserve before create: ambiguous chat failures must not cause duplicate retries.
+    this.#chatClaims.add(rollKey);
+    active.chatRollClaims[rollKey] = true;
+    await setActiveRollOff(active);
+    if (!this._isAuthority()) return;
     const user = game.users.get(userId);
     const speaker = user?.character
       ? ChatMessage.getSpeaker({ actor: user.character })
@@ -364,7 +417,7 @@ export class RollOffSocketHandler {
     await roll.toMessage({
       speaker,
       flavor,
-      flags: { [MODULE_ID]: { auditRoll: true } },
+      flags: { [MODULE_ID]: { auditRoll: true, rollKey, ...context, participantId: userId } },
     }, { create: true });
   }
 
@@ -377,7 +430,7 @@ export class RollOffSocketHandler {
   }
 
   _runSocketTask(label, callback) {
-    Promise.resolve()
+    return Promise.resolve()
       .then(callback)
       .catch((err) => {
         console.error(`${MODULE_ID} | Socket task ${label} failed`, err);
@@ -397,6 +450,55 @@ export class RollOffSocketHandler {
   _emit(type, payload) {
     game.socket.emit(SOCKET_NAMESPACE, { type, ...payload });
     Hooks.callAll(`xandraRollOffs.${type}`, payload);
+  }
+  _isAuthority() {
+    return Boolean(game.user.isGM && game.users.activeGM?.id === game.userId);
+  }
+
+  async _request(type, payload = {}) {
+    const authorityId = game.users.activeGM?.id;
+    if (!authorityId) {
+      ui.notifications?.warn?.(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.NoRollAuthority'));
+      return false;
+    }
+    const active = getActiveRollOff();
+    const data = {
+      ...payload, type, authorityId, requesterId: game.userId, requestId: crypto.randomUUID(),
+      ...getRoundContext(active), expectedSessionId: active?.sessionId ?? null,
+    };
+    if (this._isAuthority()) return this._handleRequest(data);
+    return new Promise((resolve) => {
+      const timeout = setTimeout(() => {
+        this.#pendingRequests.delete(data.requestId);
+        ui.notifications?.warn?.(game.i18n.localize('XANDRA_ROLL_OFFS.Errors.RollRequestTimeout'));
+        resolve(false);
+      }, REQUEST_TIMEOUT_MS);
+      this.#pendingRequests.set(data.requestId, { authorityId, resolve, timeout });
+      game.socket.emit(SOCKET_NAMESPACE, data);
+    });
+  }
+
+  _handleRequest(data) {
+    const task = this.#mutationQueue.then(async () => {
+      if (!this._isAuthority() || data.authorityId !== game.userId) return false;
+      const requester = game.users.get(data.requesterId);
+      if (!requester) return false;
+      if (data.type === 'submitRoll') {
+        if (!requester.isGM && data.userId !== requester.id) return false;
+        return (await this._onSubmitRoll(data)) === true;
+      }
+      if (!requester.isGM) return false;
+      if (data.type === 'requestStartRollOff') return (await this._onRequestStartRollOff(data)) === true;
+      const active = getActiveRollOff();
+      if ((active?.sessionId ?? null) !== data.expectedSessionId) return false;
+      if (data.type === 'requestClose') return (await this._closeRollOff()) === true;
+      if (!sameRound(data, getRoundContext(active))) return false;
+      if (data.type === 'requestAdvance') return (await this._advanceRound()) === true;
+      if (data.type === 'requestForceResolve') return (await this._forceResolve()) === true;
+      return false;
+    });
+    this.#mutationQueue = task.catch(() => {});
+    return task;
   }
 }
 

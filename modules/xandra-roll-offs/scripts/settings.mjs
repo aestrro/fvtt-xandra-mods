@@ -10,16 +10,27 @@ const SETTINGS = {
   WIN_TALLIES: 'winTallies',
   SHOW_CHAT_BUTTON: 'showChatButton',
   POST_PER_ROLL_CARD: 'postPerRollCard',
+  POST_ROUND_ANNOUNCEMENTS: 'postRoundAnnouncements',
+  POST_TIEBREAK_ANNOUNCEMENTS: 'postTiebreakAnnouncements',
   DEFAULT_DIE_TYPE: 'defaultDieType',
   DEFAULT_WINS_NEEDED: 'defaultWinsNeeded',
   SHOW_SIDEBAR_TAB: 'showSidebarTab',
   INCLUDE_GM_BY_DEFAULT: 'includeGMByDefault',
+  OPEN_GM_PANELS: 'openGmPanels',
 };
 
 /**
  * Register all module settings.
  */
 export function registerSettings() {
+  // Per-user panel visibility on this browser, including setup without a session.
+  game.settings.register(MODULE_ID, SETTINGS.OPEN_GM_PANELS, {
+    scope: 'client',
+    config: false,
+    type: Object,
+    default: {},
+  });
+
   // Active roll-off state (world-scope, hidden from config UI)
   game.settings.register(MODULE_ID, SETTINGS.ACTIVE_ROLL_OFF, {
     name: 'Active Roll-Off',
@@ -68,7 +79,25 @@ export function registerSettings() {
     scope: 'world',
     config: true,
     type: Boolean,
-    default: true,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.POST_ROUND_ANNOUNCEMENTS, {
+    name: 'XANDRA_ROLL_OFFS.Settings.PostRoundAnnouncements.Name',
+    hint: 'XANDRA_ROLL_OFFS.Settings.PostRoundAnnouncements.Hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
+  });
+
+  game.settings.register(MODULE_ID, SETTINGS.POST_TIEBREAK_ANNOUNCEMENTS, {
+    name: 'XANDRA_ROLL_OFFS.Settings.PostTiebreakAnnouncements.Name',
+    hint: 'XANDRA_ROLL_OFFS.Settings.PostTiebreakAnnouncements.Hint',
+    scope: 'world',
+    config: true,
+    type: Boolean,
+    default: false,
   });
 
   // Visible world setting: whether the GM participates by default

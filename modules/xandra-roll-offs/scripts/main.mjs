@@ -1,11 +1,12 @@
 import { registerSidebarTab } from './apps/RollOffSidebarTab.mjs';
 import { initSocketHandler } from './socket.mjs';
 import { registerSettings, getActiveRollOff, SETTINGS } from './settings.mjs';
-import { canUserRoll } from './state.mjs';
+import { findActiveRound } from './state.mjs';
 import { MODULE_ID, log, parseRollCommand } from './utils.mjs';
+import { getRoundContext, getRollKey } from './roll-protocol.mjs';
 
-const ROLL_CAPTURE_TTL_MS = 2000;
-let pendingRollCapture = null;
+const interceptedCommands = new Map();
+let commandSessionId = null;
 let RollOffWindow;
 
 export function registerRollOffHooks(windowClass) {
@@ -86,12 +87,8 @@ Hooks.once('ready', async () => {
 
   log('Initialization complete.');
 
-  // Open the roll-off window if one is already active, then keep it in sync
-  // with future round starts/tiebreaks/ends.
-  const maybeOpen = () => {
-    if (getActiveRollOff()?.active) RollOffWindow.open();
-  };
-  maybeOpen();
+  // Restore GM panel visibility, including setup without an active session.
+  await RollOffWindow.restore();
 
   Hooks.on('xandraRollOffs.roundStarted', () => {
     RollOffWindow.open();
@@ -103,7 +100,7 @@ Hooks.once('ready', async () => {
     // Keep the window open to show the final winner; the GM can use Close Roll-Off.
     RollOffWindow.open();
   });
-  Hooks.on('xandraRollOffs.rollOffCancelled', () => RollOffWindow.close());
+  Hooks.on('xandraRollOffs.rollOffCancelled', () => RollOffWindow.onStateChanged());
 
   // Re-render the toolbar so the icon visibility matches the current state.
   Hooks.on('xandraRollOffs.stateUpdated', () => ui.controls?.render?.());
@@ -111,8 +108,8 @@ Hooks.once('ready', async () => {
   // Wire /roll interception for active participants
   Hooks.on('chatMessage', (chatLog, messageText, data) => onChatMessage(chatLog, messageText, data));
 
-  // Catch rolls that bypass the chatMessage hook (e.g., from system-specific
-  // command handling or other modules) by inspecting created chat messages.
+  // Prevent tagged native copies before creation; cleanup is a last-resort fallback.
+  Hooks.on('preCreateChatMessage', onPreCreateChatMessage);
   Hooks.on('createChatMessage', (message, options, userId) => onCreateChatMessage(message, options, userId));
 });
 
@@ -120,13 +117,13 @@ Hooks.once('ready', async () => {
 /*  /roll Interception                                              */
 /* ================================================================ */
 
-function onChatMessage(chatLog, messageText, data) {
+function onChatMessage(chatLog, messageText, data = {}) {
   const expression = parseRollCommand(messageText);
   if (!expression) return;
 
   const activeRollOff = getActiveRollOff();
   if (!activeRollOff?.active) return;
-  if (!canUserRoll(activeRollOff, game.userId)) return;
+  if (!findActiveRound(activeRollOff.roundStack)?.participants.includes(game.userId)) return;
   if (!matchesDiePattern(expression, activeRollOff.dieType)) {
     ui.notifications.warn(game.i18n.format('XANDRA_ROLL_OFFS.Errors.DiePatternMismatch', { pattern: activeRollOff.dieType }));
     return;
@@ -138,20 +135,18 @@ function onChatMessage(chatLog, messageText, data) {
     return;
   }
 
-  // Fire the roll-off request without awaiting so the hook can return false
-  // synchronously and suppress the default chat message. Keep a short-lived
-  // marker only to clean up a duplicate message if a system ignores suppression.
+  // Tag only this explicit command's message data. Never match unrelated macros by formula/time.
+  const commandId = crypto.randomUUID();
+  const context = getRoundContext(activeRollOff);
+  if (commandSessionId !== context?.sessionId) {
+    interceptedCommands.clear();
+    commandSessionId = context?.sessionId;
+  }
+  const rollKey = getRollKey(context, game.userId);
+  data.flags ??= {};
+  data.flags[MODULE_ID] = { ...data.flags[MODULE_ID], interceptedRoll: { commandId, rollKey } };
   const request = socket.requestRoll(game.userId);
-  const capture = {
-    userId: game.userId,
-    formula: normalizeDie(expression),
-    expiresAt: Date.now() + ROLL_CAPTURE_TTL_MS,
-    request,
-  };
-  pendingRollCapture = capture;
-  setTimeout(() => {
-    if (pendingRollCapture === capture) pendingRollCapture = null;
-  }, ROLL_CAPTURE_TTL_MS);
+  interceptedCommands.set(commandId, { rollKey, request });
   request.catch((err) => {
     console.error(`${MODULE_ID} | requestRoll failed for ${game.userId} (${expression})`, err);
   });
@@ -182,6 +177,13 @@ function normalizeDie(formula) {
  * `chatMessage` cancellation. Messages without a matching pending command are
  * left untouched, so unrelated macro and system rolls are never captured.
  */
+function onPreCreateChatMessage(message, data, options, userId) {
+  if (userId !== game.userId) return;
+  const flags = data?.flags?.[MODULE_ID] ?? message.flags?.[MODULE_ID];
+  if (flags?.interceptedRoll) return false;
+  if (flags?.auditRoll && flags.rollKey && game.messages?.some?.((existing) => existing.flags?.[MODULE_ID]?.rollKey === flags.rollKey)) return false;
+}
+
 async function onCreateChatMessage(message, options, userId) {
   // Ignore our own audit roll cards so the GM doesn't re-roll just because they
   // posted a per-roll chat card.
@@ -192,19 +194,13 @@ async function onCreateChatMessage(message, options, userId) {
   const authorId = message.author?.id ?? message.user;
   if (authorId !== game.userId) return;
 
-  const rolls = message.rolls ?? [];
-  if (rolls.length === 0) return;
-
-  const roll = rolls[0];
-  const capture = pendingRollCapture;
-  if (!capture || capture.expiresAt < Date.now()) return;
-  if (capture.userId !== game.userId || capture.formula !== normalizeDie(roll.formula)) return;
-  pendingRollCapture = null;
-
-  const accepted = await capture.request;
-  // Raw player socket requests do not have an acknowledgement. Preserve the
-  // original message rather than deleting it without proof the roll was saved.
-  if (!game.user.isGM || accepted !== true) return;
+  const marker = message.flags?.[MODULE_ID]?.interceptedRoll;
+  if (!marker) return;
+  const capture = interceptedCommands.get(marker.commandId);
+  if (!capture || capture.rollKey !== marker.rollKey) return;
+  const accepted = await capture.request.catch(() => false);
+  // Player requests now have an authoritative acknowledgement too.
+  if (accepted !== true) return;
 
   try {
     if (message.isOwner ?? message.canUser?.(game.user, 'delete')) {
@@ -218,4 +214,4 @@ async function onCreateChatMessage(message, options, userId) {
 
 }
 
-export { matchesDiePattern };
+export { matchesDiePattern, onChatMessage, onPreCreateChatMessage, onCreateChatMessage };

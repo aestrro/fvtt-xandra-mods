@@ -8,16 +8,26 @@
       "CloseRollOff": "Close Roll-Off",
       "ResetTallies": "Reset Tallies",
       "ForceResolve": "Roll for Missing Participants",
+      "RollMissing": "Roll missing",
       "OpenRollOff": "Open Roll-Off",
       "Close": "Close",
-      "NextRound": "Next Round"
+      "NextRound": "Next Round",
+      "SelectAll": "Select all",
+      "Clear": "Clear"
     },
     "Labels": {
       "ConfigureRollOff": "Configure Roll-Off",
+      "StartHeading": "Start a roll-off",
+      "GMControls": "GM controls",
       "DieType": "Die Type",
       "WinsNeeded": "Wins Needed",
       "Participants": "Participants",
+      "ChoosePlayers": "Choose players",
+      "SelectedCount": "{count} selected",
+      "Online": "Online",
+      "Offline": "Offline",
       "CurrentRound": "Current Round",
+      "Current": "Current",
       "Round": "Round {round}",
       "Tiebreak": "Tiebreak",
       "Leaderboard": "Leaderboard",
@@ -29,6 +39,14 @@
       "RollOffComplete": "Roll-Off Complete",
       "Winner": "Winner",
       "Wins": "Wins",
+      "WinProgress": "{wins} / {target} wins",
+      "LiveContest": "Live contest",
+      "ContestComplete": "Contest complete",
+      "RoundInProgress": "Round in progress",
+      "FirstTo": "First to {wins}",
+      "PlayerCount": "{count} players",
+      "RollProgress": "Round rolls",
+      "RollsReceived": "{count} / {total} rolled",
       "FinalScore": "Final Score",
       "RoundDetails": "Round Details",
       "Tie": "Tie between",
@@ -51,7 +69,15 @@
       },
       "PostPerRollCard": {
         "Name": "Post Per-Roll Cards",
-        "Hint": "Post a standard chat roll card for each participant's roll."
+        "Hint": "Post individual rolls to chat, including GM rolls for missing players. Off by default; results remain visible in the panel."
+      },
+      "PostRoundAnnouncements": {
+        "Name": "Post Round Announcements",
+        "Hint": "Announce subsequent rounds in chat. Off by default; the contest start and final results are always posted."
+      },
+      "PostTiebreakAnnouncements": {
+        "Name": "Post Tiebreak Announcements",
+        "Hint": "Announce each tiebreak in chat. Off by default; the panel always shows tiebreaks."
       },
       "DefaultDieType": {
         "Name": "Default Die Type",
@@ -82,6 +108,8 @@
       "RollOffWinner": "Roll-Off Winner: {name}"
     },
     "Errors": {
+      "NoRollAuthority": "No active GM is available to handle the roll-off.",
+      "RollRequestTimeout": "The GM did not confirm your roll-off request. Check the panel before trying again.",
       "NeedTwoParticipants": "A roll-off needs at least two participants.",
       "OnlyGmStarts": "Only the GM can start a roll-off.",
       "AlreadyRolled": "You have already rolled this round.",

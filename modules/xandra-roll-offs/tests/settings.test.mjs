@@ -35,4 +35,21 @@ describe('setting change hooks', () => {
       { name: 'xandraRollOffs.sidebarSettingChanged', payload: false },
     ]);
   });
+
+  it('keeps per-user panel visibility in a hidden client setting', () => {
+    const setting = registrations.get(SETTINGS.OPEN_GM_PANELS);
+    assert.equal(setting.scope, 'client');
+    assert.equal(setting.config, false);
+    assert.equal(setting.type, Object);
+    assert.deepEqual(setting.default, {});
+  });
+
+  it('defaults optional chat messages to off with world-wide controls', () => {
+    for (const key of [SETTINGS.POST_PER_ROLL_CARD, SETTINGS.POST_ROUND_ANNOUNCEMENTS, SETTINGS.POST_TIEBREAK_ANNOUNCEMENTS]) {
+      const setting = registrations.get(key);
+      assert.equal(setting.scope, 'world');
+      assert.equal(setting.config, true);
+      assert.equal(setting.default, false);
+    }
+  });
 });

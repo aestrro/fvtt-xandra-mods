@@ -1,9 +1,9 @@
-import { createReactApplicationV2 } from '@xandra/foundry-react';
-import RollOffApp, { type RollOffAction } from '../../components/RollOffApp';
-import { prepareViewModel } from '../prepareViewModel';
-import { getActiveRollOff } from '../../../scripts/settings.mjs';
-import { canUserRoll } from '../../../scripts/state.mjs';
-import { MODULE_ID } from '../../../scripts/utils.mjs';
+import { createReactApplicationV2 } from "@xandra/foundry-react";
+import RollOffApp, { type RollOffAction } from "../../components/RollOffApp";
+import { prepareViewModel } from "../prepareViewModel";
+import { getActiveRollOff, SETTINGS } from "../../../scripts/settings.mjs";
+import { canUserRoll } from "../../../scripts/state.mjs";
+import { MODULE_ID } from "../../../scripts/utils.mjs";
 
 type FoundryWindow = {
   _preClose(options?: unknown): Promise<void>;
@@ -12,7 +12,9 @@ type FoundryWindow = {
   rendered: boolean;
 };
 const BaseWindow = createReactApplicationV2(
-  foundry.applications.api.ApplicationV2 as new (...args: any[]) => FoundryWindow
+  foundry.applications.api.ApplicationV2 as new (
+    ...args: any[]
+  ) => FoundryWindow,
 );
 
 /** Foundry chrome and lifecycle only; the UI lives in React function components. */
@@ -23,21 +25,55 @@ export class RollOffWindow extends BaseWindow {
   #showHistory = false;
 
   static DEFAULT_OPTIONS = {
-    id: 'xandra-roll-offs-window',
-    classes: ['xandra-roll-offs-window'],
-    tag: 'div',
+    id: "xandra-roll-offs-window",
+    classes: ["xandra-roll-offs-window"],
+    tag: "div",
     window: {
-      title: 'Roll-Off',
+      title: "Roll-Off",
       resizable: true,
-      controls: [{ icon: 'fas fa-clock-rotate-left', label: 'History', action: 'toggleHistory', tooltip: 'View session history' }]
+      controls: [
+        {
+          icon: "fas fa-clock-rotate-left",
+          label: "History",
+          action: "toggleHistory",
+          tooltip: "View session history",
+        },
+      ],
     },
     position: { width: 420, height: 560 },
-    actions: { toggleHistory: RollOffWindow.toggleHistory }
+    actions: { toggleHistory: RollOffWindow.toggleHistory },
   };
 
-  static open(options: Record<string, unknown> = {}) {
+  static async open(options: Record<string, unknown> = {}) {
     if (!this.#instance) this.#instance = new this();
-    return this.#instance.render({ force: true, ...options });
+    const result = await this.#instance.render({ force: true, ...options });
+    if (this.#instance?.rendered) await this.#rememberPanel(true);
+    return result;
+  }
+
+  static async restore() {
+    const active = getActiveRollOff() as { active?: boolean } | null;
+    if (game.user.isGM) {
+      const panels = game.settings.get(MODULE_ID, SETTINGS.OPEN_GM_PANELS) ?? {};
+      const saved = panels[game.userId];
+      if (saved === true || (saved === undefined && active?.active)) return this.open();
+    } else if (active?.active) {
+      return this.open();
+    }
+  }
+
+  static async #rememberPanel(open: boolean) {
+    if (!game.user.isGM) return;
+    try {
+      const panels = game.settings.get(MODULE_ID, SETTINGS.OPEN_GM_PANELS) ?? {};
+      if (panels[game.userId] === open) return;
+      await game.settings.set(MODULE_ID, SETTINGS.OPEN_GM_PANELS, {
+        ...panels,
+        [game.userId]: open,
+      });
+    } catch (error) {
+      console.warn(`${MODULE_ID} | Could not remember panel visibility`, error);
+    }
   }
 
   static close() {
@@ -51,7 +87,13 @@ export class RollOffWindow extends BaseWindow {
   static onStateChanged() {
     const active = getActiveRollOff();
     if (!active || Object.keys(active).length === 0) {
-      void this.close();
+      this.#rollsSettled = true;
+      if (game.user.isGM && this.#instance?.rendered) {
+        this.#instance.#showHistory = false;
+        void this.#instance.render({ force: true });
+      } else if (!game.user.isGM) {
+        void this.close();
+      }
     } else if (this.#instance?.rendered) {
       void this.#instance.render({ force: true });
     }
@@ -67,14 +109,18 @@ export class RollOffWindow extends BaseWindow {
   constructor(...args: any[]) {
     super(...args);
     if (RollOffWindow.#hookId === null) {
-      RollOffWindow.#hookId = Hooks.on('xandraRollOffs.stateUpdated', () => RollOffWindow.onStateChanged());
-      Hooks.on('xandraRollOffs.rolling', () => {
+      RollOffWindow.#hookId = Hooks.on("xandraRollOffs.stateUpdated", () =>
+        RollOffWindow.onStateChanged(),
+      );
+      Hooks.on("xandraRollOffs.rolling", () => {
         RollOffWindow.#rollsSettled = false;
-        if (RollOffWindow.#instance?.rendered) void RollOffWindow.#instance.render({ force: true });
+        if (RollOffWindow.#instance?.rendered)
+          void RollOffWindow.#instance.render({ force: true });
       });
-      Hooks.on('xandraRollOffs.roundRollsComplete', () => {
+      Hooks.on("xandraRollOffs.roundRollsComplete", () => {
         RollOffWindow.#rollsSettled = true;
-        if (RollOffWindow.#instance?.rendered) void RollOffWindow.#instance.render({ force: true });
+        if (RollOffWindow.#instance?.rendered)
+          void RollOffWindow.#instance.render({ force: true });
       });
     }
   }
@@ -84,42 +130,56 @@ export class RollOffWindow extends BaseWindow {
   }
 
   async close(options?: unknown): Promise<void> {
-    RollOffWindow.#instance = null;
     await super.close(options);
+    if (RollOffWindow.#instance === this) RollOffWindow.#instance = null;
+    await RollOffWindow.#rememberPanel(false);
   }
 
   renderReact() {
-    return <RollOffApp model={prepareViewModel()} showHistory={this.#showHistory}
-      areRollsSettled={RollOffWindow.areRollsSettled}
-      onAction={(action, payload) => this.#dispatch(action, payload)} />;
+    return (
+      <RollOffApp
+        model={prepareViewModel()}
+        showHistory={this.#showHistory}
+        areRollsSettled={RollOffWindow.areRollsSettled}
+        onAction={(action, payload) => this.#dispatch(action, payload)}
+      />
+    );
   }
 
   async #dispatch(action: RollOffAction, payload?: any): Promise<unknown> {
-    if (action === 'closeWindow') return this.close();
-    if (action !== 'roll' && !game.user.isGM) return;
+    if (action === "closeWindow") return this.close();
+    if (action !== "roll" && !game.user.isGM) return;
     const socket = game.modules.get(MODULE_ID)?.socketHandler;
     if (!socket) {
       console.error(`${MODULE_ID} | Socket handler unavailable`);
-      ui.notifications.error('Roll-Off controls are still initializing. Try again in a moment.');
+      ui.notifications.error(
+        "Roll-Off controls are still initializing. Try again in a moment.",
+      );
       return;
     }
     try {
       switch (action) {
-        case 'roll': return await socket.requestRoll(game.userId);
-        case 'rollFor':
+        case "roll":
+          return await socket.requestRoll(game.userId);
+        case "rollFor":
           if (!canUserRoll(getActiveRollOff() as any, payload)) return;
           return await socket.requestRoll(payload);
-        case 'start':
-          await socket.startRollOff(payload);
-          return true;
-        case 'cancel': return await socket.cancelRollOff();
-        case 'closeRollOff': return await socket.closeRollOff();
-        case 'forceResolve': return await socket.forceResolve();
-        case 'advance': return await socket.advanceRound();
+        case "start":
+          return await socket.startRollOff(payload);
+        case "cancel":
+          return await socket.cancelRollOff();
+        case "closeRollOff":
+          return await socket.closeRollOff();
+        case "forceResolve":
+          return await socket.forceResolve();
+        case "advance":
+          return await socket.advanceRound();
       }
     } catch (error) {
       console.error(`${MODULE_ID} | ${action} failed`, error);
-      ui.notifications.error(`Roll-Off action failed: ${error instanceof Error ? error.message : String(error)}`);
+      ui.notifications.error(
+        `Roll-Off action failed: ${error instanceof Error ? error.message : String(error)}`,
+      );
     }
   }
 }
